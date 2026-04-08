@@ -12,6 +12,7 @@
 9. 同步队列与冲突处理
 10. 平台规则配置与发布
 11. 平台监控与合规看板
+12. 工作台体验优化
 
 ```mermaid
 flowchart TD
@@ -27,4 +28,10 @@ t06 --> t09
 t07 --> t10[task-10-platform-config-release]
 t09 --> t11[task-11-platform-monitor-compliance]
 t10 --> t11
+t01 --> t12[task-12-backend-auth-persistence]
+t12 --> t13[task-13-auth-security-hardening]
+t01 --> t14[task-14-auth-api-contract-alignment]
+t14 --> t15[task-15-login-e2e-regression]
+t03 --> t16[task-16-workbench-experience-polish]
+t09 --> t16
 ```

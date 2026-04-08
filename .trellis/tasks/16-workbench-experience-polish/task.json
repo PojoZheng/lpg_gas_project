@@ -1,0 +1,22 @@
+{
+  "id": "16-workbench-experience-polish",
+  "title": "工作台体验优化",
+  "status": "todo",
+  "depends_on": ["03-quick-order", "09-sync-queue-conflict"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-workbench/overview.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md"
+  ],
+  "acceptance": [
+    "工作台快速开单入口可进入真实开单流程，不再仅提示预留",
+    "首页取消常驻同步状态卡，改为联网进入首页且存在离线待同步时弹出同步模态框",
+    "同步模态框支持立即同步与稍后处理，并展示待同步条数",
+    "同步失败后提供查看同步明细与重试入口",
+    "下一待配送卡支持查看详情与开始配送",
+    "补齐无待配送、无收入等空状态文案与动作引导",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji",
+    "自动化测试通过"
+  ]
+}

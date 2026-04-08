@@ -24,6 +24,11 @@
 - `09-sync-queue-conflict`
 - `10-platform-policy-release`
 - `11-platform-monitor-compliance`
+- `12-backend-auth-persistence`
+- `13-auth-security-hardening`
+- `14-auth-api-contract-alignment`
+- `15-login-e2e-regression`
+- `16-workbench-experience-polish`
 
 ## 依赖图
 见 [feature-task-map.md](./feature-task-map.md)
