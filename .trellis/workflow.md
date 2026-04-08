@@ -44,6 +44,12 @@ This creates:
 ### Step 1: Understand Current Context
 
 ```bash
+# One command bootstrap (model-agnostic, recommended)
+python3 ./.trellis/scripts/session_bootstrap.py
+
+# One command finalize (model-agnostic)
+python3 ./.trellis/scripts/session_finalize.py
+
 # Get full context in one command
 python3 ./.trellis/scripts/get_context.py
 
@@ -155,6 +161,12 @@ cat .trellis/spec/backend/logging-guidelines.md    # For logging
 Use the unified context script:
 
 ```bash
+# Recommended: context + task conflict check in one command
+python3 ./.trellis/scripts/session_bootstrap.py
+
+# Optional: generate next-session handoff package
+python3 ./.trellis/scripts/session_finalize.py
+
 # Get all context in one command
 python3 ./.trellis/scripts/get_context.py
 

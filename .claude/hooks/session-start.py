@@ -141,6 +141,14 @@ Read and follow all instructions below carefully.
     output.write(run_script(context_script))
     output.write("\n</current-state>\n\n")
 
+    output.write("<task-conflict-check>\n")
+    conflict_script = trellis_dir / "scripts" / "task_conflict_check.py"
+    if conflict_script.is_file():
+        output.write(run_script(conflict_script))
+    else:
+        output.write("No conflict checker available")
+    output.write("\n</task-conflict-check>\n\n")
+
     output.write("<workflow>\n")
     workflow_content = read_file(trellis_dir / "workflow.md", "No workflow.md found")
     output.write(workflow_content)

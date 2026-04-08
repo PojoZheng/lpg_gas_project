@@ -31,3 +31,8 @@ max_journal_lines: 2000
 #     - "echo 'Task finished'"
 #   after_archive:
 #     - "echo 'Task archived'"
+hooks:
+  after_create:
+    - "python3 ./.trellis/scripts/task_conflict_check.py"
+  after_start:
+    - "python3 ./.trellis/scripts/task_conflict_check.py"
