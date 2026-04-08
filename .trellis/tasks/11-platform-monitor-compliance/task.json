@@ -1,0 +1,20 @@
+{
+  "id": "11-platform-monitor-compliance",
+  "title": "平台监控与合规看板",
+  "status": "todo",
+  "depends_on": [
+    "09-sync-queue-conflict",
+    "10-platform-policy-release"
+  ],
+  "input_spec": [
+    ".trellis/spec/platform/domain-data-monitoring/overview.md",
+    ".trellis/spec/platform/domain-compliance/overview.md"
+  ],
+  "acceptance": [
+    "支持核心经营指标看板",
+    "支持合规上报状态看板",
+    "支持异常下钻与处置入口",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

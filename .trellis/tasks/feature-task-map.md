@@ -1,0 +1,30 @@
+# 功能级任务拆解图
+
+## 任务清单（按依赖顺序）
+1. 登录认证与会话
+2. 工作台聚合
+3. 快速开单
+4. 待配送到完单
+5. 库存锁定与回滚
+6. 客户账户联动（欠瓶/欠款）
+7. 安检触发与上报
+8. 财务记账与日结
+9. 同步队列与冲突处理
+10. 平台规则配置与发布
+11. 平台监控与合规看板
+
+```mermaid
+flowchart TD
+t01[task-01-auth-session] --> t02[task-02-workbench]
+t02 --> t03[task-03-quick-order]
+t03 --> t04[task-04-delivery-complete]
+t04 --> t05[task-05-inventory-lock-revert]
+t04 --> t06[task-06-customer-account-link]
+t04 --> t07[task-07-safety-report]
+t04 --> t08[task-08-finance-daily]
+t05 --> t09[task-09-sync-conflict]
+t06 --> t09
+t07 --> t10[task-10-platform-config-release]
+t09 --> t11[task-11-platform-monitor-compliance]
+t10 --> t11
+```

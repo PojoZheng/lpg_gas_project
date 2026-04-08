@@ -1,0 +1,35 @@
+{
+  "id": "00-bootstrap-guidelines",
+  "name": "规范引导初始化",
+  "description": "补齐项目开发规范，供 AI 与开发者统一执行",
+  "status": "in_progress",
+  "dev_type": "docs",
+  "priority": "P1",
+  "creator": "gas",
+  "assignee": "gas",
+  "createdAt": "2026-04-08",
+  "completedAt": null,
+  "commit": null,
+  "subtasks": [
+    {
+      "name": "补齐后端规范",
+      "status": "pending"
+    },
+    {
+      "name": "补齐前端规范",
+      "status": "pending"
+    },
+    {
+      "name": "补充示例与反例",
+      "status": "pending"
+    }
+  ],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/backend/",
+    ".trellis/spec/frontend/"
+  ],
+  "notes": "项目初始化阶段任务：统一规范、中文化文档、建立可执行门禁",
+  "meta": {}
+}

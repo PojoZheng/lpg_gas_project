@@ -1,0 +1,21 @@
+{
+  "id": "09-sync-queue-conflict",
+  "title": "同步队列与冲突处理",
+  "status": "todo",
+  "depends_on": [
+    "05-inventory-lock-revert",
+    "06-customer-account-linkage"
+  ],
+  "input_spec": [
+    ".trellis/spec/shared/sync-protocol.md",
+    ".trellis/spec/delivery-app/domain-system/overview.md",
+    ".trellis/spec/backend/domain-order/overview.md"
+  ],
+  "acceptance": [
+    "支持离线队列提交与批量同步",
+    "冲突可识别并可回显处理结果",
+    "失败重试后可进入人工处理",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

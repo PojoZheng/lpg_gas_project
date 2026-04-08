@@ -1,0 +1,10 @@
+{
+  "01-auth-session": [
+    "node --check \".trellis/backend/src/server.js\"",
+    "node --check \".trellis/backend/src/auth-service.js\""
+  ],
+  "02-workbench-aggregation": [
+    "node --check \".trellis/backend/src/server.js\"",
+    "python3 \".trellis/scripts/task02_smoke_test.py\""
+  ]
+}

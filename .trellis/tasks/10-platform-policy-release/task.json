@@ -1,0 +1,17 @@
+{
+  "id": "10-platform-policy-release",
+  "title": "平台规则配置与发布",
+  "status": "todo",
+  "depends_on": ["07-safety-trigger-report"],
+  "input_spec": [
+    ".trellis/spec/platform/domain-config/overview.md",
+    ".trellis/spec/backend/domain-config/overview.md"
+  ],
+  "acceptance": [
+    "支持策略编辑、版本化与发布",
+    "支持查看当前生效配置",
+    "支持配置回滚与审计日志",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

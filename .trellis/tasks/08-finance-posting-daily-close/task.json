@@ -1,0 +1,17 @@
+{
+  "id": "08-finance-posting-daily-close",
+  "title": "财务记账与日结",
+  "status": "todo",
+  "depends_on": ["04-delivery-to-complete"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-finance/overview.md",
+    ".trellis/spec/backend/domain-finance/overview.md"
+  ],
+  "acceptance": [
+    "订单完单自动生成流水",
+    "支持今日收入汇总",
+    "支持日结确认与状态更新",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

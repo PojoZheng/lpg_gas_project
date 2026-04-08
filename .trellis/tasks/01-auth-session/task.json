@@ -1,0 +1,22 @@
+{
+  "id": "01-auth-session",
+  "title": "登录认证与会话",
+  "status": "completed",
+  "depends_on": [],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-system/overview.md",
+    ".trellis/spec/backend/domain-user/overview.md",
+    ".trellis/spec/shared/api-contracts.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md"
+  ],
+  "acceptance": [
+    "支持手机号验证码登录",
+    "支持 AccessToken 与 RefreshToken 刷新",
+    "支持设备会话列表与失效处理",
+    "启动页展示官方 Logo（/.trellis/assets/logo-polygon.png）",
+    "登录页展示官方 Logo（/.trellis/assets/logo-polygon.png）",
+    "如涉及界面，视觉需对齐参考风格并遵循主色 #4799a0",
+    "如涉及界面，文案必须为中文且严禁 emoji"
+  ]
+}

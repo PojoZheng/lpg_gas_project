@@ -1,0 +1,18 @@
+{
+  "id": "02-workbench-aggregation",
+  "title": "工作台聚合",
+  "status": "todo",
+  "depends_on": ["01-auth-session"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-workbench/overview.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/delivery-app/domain-finance/overview.md"
+  ],
+  "acceptance": [
+    "首页展示今日已收与待收",
+    "展示下一个待配送任务",
+    "支持下拉刷新与离线提示",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

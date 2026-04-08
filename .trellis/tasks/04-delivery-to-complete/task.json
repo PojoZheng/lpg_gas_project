@@ -1,0 +1,17 @@
+{
+  "id": "04-delivery-to-complete",
+  "title": "待配送到完单",
+  "status": "todo",
+  "depends_on": ["03-quick-order"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/shared/enums-and-statuses.md"
+  ],
+  "acceptance": [
+    "支持待配送订单完单流程",
+    "支持完单收款与状态转换",
+    "支持取消与基础修改规则",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

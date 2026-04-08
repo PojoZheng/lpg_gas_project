@@ -1,0 +1,17 @@
+{
+  "id": "07-safety-trigger-report",
+  "title": "安检触发与上报",
+  "status": "todo",
+  "depends_on": ["04-delivery-to-complete"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-safety/overview.md",
+    ".trellis/spec/backend/domain-safety/overview.md"
+  ],
+  "acceptance": [
+    "完单后自动触发安检流程",
+    "安检记录支持照片与检查项",
+    "支持上报状态回写与失败重试",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

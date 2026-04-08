@@ -1,0 +1,17 @@
+{
+  "id": "05-inventory-lock-revert",
+  "title": "库存锁定与回滚",
+  "status": "todo",
+  "depends_on": ["04-delivery-to-complete"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-inventory/overview.md",
+    ".trellis/spec/backend/domain-inventory/overview.md"
+  ],
+  "acceptance": [
+    "稍后配送支持库存锁定",
+    "取消订单支持库存回滚",
+    "完单支持库存正式扣减",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}
