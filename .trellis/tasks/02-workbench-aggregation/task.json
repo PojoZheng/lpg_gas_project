@@ -1,7 +1,7 @@
 {
   "id": "02-workbench-aggregation",
   "title": "工作台聚合",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["01-auth-session"],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-workbench/overview.md",

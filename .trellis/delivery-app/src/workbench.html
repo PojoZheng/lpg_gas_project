@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工作台</title>
+    <style>
+      :root {
+        --brand: #4799a0;
+        --brand-soft: #e7f3f4;
+        --bg: #f7f8fa;
+        --surface: #ffffff;
+        --border: #eceff3;
+        --text-primary: #111111;
+        --text-secondary: #8b9098;
+        --success: #16a34a;
+        --warning: #f59e0b;
+        --error: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+        background: var(--bg);
+        color: var(--text-primary);
+      }
+      .page {
+        max-width: 440px;
+        margin: 0 auto;
+        min-height: 100vh;
+        padding: 18px 14px 24px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .refresh-btn {
+        border: none;
+        background: var(--brand-soft);
+        color: #1f6f76;
+        border-radius: 16px;
+        height: 40px;
+        min-width: 88px;
+        padding: 0 14px;
+        cursor: pointer;
+      }
+      .pull-tip {
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 12px;
+        min-height: 18px;
+        margin-bottom: 8px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .card-title {
+        margin: 0 0 10px;
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .finance-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .metric {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        background: #fff;
+      }
+      .metric-label {
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .metric-value {
+        margin-top: 4px;
+        font-size: 26px;
+        color: var(--brand);
+        font-weight: 700;
+      }
+      .line {
+        margin: 6px 0;
+        color: var(--text-secondary);
+      }
+      .line strong {
+        color: var(--text-primary);
+      }
+      .quick-action {
+        width: 100%;
+        border: none;
+        border-radius: 16px;
+        height: 46px;
+        color: #ffffff;
+        background: var(--brand);
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .sync-status {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      .sync-ok {
+        background: #ecfdf3;
+        color: var(--success);
+      }
+      .sync-pending {
+        background: #fff7ed;
+        color: var(--warning);
+      }
+      .sync-failed {
+        background: #fef2f2;
+        color: var(--error);
+      }
+      .tip {
+        min-height: 20px;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page" id="page">
+      <header class="header">
+        <h1 class="title">工作台</h1>
+        <button class="refresh-btn" id="refreshBtn">刷新数据</button>
+      </header>
+      <p class="pull-tip" id="pullTip">下拉可刷新</p>
+      <section class="card">
+        <h2 class="card-title">今日收款汇总</h2>
+        <div class="finance-grid">
+          <article class="metric">
+            <div class="metric-label">今日已收</div>
+            <div class="metric-value" id="receivedToday">--</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">今日待收</div>
+            <div class="metric-value" id="pendingToday">--</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">下一待配送</h2>
+        <p class="line">客户：<strong id="nextCustomer">--</strong></p>
+        <p class="line">地址：<strong id="nextAddress">--</strong></p>
+        <p class="line">时间：<strong id="nextSchedule">--</strong></p>
+        <p class="line">订单号：<strong id="nextOrderId">--</strong></p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">快捷入口</h2>
+        <button class="quick-action" id="quickOrderBtn">快速开单</button>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">同步状态</h2>
+        <span class="sync-status" id="syncStatusTag">待同步</span>
+        <p class="line">待同步条数：<strong id="syncPendingCount">--</strong></p>
+        <p class="line">最近同步时间：<strong id="syncLastAt">--</strong></p>
+      </section>
+
+      <p class="tip" id="tip"></p>
+    </main>
+
+    <script type="module">
+      import { fetchWorkbenchOverview } from "./workbench-client.js";
+
+      const receivedToday = document.getElementById("receivedToday");
+      const pendingToday = document.getElementById("pendingToday");
+      const nextCustomer = document.getElementById("nextCustomer");
+      const nextAddress = document.getElementById("nextAddress");
+      const nextSchedule = document.getElementById("nextSchedule");
+      const nextOrderId = document.getElementById("nextOrderId");
+      const quickOrderBtn = document.getElementById("quickOrderBtn");
+      const syncStatusTag = document.getElementById("syncStatusTag");
+      const syncPendingCount = document.getElementById("syncPendingCount");
+      const syncLastAt = document.getElementById("syncLastAt");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const pullTip = document.getElementById("pullTip");
+      const tip = document.getElementById("tip");
+
+      const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
+      const fmtTime = (ts) => new Date(ts).toLocaleString("zh-CN", { hour12: false });
+
+      function renderSyncStatus(sync) {
+        const map = {
+          completed: { text: "已同步", klass: "sync-ok" },
+          pending: { text: "待同步", klass: "sync-pending" },
+          syncing: { text: "同步中", klass: "sync-pending" },
+          failed: { text: "同步失败", klass: "sync-failed" },
+        };
+        const status = map[sync.syncStatus] || map.pending;
+        syncStatusTag.className = `sync-status ${status.klass}`;
+        syncStatusTag.textContent = status.text;
+      }
+
+      async function loadData(fromPull = false) {
+        tip.textContent = fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...";
+        const res = await fetchWorkbenchOverview();
+        if (!res.success) {
+          tip.textContent = res.error || "加载失败，请稍后重试";
+          return;
+        }
+        const { finance, nextDelivery, sync } = res.data;
+        receivedToday.textContent = fmtCurrency(finance.receivedToday);
+        pendingToday.textContent = fmtCurrency(finance.pendingToday);
+        nextCustomer.textContent = nextDelivery.customerName;
+        nextAddress.textContent = nextDelivery.address;
+        nextSchedule.textContent = nextDelivery.scheduleAt;
+        nextOrderId.textContent = nextDelivery.orderId;
+        syncPendingCount.textContent = String(sync.pendingCount || 0);
+        syncLastAt.textContent = fmtTime(sync.lastSyncAt);
+        renderSyncStatus(sync);
+
+        if (!navigator.onLine) {
+          tip.textContent = "当前网络不可用，已展示缓存与待同步信息";
+          return;
+        }
+        if (res.fromMock) {
+          tip.textContent = "当前使用模拟数据，后端接口预留中";
+          return;
+        }
+        tip.textContent = "数据已更新";
+      }
+
+      refreshBtn.addEventListener("click", () => loadData(true));
+      quickOrderBtn.addEventListener("click", () => {
+        tip.textContent = "快速开单入口已预留，将在 task-03 完成。";
+      });
+
+      window.addEventListener("offline", () => {
+        tip.textContent = "当前网络不可用，已切换离线提示";
+      });
+      window.addEventListener("online", () => {
+        tip.textContent = "网络已恢复，可下拉刷新";
+      });
+
+      let startY = 0;
+      let canPull = false;
+      window.addEventListener("touchstart", (e) => {
+        canPull = window.scrollY <= 0;
+        startY = e.touches[0]?.clientY || 0;
+      });
+      window.addEventListener("touchmove", (e) => {
+        if (!canPull) return;
+        const delta = (e.touches[0]?.clientY || 0) - startY;
+        if (delta > 60) pullTip.textContent = "松开即可刷新";
+      });
+      window.addEventListener("touchend", async (e) => {
+        if (!canPull) return;
+        const endY = e.changedTouches[0]?.clientY || 0;
+        if (endY - startY > 60) {
+          pullTip.textContent = "正在刷新...";
+          await loadData(true);
+          pullTip.textContent = "下拉可刷新";
+        }
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>

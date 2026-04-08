@@ -151,6 +151,9 @@
         const devices = await listDevices();
         const deviceCount = devices.success ? devices.data.length : 0;
         setTip(`登录成功，当前设备会话数：${deviceCount}`, "ok");
+        setTimeout(() => {
+          window.location.href = "./workbench.html";
+        }, 500);
       });
     </script>
   </body>

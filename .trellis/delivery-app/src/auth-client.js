@@ -10,6 +10,10 @@ const storage = {
   },
 };
 
+export function getCurrentSession() {
+  return storage.getSession();
+}
+
 export async function sendCode(phone) {
   const res = await fetch(`${API_BASE_URL}/auth/send-code`, {
     method: "POST",

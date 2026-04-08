@@ -40,6 +40,35 @@ function readAccessToken(req) {
   return auth.slice(7);
 }
 
+function buildWorkbenchOverview() {
+  return {
+    finance: {
+      receivedToday: 1680,
+      pendingToday: 520,
+      currency: "CNY",
+    },
+    nextDelivery: {
+      orderId: "ORD-20260408-001",
+      customerName: "城北五金店",
+      address: "城北大道 88 号",
+      scheduleAt: "今天 15:30",
+      orderStatus: "pending_delivery",
+    },
+    sync: {
+      syncStatus: "pending",
+      pendingCount: 3,
+      lastSyncAt: Date.now() - 2 * 60 * 1000,
+    },
+    quickActions: [
+      {
+        id: "quick_order",
+        label: "快速开单",
+        route: "/orders/quick-create",
+      },
+    ],
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
 
@@ -93,6 +122,12 @@ const server = http.createServer(async (req, res) => {
       const { sessionId } = await readBody(req);
       const result = logoutSession(accessToken, sessionId);
       return sendJson(res, 200, { success: true, data: result });
+    }
+
+    if (req.method === "GET" && req.url === "/workbench/overview") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, { success: true, data: buildWorkbenchOverview() });
     }
 
     return sendJson(res, 404, { success: false, error: "接口不存在" });

@@ -10,6 +10,8 @@ required_files = [
     ROOT / ".trellis/tasks/02-workbench-aggregation/task.json",
     ROOT / ".trellis/delivery-app/src/login.html",
     ROOT / ".trellis/delivery-app/src/splash.html",
+    ROOT / ".trellis/delivery-app/src/workbench.html",
+    ROOT / ".trellis/delivery-app/src/workbench-client.js",
 ]
 
 for f in required_files:
@@ -31,6 +33,21 @@ for c in checks:
 
 if "emoji" in login_html.lower():
     print("[task02-smoke] 登录页存在 emoji 相关字样，请确认规范")
+    sys.exit(1)
+
+workbench_html = (ROOT / ".trellis/delivery-app/src/workbench.html").read_text(encoding="utf-8")
+workbench_checks = ["工作台", "今日已收", "今日待收", "下一待配送", "快速开单", "#4799a0", "下拉可刷新"]
+for c in workbench_checks:
+    if c not in workbench_html:
+        print(f"[task02-smoke] 工作台缺少关键内容: {c}")
+        sys.exit(1)
+
+if "logo-polygon.png" in workbench_html:
+    print("[task02-smoke] 工作台不允许使用 Logo")
+    sys.exit(1)
+
+if "emoji" in workbench_html.lower():
+    print("[task02-smoke] 工作台存在 emoji 相关字样，请确认规范")
     sys.exit(1)
 
 print("[task02-smoke] 通过")
