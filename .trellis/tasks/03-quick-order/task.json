@@ -1,7 +1,7 @@
 {
   "id": "03-quick-order",
   "title": "快速开单",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["02-workbench-aggregation"],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-order/overview.md",
