@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>工作台</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
     <style>
       :root {
         --brand: #4799a0;
@@ -211,10 +212,7 @@
         <h2 class="card-title">快捷入口</h2>
         <button class="quick-action" id="quickOrderBtn">快速开单</button>
         <button class="quick-action secondary" id="deliveryCompleteBtn">待配送完单</button>
-        <button class="quick-action secondary" id="financeCloseBtn">财务记账与日结</button>
-        <button class="quick-action secondary" id="syncQueueBtn">同步队列</button>
-        <button class="quick-action secondary" id="policyReleaseBtn">平台策略发布</button>
-        <button class="quick-action secondary" id="platformMonitorBtn">平台监控与合规</button>
+        <button class="quick-action secondary" id="myCenterBtn">进入我的</button>
       </section>
 
       <section class="card">
@@ -230,7 +228,7 @@
       <nav class="bottom-nav" aria-label="底部导航">
         <button class="nav-btn active" id="navWorkbenchBtn">首页</button>
         <button class="nav-btn" id="navQuickOrderBtn">客户</button>
-        <button class="nav-btn" id="navDeliveryBtn">我的</button>
+        <button class="nav-btn" id="navMyBtn">我的</button>
       </nav>
     </div>
 
@@ -245,10 +243,7 @@
       const nextOrderId = document.getElementById("nextOrderId");
       const quickOrderBtn = document.getElementById("quickOrderBtn");
       const deliveryCompleteBtn = document.getElementById("deliveryCompleteBtn");
-      const financeCloseBtn = document.getElementById("financeCloseBtn");
-      const syncQueueBtn = document.getElementById("syncQueueBtn");
-      const policyReleaseBtn = document.getElementById("policyReleaseBtn");
-      const platformMonitorBtn = document.getElementById("platformMonitorBtn");
+      const myCenterBtn = document.getElementById("myCenterBtn");
       const loginBtn = document.getElementById("loginBtn");
       const syncStatusTag = document.getElementById("syncStatusTag");
       const syncPendingCount = document.getElementById("syncPendingCount");
@@ -256,7 +251,7 @@
       const tip = document.getElementById("tip");
       const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
       const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
-      const navDeliveryBtn = document.getElementById("navDeliveryBtn");
+      const navMyBtn = document.getElementById("navMyBtn");
 
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
       const fmtTime = (ts) => new Date(ts).toLocaleString("zh-CN", { hour12: false });
@@ -308,17 +303,8 @@
       deliveryCompleteBtn.addEventListener("click", () => {
         window.location.href = "./delivery-complete.html";
       });
-      financeCloseBtn.addEventListener("click", () => {
-        window.location.href = "./finance-daily-close.html";
-      });
-      syncQueueBtn.addEventListener("click", () => {
-        window.location.href = "/platform/src/sync-queue.html";
-      });
-      policyReleaseBtn.addEventListener("click", () => {
-        window.location.href = "/platform/src/policy-release.html";
-      });
-      platformMonitorBtn.addEventListener("click", () => {
-        window.location.href = "/platform/src/platform-monitor.html";
+      myCenterBtn.addEventListener("click", () => {
+        window.location.href = "./my.html";
       });
       loginBtn.addEventListener("click", () => {
         window.location.href = "./login.html";
@@ -329,8 +315,8 @@
       navQuickOrderBtn.addEventListener("click", () => {
         window.location.href = "./quick-order.html";
       });
-      navDeliveryBtn.addEventListener("click", () => {
-        window.location.href = "./delivery-complete.html";
+      navMyBtn.addEventListener("click", () => {
+        window.location.href = "./my.html";
       });
 
       window.addEventListener("offline", () => {

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>待配送完单</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
     <style>
       :root {
         --brand: #4799a0;
@@ -151,7 +152,7 @@
     <main class="page">
       <header class="header">
         <h1 class="title">待配送完单</h1>
-        <button class="btn" id="backBtn">返回工作台</button>
+        <button class="btn" id="backBtn">返回首页</button>
       </header>
 
       <section class="card">
@@ -183,7 +184,7 @@
           <button class="btn warn" id="cancelBtn">取消订单</button>
           <button class="btn" id="undoBtn">5 秒撤销</button>
         </div>
-        <p class="tip" id="tip"></p>
+        <p class="tip" id="tip" aria-live="polite"></p>
       </section>
 
       <section class="card">
@@ -233,7 +234,7 @@
       <nav class="bottom-nav" aria-label="底部导航">
         <button class="nav-btn" id="navWorkbenchBtn">首页</button>
         <button class="nav-btn" id="navQuickOrderBtn">客户</button>
-        <button class="nav-btn active" id="navDeliveryBtn">我的</button>
+        <button class="nav-btn active" id="navMyBtn">我的</button>
       </nav>
     </div>
 
@@ -283,7 +284,7 @@
       const dockStatus = document.getElementById("dockStatus");
       const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
       const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
-      const navDeliveryBtn = document.getElementById("navDeliveryBtn");
+      const navMyBtn = document.getElementById("navMyBtn");
       const safetyChecks = [...document.querySelectorAll(".safety-check")];
       const payBtns = [...document.querySelectorAll(".pay-btn")];
 
@@ -547,7 +548,7 @@
         window.location.href = "./workbench.html";
       });
       backWorkbenchBtn.addEventListener("click", () => {
-        window.location.href = "./workbench.html";
+        window.location.href = "./my.html";
       });
       navWorkbenchBtn.addEventListener("click", () => {
         window.location.href = "./workbench.html";
@@ -555,8 +556,8 @@
       navQuickOrderBtn.addEventListener("click", () => {
         window.location.href = "./quick-order.html";
       });
-      navDeliveryBtn.addEventListener("click", () => {
-        window.location.href = "./delivery-complete.html";
+      navMyBtn.addEventListener("click", () => {
+        window.location.href = "./my.html";
       });
 
       syncPayBtn();

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>快速开单</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
     <style>
       :root {
         --brand: #4799a0;
@@ -143,7 +144,7 @@
       <header class="header">
         <button class="back-left-btn" id="backLeftBtn" aria-label="返回上一页">←</button>
         <h1 class="title">快速开单</h1>
-        <button class="back-btn" id="backBtn">返回工作台</button>
+        <button class="back-btn" id="backBtn">返回首页</button>
       </header>
 
       <section class="card">
@@ -193,7 +194,7 @@
         <button class="submit-btn" id="createBtn">一键开单（确认开单）</button>
         <button class="ghost-btn" id="goWorkbenchBtn">返回工作台查看结果</button>
         <button class="ghost-btn" id="traceOrderBtn">前往待配送/完单链路追踪订单</button>
-        <p class="tip" id="tip"></p>
+        <p class="tip" id="tip" aria-live="polite"></p>
       </section>
     </main>
     <div class="overlay" id="addCustomerOverlay">
@@ -235,7 +236,7 @@
       <nav class="bottom-nav" aria-label="底部导航">
         <button class="nav-btn" id="navWorkbenchBtn">首页</button>
         <button class="nav-btn active" id="navQuickOrderBtn">客户</button>
-        <button class="nav-btn" id="navDeliveryBtn">我的</button>
+        <button class="nav-btn" id="navMyBtn">我的</button>
       </nav>
     </div>
 
@@ -281,7 +282,7 @@
       const submitConfirmBtn = document.getElementById("submitConfirmBtn");
       const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
       const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
-      const navDeliveryBtn = document.getElementById("navDeliveryBtn");
+      const navMyBtn = document.getElementById("navMyBtn");
       const typeBtns = [...document.querySelectorAll(".tab-btn[data-type]")];
       const PREF_KEY = "quick-order-prefs-v1";
 
@@ -438,8 +439,8 @@
       navQuickOrderBtn.addEventListener("click", () => {
         window.location.href = "./quick-order.html";
       });
-      navDeliveryBtn.addEventListener("click", () => {
-        window.location.href = "./delivery-complete.html";
+      navMyBtn.addEventListener("click", () => {
+        window.location.href = "./my.html";
       });
       specSelect.addEventListener("change", saveDefaults);
       priceInput.addEventListener("change", saveDefaults);

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(86px + env(safe-area-inset-bottom, 0px)); }
+      .entry-list { display: grid; gap: 8px; }
+      .entry-btn { width: 100%; text-align: left; }
+      .sub { margin-top: 4px; color: var(--text-secondary); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <h1 class="app-title">我的</h1>
+        <button class="app-btn" id="homeBtn">返回首页</button>
+      </header>
+
+      <section class="app-card">
+        <h2 class="app-card-title">流程入口</h2>
+        <div class="entry-list">
+          <button class="app-btn entry-btn primary" id="deliveryBtn">
+            待配送完单
+            <div class="sub">订单完结、安检上报与撤销处理</div>
+          </button>
+          <button class="app-btn entry-btn" id="financeBtn">
+            财务记账与日结
+            <div class="sub">低频财务能力统一收敛在“我的”</div>
+          </button>
+          <button class="app-btn entry-btn" id="syncBtn">
+            同步队列
+            <div class="sub">离线冲突与人工处理入口</div>
+          </button>
+          <button class="app-btn entry-btn" id="platformBtn">
+            平台运营入口
+            <div class="sub">进入平台监控/策略/同步管理</div>
+          </button>
+          <button class="app-btn entry-btn" id="loginBtn">
+            登录与账号管理
+            <div class="sub">切换账号、重新登录</div>
+          </button>
+        </div>
+        <p class="app-tip" id="tip">低频能力已统一收敛到“我的”页面。</p>
+      </section>
+    </main>
+
+    <div class="bottom-nav-wrap">
+      <nav class="bottom-nav" aria-label="底部导航">
+        <button class="nav-btn" id="navWorkbenchBtn">首页</button>
+        <button class="nav-btn" id="navQuickOrderBtn">客户</button>
+        <button class="nav-btn active" id="navMyBtn">我的</button>
+      </nav>
+    </div>
+
+    <script>
+      document.getElementById("homeBtn").addEventListener("click", () => (window.location.href = "./workbench.html"));
+      document.getElementById("deliveryBtn").addEventListener("click", () => (window.location.href = "./delivery-complete.html"));
+      document.getElementById("financeBtn").addEventListener("click", () => (window.location.href = "./finance-daily-close.html"));
+      document.getElementById("syncBtn").addEventListener("click", () => (window.location.href = "/platform/src/sync-queue.html"));
+      document.getElementById("platformBtn").addEventListener("click", () => (window.location.href = "/platform/src/index.html"));
+      document.getElementById("loginBtn").addEventListener("click", () => (window.location.href = "./login.html"));
+      document.getElementById("navWorkbenchBtn").addEventListener("click", () => (window.location.href = "./workbench.html"));
+      document.getElementById("navQuickOrderBtn").addEventListener("click", () => (window.location.href = "./quick-order.html"));
+      document.getElementById("navMyBtn").addEventListener("click", () => (window.location.href = "./my.html"));
+    </script>
+  </body>
+</html>
