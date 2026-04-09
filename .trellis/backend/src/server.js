@@ -20,6 +20,7 @@ const inventoryBySpec = {
 };
 const quickOrders = [];
 const inventoryLogs = [];
+const safetyRecords = [];
 
 function getInventoryState(spec) {
   if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
@@ -331,6 +332,123 @@ function adjustCustomerDebt(order, owedAmount, owedEmptyCount) {
   account.updatedAt = Date.now();
 }
 
+function getSafetyByOrderId(orderId) {
+  return safetyRecords.find((x) => x.orderId === orderId);
+}
+
+function getSafetyById(safetyId) {
+  const record = safetyRecords.find((x) => x.safetyId === safetyId);
+  if (!record) throw new Error("安检记录不存在，请刷新后重试");
+  return record;
+}
+
+function ensureSafetyTriggered(order) {
+  let record = getSafetyByOrderId(order.orderId);
+  if (record) return record;
+  record = {
+    safetyId: `SAFE-${Date.now()}`,
+    orderId: order.orderId,
+    customerName: order.customerName,
+    status: "pending", // pending -> completed / failed
+    checkItems: [],
+    photoUrls: [],
+    hasAbnormal: false,
+    hazardNote: "",
+    reportAttempts: 0,
+    reportLogs: [],
+    lastError: "",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  safetyRecords.unshift(record);
+  return record;
+}
+
+function normalizeSafetyItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function normalizePhotoUrls(photoUrls) {
+  if (!Array.isArray(photoUrls)) return [];
+  return photoUrls
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+function runSafetyReport(record) {
+  record.reportAttempts += 1;
+  const shouldFail = record.reportAttempts === 1 && record.hasAbnormal;
+  if (shouldFail) {
+    record.status = "failed";
+    record.lastError = "监管上报超时，请点击重试";
+    record.reportLogs.unshift({
+      at: Date.now(),
+      status: "failed",
+      summary: record.lastError,
+    });
+    return;
+  }
+  record.status = "completed";
+  record.lastError = "";
+  record.reportLogs.unshift({
+    at: Date.now(),
+    status: "completed",
+    summary: "监管上报成功",
+  });
+}
+
+function submitSafetyRecord(orderId, payload) {
+  const order = getOrderById(orderId);
+  const record = ensureSafetyTriggered(order);
+  const checkItems = normalizeSafetyItems(payload.checkItems);
+  const photoUrls = normalizePhotoUrls(payload.photoUrls);
+  if (!checkItems.length) throw new Error("请至少选择 1 项安检检查项");
+  if (!photoUrls.length) throw new Error("请至少上传 1 张安检照片");
+  const hasAbnormal = Boolean(payload.hasAbnormal);
+  const hazardNote = String(payload.hazardNote || "").trim();
+  if (hasAbnormal && !hazardNote) {
+    throw new Error("异常安检必须补充隐患说明");
+  }
+
+  record.checkItems = checkItems;
+  record.photoUrls = photoUrls;
+  record.hasAbnormal = hasAbnormal;
+  record.hazardNote = hazardNote;
+  record.updatedAt = Date.now();
+  runSafetyReport(record);
+
+  return {
+    safetyId: record.safetyId,
+    orderId: record.orderId,
+    status: record.status,
+    reportAttempts: record.reportAttempts,
+    lastError: record.lastError,
+    updatedAt: record.updatedAt,
+  };
+}
+
+function retrySafetyReport(safetyId) {
+  const record = getSafetyById(safetyId);
+  if (!record.checkItems.length || !record.photoUrls.length) {
+    throw new Error("安检信息不完整，请先提交检查项与照片");
+  }
+  runSafetyReport(record);
+  record.updatedAt = Date.now();
+  return {
+    safetyId: record.safetyId,
+    orderId: record.orderId,
+    status: record.status,
+    reportAttempts: record.reportAttempts,
+    lastError: record.lastError,
+    updatedAt: record.updatedAt,
+  };
+}
+
 function completeDeliveryOrder(order, payload) {
   if (order.orderStatus !== "pending_delivery") {
     throw new Error("仅待配送订单可执行完单");
@@ -370,6 +488,7 @@ function completeDeliveryOrder(order, payload) {
   order.lastActionUndoUntil = Date.now() + 5000;
   order.lastActionSnapshot = prev;
   adjustCustomerDebt(order, order.debtRecordedAmount, order.debtRecordedEmptyCount);
+  const safetyRecord = ensureSafetyTriggered(order);
 
   return {
     orderId: order.orderId,
@@ -380,6 +499,10 @@ function completeDeliveryOrder(order, payload) {
     inventoryAfter,
     owedAmount: order.debtRecordedAmount,
     owedEmptyCount: order.debtRecordedEmptyCount,
+    safety: {
+      safetyId: safetyRecord.safetyId,
+      status: safetyRecord.status,
+    },
     undoAvailableUntil: order.lastActionUndoUntil,
   };
 }
@@ -719,6 +842,49 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/undo", ""));
       const order = getOrderById(orderId);
       return sendJson(res, 200, { success: true, data: undoOrderAction(order) });
+    }
+
+    if (req.method === "GET" && pathname.startsWith("/safety/by-order/")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/safety/by-order/", ""));
+      const record = getSafetyByOrderId(orderId);
+      if (!record) {
+        return sendJson(res, 200, { success: true, data: null });
+      }
+      return sendJson(res, 200, {
+        success: true,
+        data: {
+          safetyId: record.safetyId,
+          orderId: record.orderId,
+          status: record.status,
+          checkItems: record.checkItems,
+          photoUrls: record.photoUrls,
+          hasAbnormal: record.hasAbnormal,
+          hazardNote: record.hazardNote,
+          reportAttempts: record.reportAttempts,
+          lastError: record.lastError,
+          reportLogs: record.reportLogs.slice(0, 5),
+          updatedAt: record.updatedAt,
+        },
+      });
+    }
+
+    if (req.method === "POST" && pathname.startsWith("/safety/by-order/")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/safety/by-order/", ""));
+      const payload = await readBody(req);
+      const data = submitSafetyRecord(orderId, payload);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "POST" && pathname.startsWith("/safety/") && pathname.endsWith("/retry")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const safetyId = decodeURIComponent(pathname.replace("/safety/", "").replace("/retry", ""));
+      const data = retrySafetyReport(safetyId);
+      return sendJson(res, 200, { success: true, data });
     }
 
     return sendJson(res, 404, { success: false, error: "接口不存在" });
