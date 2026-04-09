@@ -1,0 +1,20 @@
+{
+  "id": "28-app-bottom-navigation",
+  "title": "App 底部导航统一收口",
+  "status": "todo",
+  "depends_on": [
+    "16-workbench-experience-polish"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-workbench/overview.md",
+    ".trellis/spec/delivery-app/interaction-spec.md",
+    ".trellis/spec/delivery-app/responsive-motion-spec.md"
+  ],
+  "acceptance": [
+    "workbench、quick-order、delivery-complete 三页底部导航结构一致",
+    "当前页态、返回路径、主操作优先级在移动端清晰可达",
+    "触达区域满足移动端可点击标准（至少 48x48）",
+    "保持现有业务接口与数据流不变，仅做导航与交互收口",
+    "界面文案中文、主色 #4799a0、一致性通过自检"
+  ]
+}

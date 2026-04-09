@@ -1,0 +1,21 @@
+{
+  "id": "27-quick-order-submit-integration-fix",
+  "title": "快速开单提交联调修复",
+  "status": "todo",
+  "depends_on": [
+    "19-quick-order-navigation-and-submit-contract",
+    "26-preview-backend-modularization"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/backend/domain-order/overview.md",
+    ".trellis/spec/shared/api-contracts.md"
+  ],
+  "acceptance": [
+    "快速开单页面可真实提交成功（非静态提示），并返回明确成功反馈",
+    "提交失败时返回中文可理解错误信息，区分网络失败/鉴权失败/参数失败",
+    "后端订单写入与前端请求契约一致，接口路径与字段对齐",
+    "提交后的订单在后续流程可被检索或可见（至少在待配送/完单链路可追踪）",
+    "新增最小联调回归脚本或命令，自动化测试通过"
+  ]
+}

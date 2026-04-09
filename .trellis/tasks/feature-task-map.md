@@ -23,6 +23,9 @@
 20. impeccable 驱动的页面重构
 21. 平台前端目录拆分与独立入口
 22. 预览脚本与后端路由模块化收口
+23. 快速开单提交联调修复
+24. App 底部导航统一收口
+25. Platform 顶部菜单统一收口
 
 ```mermaid
 flowchart TD
@@ -56,4 +59,9 @@ t20 --> t24
 t22 --> t24
 t11 --> t25[task-25-platform-frontend-separation]
 t25 --> t26[task-26-preview-backend-modularization]
+t19 --> t27[task-27-quick-order-submit-integration-fix]
+t26 --> t27
+t16 --> t28[task-28-app-bottom-navigation]
+t25 --> t29[task-29-platform-top-menu]
+t26 --> t29
 ```

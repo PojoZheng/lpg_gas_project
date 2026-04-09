@@ -1,0 +1,21 @@
+{
+  "id": "29-platform-top-menu",
+  "title": "Platform 顶部菜单统一收口",
+  "status": "todo",
+  "depends_on": [
+    "25-platform-frontend-separation",
+    "26-preview-backend-modularization"
+  ],
+  "input_spec": [
+    ".trellis/spec/platform/index.md",
+    ".trellis/spec/platform/domain-data-monitoring/overview.md",
+    ".trellis/spec/platform/domain-config/overview.md"
+  ],
+  "acceptance": [
+    "平台端提供统一菜单入口，覆盖 monitor/policy/sync 三类页面跳转",
+    "所有平台页面都可一跳返回平台主入口，减少多链接人工记忆成本",
+    "菜单状态可识别当前页面，交互反馈清晰",
+    "保持平台业务接口调用不变，不引入新鉴权分支",
+    "平台端验收入口以单链接为主，并在 completion 记录导航说明"
+  ]
+}
