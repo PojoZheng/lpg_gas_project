@@ -1,7 +1,7 @@
 {
   "id": "13-auth-security-hardening",
   "title": "认证安全加固",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["12-backend-auth-persistence"],
   "input_spec": [
     ".trellis/spec/backend/domain-user/overview.md",

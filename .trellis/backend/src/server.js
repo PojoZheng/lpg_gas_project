@@ -187,6 +187,12 @@ function sendContractError(res, statusCode, code, message, requestId) {
 
 function mapAuthError(err, pathname) {
   const message = String(err?.message || "请求失败，请稍后重试");
+  if (err?.code === "AUTH_401") {
+    return { statusCode: Number(err.statusCode || 401), code: "AUTH_401", message: "登录态无效或已过期，请重新登录" };
+  }
+  if (err?.code === "VALIDATION_400") {
+    return { statusCode: 400, code: "VALIDATION_400", message };
+  }
   if (message.includes("登录态已失效") || message.includes("刷新令牌无效")) {
     return { statusCode: 401, code: "AUTH_401", message: "登录态无效或已过期，请重新登录" };
   }

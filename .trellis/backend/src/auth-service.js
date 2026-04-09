@@ -6,11 +6,19 @@ const codes = new Map();
 const users = new Map();
 const accessTokens = new Map();
 const refreshTokens = new Map();
+const sendCodeStats = new Map();
+const loginFailureStats = new Map();
 
 const AUTH_STATE_PATH = path.join(__dirname, "..", "data", "auth-state.json");
 
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const SEND_CODE_WINDOW_MS = 10 * 60 * 1000;
+const SEND_CODE_MAX_PER_WINDOW = 5;
+const SEND_CODE_MIN_INTERVAL_MS = 60 * 1000;
+const SEND_CODE_COOLDOWN_MS = 30 * 60 * 1000;
+const LOGIN_FAIL_MAX = 5;
+const LOGIN_FAIL_COOLDOWN_MS = 10 * 60 * 1000;
 
 function now() {
   return Date.now();
@@ -18,6 +26,19 @@ function now() {
 
 function mapToEntries(map) {
   return Array.from(map.entries());
+}
+
+function createAuthError(code, message, statusCode = 400) {
+  const err = new Error(message);
+  err.code = code;
+  err.statusCode = statusCode;
+  return err;
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || "")
+  );
 }
 
 function persistState() {
@@ -31,6 +52,8 @@ function persistState() {
     users: mapToEntries(users),
     accessTokens: mapToEntries(accessTokens),
     refreshTokens: mapToEntries(refreshTokens),
+    sendCodeStats: mapToEntries(sendCodeStats),
+    loginFailureStats: mapToEntries(loginFailureStats),
   };
   fs.writeFileSync(AUTH_STATE_PATH, JSON.stringify(payload, null, 2), "utf-8");
 }
@@ -57,6 +80,8 @@ function restoreState() {
   applyEntries(users, parsed.users);
   applyEntries(accessTokens, parsed.accessTokens);
   applyEntries(refreshTokens, parsed.refreshTokens);
+  applyEntries(sendCodeStats, parsed.sendCodeStats);
+  applyEntries(loginFailureStats, parsed.loginFailureStats);
   cleanupExpired();
 }
 
@@ -71,10 +96,50 @@ function cleanupExpired() {
   for (const [phone, info] of codes) {
     if (info.expiresAt <= ts) codes.delete(phone);
   }
+  for (const [phone, info] of sendCodeStats) {
+    if (Number(info.cooldownUntil || 0) <= ts && Number(info.windowStart || 0) + SEND_CODE_WINDOW_MS <= ts) {
+      sendCodeStats.delete(phone);
+    }
+  }
+  for (const [phone, info] of loginFailureStats) {
+    if (Number(info.cooldownUntil || 0) <= ts && Number(info.lastFailedAt || 0) + LOGIN_FAIL_COOLDOWN_MS <= ts) {
+      loginFailureStats.delete(phone);
+    }
+  }
   persistState();
 }
 
+function checkSendCodeRate(phone) {
+  const ts = now();
+  const info = sendCodeStats.get(phone) || {
+    windowStart: ts,
+    count: 0,
+    lastSentAt: 0,
+    cooldownUntil: 0,
+  };
+  if (info.cooldownUntil > ts) {
+    throw createAuthError("VALIDATION_400", "验证码发送过于频繁，请稍后再试");
+  }
+  if (info.lastSentAt && ts - info.lastSentAt < SEND_CODE_MIN_INTERVAL_MS) {
+    throw createAuthError("VALIDATION_400", "验证码发送间隔过短，请稍后再试");
+  }
+  if (ts - info.windowStart > SEND_CODE_WINDOW_MS) {
+    info.windowStart = ts;
+    info.count = 0;
+  }
+  info.count += 1;
+  info.lastSentAt = ts;
+  if (info.count > SEND_CODE_MAX_PER_WINDOW) {
+    info.cooldownUntil = ts + SEND_CODE_COOLDOWN_MS;
+    sendCodeStats.set(phone, info);
+    persistState();
+    throw createAuthError("VALIDATION_400", "验证码发送次数过多，请 30 分钟后重试");
+  }
+  sendCodeStats.set(phone, info);
+}
+
 function issueCode(phone) {
+  checkSendCodeRate(phone);
   const code = String(Math.floor(100000 + Math.random() * 900000));
   codes.set(phone, { code, expiresAt: now() + 5 * 60 * 1000 });
   persistState();
@@ -144,18 +209,39 @@ function createSession(phone, deviceName = "未知设备") {
 }
 
 function login(phone, code, deviceName) {
-  if (!verifyCode(phone, code)) {
-    throw new Error("验证码无效或已过期");
+  const ts = now();
+  const failInfo = loginFailureStats.get(phone);
+  if (failInfo && Number(failInfo.cooldownUntil || 0) > ts) {
+    throw createAuthError("VALIDATION_400", "验证码校验失败次数过多，请稍后再试");
   }
+  if (!verifyCode(phone, code)) {
+    const nextFail = {
+      failedCount: Number(failInfo?.failedCount || 0) + 1,
+      lastFailedAt: ts,
+      cooldownUntil: 0,
+    };
+    if (nextFail.failedCount >= LOGIN_FAIL_MAX) {
+      nextFail.cooldownUntil = ts + LOGIN_FAIL_COOLDOWN_MS;
+      nextFail.failedCount = 0;
+    }
+    loginFailureStats.set(phone, nextFail);
+    persistState();
+    throw createAuthError("VALIDATION_400", "验证码无效或已过期，请重新获取");
+  }
+  loginFailureStats.delete(phone);
+  persistState();
   return createSession(phone, deviceName);
 }
 
 function refresh(refreshToken) {
   cleanupExpired();
+  if (!isUuid(refreshToken)) {
+    throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
+  }
   const tokenInfo = refreshTokens.get(refreshToken);
-  if (!tokenInfo) throw new Error("刷新令牌无效或已过期");
+  if (!tokenInfo) throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
   const user = users.get(tokenInfo.phone);
-  if (!user) throw new Error("用户不存在");
+  if (!user) throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
 
   const newAccessToken = crypto.randomUUID();
   const newRefreshToken = crypto.randomUUID();
@@ -167,6 +253,9 @@ function refresh(refreshToken) {
   refreshTokens.delete(refreshToken);
 
   const session = user.sessions.find((x) => x.sessionId === tokenInfo.sessionId);
+  if (!session || session.refreshToken !== refreshToken) {
+    throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
+  }
   session.accessToken = newAccessToken;
   session.refreshToken = newRefreshToken;
 
@@ -194,10 +283,13 @@ function refresh(refreshToken) {
 
 function authByAccessToken(accessToken) {
   cleanupExpired();
+  if (!isUuid(accessToken)) {
+    throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
+  }
   const tokenInfo = accessTokens.get(accessToken);
-  if (!tokenInfo) throw new Error("登录态已失效");
+  if (!tokenInfo) throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
   const user = users.get(tokenInfo.phone);
-  if (!user) throw new Error("用户不存在");
+  if (!user) throw createAuthError("AUTH_401", "登录态无效或已过期，请重新登录", 401);
   return { user, tokenInfo };
 }
 
@@ -211,9 +303,17 @@ function listDevices(accessToken) {
 }
 
 function logoutSession(accessToken, sessionId) {
-  const { user } = authByAccessToken(accessToken);
+  const { user, tokenInfo } = authByAccessToken(accessToken);
+  if (!isUuid(sessionId)) {
+    throw createAuthError("VALIDATION_400", "设备会话标识不合法");
+  }
+  if (tokenInfo.sessionId === sessionId) {
+    throw createAuthError("VALIDATION_400", "当前会话不支持在本设备下线");
+  }
   const session = user.sessions.find((x) => x.sessionId === sessionId);
-  if (!session) return { ok: true };
+  if (!session) {
+    throw createAuthError("VALIDATION_400", "设备会话不存在或已下线");
+  }
   accessTokens.delete(session.accessToken);
   refreshTokens.delete(session.refreshToken);
   user.sessions = user.sessions.filter((x) => x.sessionId !== sessionId);
