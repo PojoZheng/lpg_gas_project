@@ -64,7 +64,7 @@
   `python3 ./.trellis/scripts/session_bootstrap.py`
 
 4. 并行规则
-- 开发 Agent 不做 commit/push。
+- 开发 Agent 可本地 commit（交付快照），但不 push；集成 Agent 统一 merge + push。
 - 集成 Agent 统一合并、提交、推送。
 - 避免两个开发 Agent 同时修改同一关键文件（例如同一个核心路由文件）。
 

@@ -1,0 +1,20 @@
+{
+  "id": "18-customer-account-persistence-history",
+  "title": "客户账户持久化与催收历史",
+  "status": "todo",
+  "depends_on": [
+    "06-customer-account-linkage"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-customer/overview.md",
+    ".trellis/spec/backend/domain-customer/overview.md",
+    ".trellis/spec/delivery-app/domain-finance/overview.md"
+  ],
+  "acceptance": [
+    "客户欠款与欠瓶台账具备持久化能力，服务重启后数据不丢失",
+    "催收状态更新保留变更历史（时间、状态、备注）",
+    "客户详情可查看最近催收历史与当前摘要一致性校验结果",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

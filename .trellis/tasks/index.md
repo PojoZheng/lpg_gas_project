@@ -35,6 +35,7 @@
 - `15-login-e2e-regression`
 - `16-workbench-experience-polish`
 - `17-quick-order-ux-alignment`
+- `18-customer-account-persistence-history`
 
 ## 依赖图
 见 [feature-task-map.md](./feature-task-map.md)
