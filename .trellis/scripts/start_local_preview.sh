@@ -15,7 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKEND_DIR="$REPO_ROOT/.trellis/backend"
-FRONTEND_DIR="$REPO_ROOT/.trellis/delivery-app/src"
+FRONTEND_DIR="$REPO_ROOT/.trellis"
 BACKEND_PORT=3100
 FRONTEND_PORT=5174
 PID_BACKEND="/tmp/lpg-gas-backend.pid"
@@ -33,7 +33,7 @@ backend_up() {
 }
 
 frontend_up() {
-  curl -sf -o /dev/null "http://127.0.0.1:${FRONTEND_PORT}/workbench.html" 2>/dev/null
+  curl -sf -o /dev/null "http://127.0.0.1:${FRONTEND_PORT}/delivery-app/src/workbench.html" 2>/dev/null
 }
 
 if ! "$CHECK_ONLY"; then
@@ -82,8 +82,9 @@ fi
 
 echo ""
 echo "[preview] Open these in browser (backend + static both required for full flow):"
-echo "  http://127.0.0.1:${FRONTEND_PORT}/workbench.html"
-echo "  http://127.0.0.1:${FRONTEND_PORT}/quick-order.html"
-echo "  http://127.0.0.1:${FRONTEND_PORT}/delivery-complete.html"
+echo "  http://127.0.0.1:${FRONTEND_PORT}/delivery-app/src/workbench.html"
+echo "  http://127.0.0.1:${FRONTEND_PORT}/delivery-app/src/quick-order.html"
+echo "  http://127.0.0.1:${FRONTEND_PORT}/delivery-app/src/delivery-complete.html"
+echo "  http://127.0.0.1:${FRONTEND_PORT}/platform/src/platform-monitor.html"
 echo "  API: http://127.0.0.1:${BACKEND_PORT}/"
 echo ""

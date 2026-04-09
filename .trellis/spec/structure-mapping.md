@@ -4,8 +4,8 @@
 
 ## 映射关系
 - Trellis `frontend/` 对应：
-  - `delivery-app/`（移动端）
-  - `platform/`（平台 Web 端）
+  - `delivery-app/`（移动端，页面位于 `delivery-app/src`）
+  - `platform/`（平台 Web 端，页面位于 `platform/src`）
 - Trellis `backend/` 对应：
   - `backend/`
 - Trellis 跨层规范补充：
@@ -23,3 +23,8 @@
   - 视觉对齐（主色 `#4799a0` + 参考风格）
   - 中文文案
   - 禁用 emoji
+
+## 前端边界（task-25 更新）
+- `delivery-app/src` 仅承载配送员端页面与客户端脚本，不再放置平台运营页面。
+- `platform/src` 独立承载平台侧页面与客户端脚本（策略发布、监控合规、同步队列等）。
+- 两端共享认证能力时，平台侧可引用 `delivery-app/src/auth-client.js`，不改变后端接口契约。
