@@ -1,7 +1,7 @@
 {
   "id": "26-preview-backend-modularization",
   "title": "预览脚本与后端路由模块化收口",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "25-platform-frontend-separation"
   ],
