@@ -1,7 +1,7 @@
 {
   "id": "17-quick-order-ux-alignment",
   "title": "快速开单交互与边界对齐",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["03-quick-order"],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-order/overview.md",
