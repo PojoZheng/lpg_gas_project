@@ -161,6 +161,7 @@
         <button class="quick-action" id="quickOrderBtn">快速开单</button>
         <button class="quick-action secondary" id="deliveryCompleteBtn">待配送完单</button>
         <button class="quick-action secondary" id="financeCloseBtn">财务记账与日结</button>
+        <button class="quick-action secondary" id="syncQueueBtn">同步队列</button>
       </section>
 
       <section class="card">
@@ -185,6 +186,7 @@
       const quickOrderBtn = document.getElementById("quickOrderBtn");
       const deliveryCompleteBtn = document.getElementById("deliveryCompleteBtn");
       const financeCloseBtn = document.getElementById("financeCloseBtn");
+      const syncQueueBtn = document.getElementById("syncQueueBtn");
       const syncStatusTag = document.getElementById("syncStatusTag");
       const syncPendingCount = document.getElementById("syncPendingCount");
       const syncLastAt = document.getElementById("syncLastAt");
@@ -242,6 +244,8 @@
       });
       financeCloseBtn.addEventListener("click", () => {
         window.location.href = "./finance-daily-close.html";
+      syncQueueBtn.addEventListener("click", () => {
+        window.location.href = "./sync-queue.html";
       });
 
       window.addEventListener("offline", () => {
