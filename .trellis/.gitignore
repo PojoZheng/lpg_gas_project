@@ -4,6 +4,9 @@
 # Current task pointer (each dev works on different task)
 .current-task
 
+# Local coordinator paths + secrets (copy from coordinator.env.example)
+**/coordinator.env
+
 # Ralph Loop state file
 .ralph-state.json
 
