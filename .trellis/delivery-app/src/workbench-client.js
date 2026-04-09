@@ -44,3 +44,60 @@ export async function fetchWorkbenchOverview() {
     return { success: true, data: buildMockOverview(), fromMock: true };
   }
 }
+
+export async function fetchSyncQueueOverview() {
+  const session = getCurrentSession();
+  if (!session?.accessToken) {
+    return { success: false, error: "未登录，请先登录" };
+  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/sync/queue`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+    });
+    const data = await res.json();
+    if (!data.success) {
+      return { success: false, error: data.error?.message || "同步队列读取失败" };
+    }
+    const items = Array.isArray(data.data) ? data.data : [];
+    const pending = items.filter((item) => item.status === "pending").length;
+    const failed = items.filter((item) => item.status === "failed").length;
+    const retryWaiting = items.filter((item) => item.status === "retry_waiting").length;
+    return {
+      success: true,
+      data: {
+        pending,
+        failed,
+        retryWaiting,
+        total: items.length,
+      },
+    };
+  } catch (_err) {
+    return { success: false, error: "同步队列读取失败，请稍后重试" };
+  }
+}
+
+export async function batchSyncNow() {
+  const session = getCurrentSession();
+  if (!session?.accessToken) {
+    return { success: false, error: "未登录，请先登录" };
+  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/sync/queue/batch-submit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      return { success: false, error: data.error?.message || "同步执行失败" };
+    }
+    return { success: true, data: data.data || {} };
+  } catch (_err) {
+    return { success: false, error: "同步执行失败，请检查网络后重试" };
+  }
+}

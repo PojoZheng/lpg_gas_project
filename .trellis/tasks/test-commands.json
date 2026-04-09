@@ -20,6 +20,9 @@
     "node --check \".trellis/delivery-app/src/auth-client.js\"",
     "python3 \".trellis/scripts/task15_login_e2e_regression.py\""
   ],
+  "16-workbench-experience-polish": [
+    "python3 \".trellis/scripts/task16_workbench_closure.py\""
+  ],
   "27-quick-order-submit-integration-fix": [
     "node --check \".trellis/backend/src/server.js\"",
     "node --check \".trellis/delivery-app/src/quick-order-client.js\"",

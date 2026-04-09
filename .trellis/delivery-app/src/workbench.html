@@ -13,6 +13,38 @@
       .line { margin: 6px 0; color: var(--text-secondary); }
       .line strong { color: var(--text-primary); }
       .todo-strong { font-size: 14px; color: var(--text-primary); font-weight: 600; }
+      .next-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .next-actions .app-btn { font-size: 14px; }
+      .sync-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 17, 17, 0.35);
+        display: none;
+        align-items: flex-end;
+        z-index: 60;
+      }
+      .sync-overlay.show { display: flex; }
+      .sync-sheet {
+        width: 100%;
+        max-width: 460px;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 20px 20px 0 0;
+        padding: 14px;
+      }
+      .sync-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; }
+      .sync-desc { margin: 0; color: var(--text-secondary); font-size: 13px; }
+      .sync-stats {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px;
+        background: #f8fbfc;
+        font-size: 13px;
+      }
+      .sync-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .sync-actions .app-btn { font-size: 14px; }
     </style>
   </head>
   <body>
@@ -64,11 +96,29 @@
         <p class="line">地址：<strong id="nextAddress">--</strong></p>
         <p class="line">时间：<strong id="nextSchedule">--</strong></p>
         <p class="line">订单号：<strong id="nextOrderId">--</strong></p>
+        <div class="next-actions">
+          <button class="app-btn" id="nextDetailBtn">查看详情</button>
+          <button class="app-btn primary" id="startDeliveryBtn">开始配送</button>
+        </div>
         <p class="line todo-strong">低频能力请前往“我的”统一处理。</p>
       </section>
 
       <p class="app-tip" id="tip"></p>
     </main>
+
+    <div class="sync-overlay" id="syncOverlay">
+      <div class="sync-sheet">
+        <h3 class="sync-title">检测到待同步数据</h3>
+        <p class="sync-desc" id="syncDesc">当前网络可用，建议立即同步避免数据冲突。</p>
+        <div class="sync-stats" id="syncStats">待同步 0 条</div>
+        <div class="sync-actions">
+          <button class="app-btn primary" id="syncNowBtn">立即同步</button>
+          <button class="app-btn" id="syncLaterBtn">稍后处理</button>
+          <button class="app-btn" id="syncDetailBtn">查看同步明细</button>
+          <button class="app-btn" id="syncRetryBtn">重试失败项</button>
+        </div>
+      </div>
+    </div>
 
     <div class="bottom-nav-wrap">
       <nav class="bottom-nav" aria-label="底部导航">
@@ -88,7 +138,7 @@
     </div>
 
     <script type="module">
-      import { fetchWorkbenchOverview } from "./workbench-client.js";
+      import { batchSyncNow, fetchSyncQueueOverview, fetchWorkbenchOverview } from "./workbench-client.js";
 
       const receivedToday = document.getElementById("receivedToday");
       const pendingToday = document.getElementById("pendingToday");
@@ -97,6 +147,8 @@
       const nextAddress = document.getElementById("nextAddress");
       const nextSchedule = document.getElementById("nextSchedule");
       const nextOrderId = document.getElementById("nextOrderId");
+      const nextDetailBtn = document.getElementById("nextDetailBtn");
+      const startDeliveryBtn = document.getElementById("startDeliveryBtn");
       const quickOrderBtn = document.getElementById("quickOrderBtn");
       const deliveryCompleteBtn = document.getElementById("deliveryCompleteBtn");
       const loginBtn = document.getElementById("loginBtn");
@@ -104,8 +156,79 @@
       const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
       const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
       const navMyBtn = document.getElementById("navMyBtn");
+      const syncOverlay = document.getElementById("syncOverlay");
+      const syncDesc = document.getElementById("syncDesc");
+      const syncStats = document.getElementById("syncStats");
+      const syncNowBtn = document.getElementById("syncNowBtn");
+      const syncLaterBtn = document.getElementById("syncLaterBtn");
+      const syncDetailBtn = document.getElementById("syncDetailBtn");
+      const syncRetryBtn = document.getElementById("syncRetryBtn");
 
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
+      const DISMISS_KEY = "workbench-sync-dismiss-until";
+      let currentNextOrderId = "";
+
+      function goDeliveryPage() {
+        if (currentNextOrderId) {
+          window.location.href = `./delivery-complete.html?orderId=${encodeURIComponent(currentNextOrderId)}`;
+          return;
+        }
+        window.location.href = "./delivery-complete.html";
+      }
+
+      function renderNextDelivery(nextDelivery) {
+        const hasTask = Boolean(nextDelivery?.orderId);
+        if (!hasTask) {
+          currentNextOrderId = "";
+          nextCustomer.textContent = "暂无待配送";
+          nextAddress.textContent = "可前往快速开单创建新订单";
+          nextSchedule.textContent = "创建后将自动刷新";
+          nextOrderId.textContent = "--";
+          nextDetailBtn.textContent = "去快速开单";
+          startDeliveryBtn.textContent = "去待配送";
+          return;
+        }
+        currentNextOrderId = nextDelivery.orderId;
+        nextCustomer.textContent = nextDelivery.customerName || "--";
+        nextAddress.textContent = nextDelivery.address || "--";
+        nextSchedule.textContent = nextDelivery.scheduleAt || "--";
+        nextOrderId.textContent = nextDelivery.orderId;
+        nextDetailBtn.textContent = "查看详情";
+        startDeliveryBtn.textContent = "开始配送";
+      }
+
+      function hideSyncOverlay() {
+        syncOverlay.classList.remove("show");
+      }
+
+      function shouldSkipSyncPopup() {
+        const until = Number(sessionStorage.getItem(DISMISS_KEY) || 0);
+        return until > Date.now();
+      }
+
+      function showSyncOverlay(sync) {
+        const pendingCount = Number(sync?.pendingCount || 0);
+        syncStats.textContent = `待同步条数：${pendingCount}`;
+        syncDesc.textContent = "当前网络可用，建议立即同步避免后续冲突。";
+        syncRetryBtn.style.display = "none";
+        syncOverlay.classList.add("show");
+      }
+
+      async function maybeShowSyncModal(sync) {
+        const pendingCount = Number(sync?.pendingCount || 0);
+        if (!navigator.onLine || pendingCount <= 0 || shouldSkipSyncPopup()) {
+          hideSyncOverlay();
+          return;
+        }
+        showSyncOverlay(sync);
+        const queue = await fetchSyncQueueOverview();
+        if (!queue.success) {
+          syncDesc.textContent = "同步队列读取失败，可稍后在“我的”中查看明细。";
+          return;
+        }
+        syncStats.textContent = `待同步 ${queue.data.pending} 条，失败 ${queue.data.failed} 条，等待重试 ${queue.data.retryWaiting} 条`;
+        syncRetryBtn.style.display = queue.data.failed > 0 ? "inline-block" : "none";
+      }
 
       async function loadData(fromPull = false) {
         tip.textContent = fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...";
@@ -120,10 +243,10 @@
         totalToday.textContent = fmtCurrency(received + pending);
         receivedToday.textContent = fmtCurrency(received);
         pendingToday.textContent = fmtCurrency(pending);
-        nextCustomer.textContent = nextDelivery.customerName;
-        nextAddress.textContent = nextDelivery.address;
-        nextSchedule.textContent = nextDelivery.scheduleAt;
-        nextOrderId.textContent = nextDelivery.orderId;
+        if (received <= 0 && pending <= 0) {
+          tip.textContent = "今日暂无收款数据，可先去快速开单。";
+        }
+        renderNextDelivery(nextDelivery);
 
         if (!navigator.onLine) {
           tip.textContent = "当前网络不可用，已展示缓存信息";
@@ -133,6 +256,7 @@
           tip.textContent = "当前使用模拟数据，后端接口预留中";
           return;
         }
+        await maybeShowSyncModal(res.data.sync || {});
         tip.textContent = "数据已更新";
       }
 
@@ -141,6 +265,16 @@
       });
       deliveryCompleteBtn.addEventListener("click", () => {
         window.location.href = "./delivery-complete.html";
+      });
+      nextDetailBtn.addEventListener("click", () => {
+        if (!currentNextOrderId) {
+          window.location.href = "./quick-order.html";
+          return;
+        }
+        goDeliveryPage();
+      });
+      startDeliveryBtn.addEventListener("click", () => {
+        goDeliveryPage();
       });
       loginBtn.addEventListener("click", () => {
         window.location.href = "./login.html";
@@ -154,9 +288,45 @@
       navMyBtn.addEventListener("click", () => {
         window.location.href = "./my.html";
       });
+      syncLaterBtn.addEventListener("click", () => {
+        sessionStorage.setItem(DISMISS_KEY, String(Date.now() + 5 * 60 * 1000));
+        hideSyncOverlay();
+        tip.textContent = "已暂缓同步，可在“我的”中稍后处理。";
+      });
+      syncDetailBtn.addEventListener("click", () => {
+        window.location.href = "/platform/src/sync-queue.html";
+      });
+      async function doSyncNow() {
+        syncDesc.textContent = "正在执行批量同步，请稍候...";
+        const res = await batchSyncNow();
+        if (!res.success) {
+          syncDesc.textContent = res.error || "同步失败，请稍后重试或查看明细。";
+          syncRetryBtn.style.display = "inline-block";
+          return;
+        }
+        const queue = await fetchSyncQueueOverview();
+        if (!queue.success) {
+          syncDesc.textContent = "同步已执行，明细读取失败，可前往同步队列查看。";
+          return;
+        }
+        syncStats.textContent = `待同步 ${queue.data.pending} 条，失败 ${queue.data.failed} 条，等待重试 ${queue.data.retryWaiting} 条`;
+        if (queue.data.pending === 0 && queue.data.failed === 0) {
+          hideSyncOverlay();
+          tip.textContent = "同步已完成，工作台数据已保持最新。";
+          return;
+        }
+        syncDesc.textContent = queue.data.failed > 0 ? "仍有失败项，请重试或查看明细。" : "仍有待同步数据，可稍后继续处理。";
+        syncRetryBtn.style.display = queue.data.failed > 0 ? "inline-block" : "none";
+      }
+      syncNowBtn.addEventListener("click", doSyncNow);
+      syncRetryBtn.addEventListener("click", doSyncNow);
+      syncOverlay.addEventListener("click", (event) => {
+        if (event.target === syncOverlay) hideSyncOverlay();
+      });
 
       window.addEventListener("offline", () => {
         tip.textContent = "当前网络不可用，已切换离线提示";
+        hideSyncOverlay();
       });
       window.addEventListener("online", () => {
         tip.textContent = "网络已恢复，可下拉刷新";
