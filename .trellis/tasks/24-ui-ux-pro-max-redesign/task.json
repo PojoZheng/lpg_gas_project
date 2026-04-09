@@ -1,6 +1,6 @@
 {
   "id": "24-ui-ux-pro-max-redesign",
-  "title": "基于 UI-UX-PRO-MAX 的前端样式与布局重构",
+  "title": "基于 impeccable 的前端样式与布局重构",
   "status": "todo",
   "depends_on": [
     "19-quick-order-navigation-and-submit-contract",
@@ -13,7 +13,7 @@
     ".trellis/spec/delivery-app/domain-workbench/overview.md"
   ],
   "acceptance": [
-    "工作台、快速开单、待配送完单三页完成统一视觉系统（间距、字号、层级、组件状态）",
+    "工作台、快速开单、待配送完单三页完成统一视觉系统（间距、字号、层级、组件状态），并遵循 impeccable 的可读性与一致性原则",
     "落地移动端优先布局（底部主操作区、返回路径一致、可触达性符合 48x48）",
     "组件化抽离公共样式与交互模式，减少重复样式定义",
     "保留业务流程与接口契约不变，确保仅 UI/UX 重构不破坏核心流程",

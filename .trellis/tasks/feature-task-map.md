@@ -20,7 +20,7 @@
 17. 退出登录流程与会话收口
 18. 工作台底部导航与头部信息层级优化
 19. React 最佳实践审查与修复
-20. UI-UX-PRO-MAX 页面重构
+20. impeccable 驱动的页面重构
 
 ```mermaid
 flowchart TD
@@ -49,7 +49,7 @@ t07 --> t20[task-20-safety-mobile-layout]
 t01 --> t21[task-21-auth-logout]
 t16 --> t22[task-22-workbench-nav-header]
 t16 --> t23[task-23-react-best-practices]
-t19 --> t24[task-24-uiux-pro-max]
+t19 --> t24[task-24-impeccable-redesign]
 t20 --> t24
 t22 --> t24
 ```
