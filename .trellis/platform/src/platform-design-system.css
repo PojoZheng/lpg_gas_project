@@ -62,8 +62,9 @@ body {
 }
 
 .menu-link.active {
-  background: #111;
-  color: #fff;
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-color: var(--brand);
 }
 
 .divider {
