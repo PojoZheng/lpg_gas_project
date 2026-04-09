@@ -35,6 +35,11 @@
       .tip { min-height: 20px; font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
       .err { color: var(--error); }
       .status-tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #fff7ed; color: #b45309; }
+      .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+      .filter-item { min-width: 0; }
+      .filter-item input, .filter-item select { width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; }
+      .switch-row { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--text-secondary); }
+      .switch-row label { display: flex; align-items: center; gap: 6px; }
     </style>
   </head>
   <body>
@@ -71,6 +76,35 @@
 
       <section class="card">
         <h2 class="card-title">冲突与处理结果</h2>
+        <div class="filter-grid">
+          <div class="filter-item">
+            <select id="statusFilter">
+              <option value="all">全部状态</option>
+              <option value="pending">待同步</option>
+              <option value="syncing">同步中</option>
+              <option value="failed">同步失败</option>
+              <option value="completed">已完成</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <select id="entityFilter">
+              <option value="all">全部实体</option>
+              <option value="order">订单</option>
+              <option value="inventory">库存</option>
+              <option value="customer">客户</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <input id="keywordFilter" placeholder="按离线ID/错误关键字筛选" />
+          </div>
+          <div class="filter-item">
+            <button class="btn" id="applyFilterBtn">应用筛选</button>
+          </div>
+        </div>
+        <div class="switch-row">
+          <label><input type="checkbox" id="manualOnlyFilter" /> 仅看人工处理</label>
+          <label><input type="checkbox" id="conflictOnlyFilter" /> 仅看冲突</label>
+        </div>
         <div id="queueList"></div>
       </section>
     </main>
@@ -96,13 +130,19 @@
       const batchBtn = document.getElementById("batchBtn");
       const batchTip = document.getElementById("batchTip");
       const queueList = document.getElementById("queueList");
+      const statusFilter = document.getElementById("statusFilter");
+      const entityFilter = document.getElementById("entityFilter");
+      const keywordFilter = document.getElementById("keywordFilter");
+      const manualOnlyFilter = document.getElementById("manualOnlyFilter");
+      const conflictOnlyFilter = document.getElementById("conflictOnlyFilter");
+      const applyFilterBtn = document.getElementById("applyFilterBtn");
 
       function setTip(el, text, isError = false) {
         el.textContent = text;
         el.className = isError ? "tip err" : "tip";
       }
 
-      function renderStats(data) {
+      function renderStats(data, filteredStats = null) {
         stats.innerHTML = "";
         const rows = [
           ["待同步", data.pending || 0],
@@ -118,6 +158,12 @@
           el.innerHTML = `<div>${label}</div><strong>${value}</strong>`;
           stats.appendChild(el);
         });
+        if (filteredStats) {
+          const summary = document.createElement("div");
+          summary.className = "metric";
+          summary.innerHTML = `<div>筛选命中</div><strong>${filteredStats.pending + filteredStats.syncing + filteredStats.failed + filteredStats.completed}</strong>`;
+          stats.appendChild(summary);
+        }
       }
 
       function renderList(items) {
@@ -161,12 +207,18 @@
       }
 
       async function loadQueue() {
-        const res = await fetchSyncQueue();
+        const res = await fetchSyncQueue({
+          status: statusFilter.value,
+          entityType: entityFilter.value,
+          keyword: keywordFilter.value,
+          manualOnly: manualOnlyFilter.checked ? "1" : "0",
+          conflictOnly: conflictOnlyFilter.checked ? "1" : "0",
+        });
         if (!res.success) {
           setTip(batchTip, res.error || "队列加载失败，请稍后重试", true);
           return;
         }
-        renderStats(res.data.stats || {});
+        renderStats(res.data.stats || {}, res.data.filteredStats || null);
         renderList(res.data.items || []);
       }
 
@@ -209,6 +261,11 @@
       backBtn.addEventListener("click", () => {
         window.location.href = "./workbench.html";
       });
+      applyFilterBtn.addEventListener("click", () => {
+        loadQueue();
+      });
+      manualOnlyFilter.addEventListener("change", () => loadQueue());
+      conflictOnlyFilter.addEventListener("change", () => loadQueue());
 
       loadQueue();
     </script>
