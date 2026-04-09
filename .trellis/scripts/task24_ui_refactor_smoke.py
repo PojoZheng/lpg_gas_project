@@ -23,7 +23,8 @@ def main():
     assert_contains(page, ['<link rel="stylesheet" href="./delivery-shell.css" />'])
     assert_contains(page, ['aria-label="底部导航"', "首页", "客户", "我的"])
 
-  assert_contains(workbench, ['id="myCenterBtn"', "进入我的"])
+  assert_contains(workbench, ['id="quickOrderBtn"', 'class="action-grid"', "今天能赚多少钱"])
+  assert_contains(workbench, ['class="nav-icon"', "低频能力请前往“我的”统一处理。"])
   assert_contains(my_center, ["同步队列", "平台运营入口", "财务记账与日结"])
   print("task24 ui refactor smoke passed")
 
