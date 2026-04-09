@@ -10,18 +10,16 @@ from bus_common import get_bus_dir, read_json, repo_root_from_script
 def _print(name: str, payload: dict) -> None:
     print(f'## {name}')
     if not payload:
-        print('(empty)
-')
+        print("(empty)\n")
         return
     print(json.dumps(payload, ensure_ascii=False, indent=2))
-    print('')
+    print("")
 
 
 def main() -> int:
     repo = repo_root_from_script()
     bus = get_bus_dir(repo)
-    print(f'[bus] {bus}
-')
+    print(f"[bus] {bus}\n")
     for role in ('dev-a','dev-b','integrate'):
         _print(f'ack/{role}', read_json(bus/'acks'/f'{role}.json'))
     for role in ('dev-a','dev-b','integrate'):
