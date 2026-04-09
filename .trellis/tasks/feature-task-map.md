@@ -14,6 +14,7 @@
 11. 平台监控与合规看板
 12. 工作台体验优化
 13. 快速开单交互与边界对齐
+14. 客户账户持久化与催收历史
 
 ```mermaid
 flowchart TD
@@ -36,4 +37,5 @@ t14 --> t15[task-15-login-e2e-regression]
 t03 --> t16[task-16-workbench-experience-polish]
 t09 --> t16
 t03 --> t17[task-17-quick-order-ux-alignment]
+t06 --> t18[task-18-account-persistence-history]
 ```
