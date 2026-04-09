@@ -33,8 +33,14 @@
         padding: 18px 14px calc(86px + env(safe-area-inset-bottom, 0px));
       }
       .header {
-        display: block;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
         margin-bottom: 10px;
+      }
+      .header-main {
+        min-width: 0;
       }
       .title {
         margin: 0;
@@ -45,6 +51,16 @@
         margin: 4px 0 0;
         color: var(--text-secondary);
         font-size: 13px;
+      }
+      .login-btn {
+        border: 1px solid #cce7ea;
+        background: #f0f9fa;
+        color: #1f6f76;
+        border-radius: 12px;
+        height: 38px;
+        padding: 0 12px;
+        cursor: pointer;
+        white-space: nowrap;
       }
       .card {
         background: var(--surface);
@@ -163,8 +179,11 @@
   <body>
     <main class="page" id="page">
       <header class="header">
-        <h1 class="title">工作台</h1>
-        <p class="subtitle">今日概览与快捷入口</p>
+        <div class="header-main">
+          <h1 class="title">工作台</h1>
+          <p class="subtitle">今日概览与快捷入口</p>
+        </div>
+        <button class="login-btn" id="loginBtn">登录 / 切换账号</button>
       </header>
       <section class="card">
         <h2 class="card-title">今日收款汇总</h2>
@@ -230,6 +249,7 @@
       const syncQueueBtn = document.getElementById("syncQueueBtn");
       const policyReleaseBtn = document.getElementById("policyReleaseBtn");
       const platformMonitorBtn = document.getElementById("platformMonitorBtn");
+      const loginBtn = document.getElementById("loginBtn");
       const syncStatusTag = document.getElementById("syncStatusTag");
       const syncPendingCount = document.getElementById("syncPendingCount");
       const syncLastAt = document.getElementById("syncLastAt");
@@ -299,6 +319,9 @@
       });
       platformMonitorBtn.addEventListener("click", () => {
         window.location.href = "/platform/src/platform-monitor.html";
+      });
+      loginBtn.addEventListener("click", () => {
+        window.location.href = "./login.html";
       });
       navWorkbenchBtn.addEventListener("click", () => {
         window.location.href = "./workbench.html";
