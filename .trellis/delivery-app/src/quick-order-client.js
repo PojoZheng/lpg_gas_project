@@ -8,10 +8,16 @@ const mockCustomers = [
 ];
 
 const mockInventory = {
-  "10kg": 6,
-  "15kg": 10,
-  "50kg": 2,
+  "10kg": { onHand: 6, locked: 0 },
+  "15kg": { onHand: 10, locked: 0 },
+  "50kg": { onHand: 2, locked: 0 },
 };
+
+function getMockInventoryState(spec) {
+  const onHand = Number(mockInventory[spec]?.onHand || 0);
+  const locked = Number(mockInventory[spec]?.locked || 0);
+  return { onHand, locked, available: Math.max(0, onHand - locked) };
+}
 
 function authHeaders() {
   const session = getCurrentSession();
@@ -81,14 +87,16 @@ export async function checkInventory(spec, quantity) {
     const data = await res.json();
     if (data.success) return data;
   } catch (_err) {}
-  const available = Number(mockInventory[spec] || 0);
+  const state = getMockInventoryState(spec);
   return {
     success: true,
     data: {
       spec,
-      available,
+      available: state.available,
+      onHand: state.onHand,
+      locked: state.locked,
       requested: Number(quantity || 0),
-      canCreate: available >= Number(quantity || 0),
+      canCreate: state.available >= Number(quantity || 0),
     },
     fromMock: true,
   };
@@ -105,11 +113,12 @@ export async function quickCreateOrder(payload) {
     if (data.success) return data;
     return data;
   } catch (_err) {
-    const available = Number(mockInventory[payload.spec] || 0);
-    if (available < Number(payload.quantity || 0)) {
+    const quantity = Number(payload.quantity || 0);
+    const state = getMockInventoryState(payload.spec);
+    if (state.available < quantity) {
       return {
         success: false,
-        error: `库存不足：${payload.spec} 可用 ${available} 瓶`,
+        error: `库存不足：${payload.spec} 可用 ${state.available} 瓶`,
       };
     }
     const amount = Number((Number(payload.unitPrice || 0) * Number(payload.quantity || 0)).toFixed(2));
@@ -125,7 +134,11 @@ export async function quickCreateOrder(payload) {
         return { success: false, error: "实收金额不能小于应收金额，请确认后再提交" };
       }
     }
-    mockInventory[payload.spec] = available - Number(payload.quantity || 0);
+    if (payload.orderType === "later_delivery") {
+      mockInventory[payload.spec].locked = state.locked + quantity;
+    } else {
+      mockInventory[payload.spec].onHand = state.onHand - quantity;
+    }
     return {
       success: true,
       data: {
