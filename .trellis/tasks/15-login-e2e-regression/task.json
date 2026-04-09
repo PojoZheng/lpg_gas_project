@@ -1,0 +1,25 @@
+{
+  "id": "15-login-e2e-regression",
+  "title": "登录流程自动化回归",
+  "status": "todo",
+  "depends_on": [
+    "01-auth-session",
+    "14-auth-api-contract-alignment"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-system/overview.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md",
+    ".trellis/spec/shared/api-contracts.md"
+  ],
+  "source_requirements": [
+    "requirements/08_系统/登录认证/需求.md",
+    "requirements/08_系统/登录认证/规格.md",
+    "requirements/08_系统/规格.md"
+  ],
+  "acceptance": [
+    "覆盖发送验证码、登录、刷新、设备会话至少 4 条回归用例",
+    "自动触发脚本支持 task 级测试命令",
+    "测试报告在任务完成记录中可追溯",
+    "登录相关页面保持中文文案、禁用 emoji、主色一致"
+  ]
+}

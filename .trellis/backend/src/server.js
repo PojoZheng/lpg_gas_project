@@ -142,6 +142,26 @@ function createQuickOrder(payload) {
   };
 }
 
+function createCustomer(payload) {
+  const name = String(payload.name || "").trim();
+  const phone = String(payload.phone || "").trim();
+  const address = String(payload.address || "").trim();
+  if (!name) throw new Error("客户姓名不能为空");
+  if (!/^1\d{10}$/.test(phone)) throw new Error("手机号格式不正确");
+  if (!address) throw new Error("地址不能为空");
+  if (mockCustomers.some((x) => x.phone === phone)) {
+    throw new Error("该手机号已存在客户");
+  }
+  const customer = {
+    id: `CUST-${String(mockCustomers.length + 1).padStart(3, "0")}`,
+    name,
+    phone,
+    address,
+  };
+  mockCustomers.unshift(customer);
+  return customer;
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
 
@@ -207,6 +227,14 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       return sendJson(res, 200, { success: true, data: mockCustomers });
+    }
+
+    if (req.method === "POST" && req.url === "/customers") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const customer = createCustomer(payload);
+      return sendJson(res, 200, { success: true, data: customer });
     }
 
     if (req.method === "POST" && req.url === "/inventory/check") {

@@ -1,0 +1,20 @@
+{
+  "id": "17-quick-order-ux-alignment",
+  "title": "快速开单交互与边界对齐",
+  "status": "todo",
+  "depends_on": ["03-quick-order"],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md"
+  ],
+  "acceptance": [
+    "支持一键开单与确认面板展开更多字段",
+    "支持连续开单模式与默认值记忆策略",
+    "补齐当场完成下的收款信息确认与边界提示",
+    "错误提示与空状态文案对齐工作台规格",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji",
+    "自动化测试通过"
+  ]
+}

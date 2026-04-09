@@ -36,3 +36,6 @@ hooks:
     - "python3 ./.trellis/scripts/task_conflict_check.py"
   after_start:
     - "python3 ./.trellis/scripts/task_conflict_check.py"
+  after_finish:
+    - "python3 ./.trellis/scripts/pm_review_check.py"
+    - "python3 ./.trellis/scripts/task_conflict_check.py"

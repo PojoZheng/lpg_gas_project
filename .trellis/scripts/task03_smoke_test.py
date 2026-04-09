@@ -23,7 +23,17 @@ if task.get("id") != "03-quick-order":
     sys.exit(1)
 
 quick_html = (ROOT / ".trellis/delivery-app/src/quick-order.html").read_text(encoding="utf-8")
-checks = ["快速开单", "选择客户", "稍后配送", "当场完成", "确认开单", "#4799a0"]
+checks = [
+    "快速开单",
+    "选择客户",
+    "稍后配送",
+    "当场完成",
+    "确认开单",
+    "添加新客户",
+    "查看全部客户",
+    "搜索客户姓名、手机号或地址",
+    "#4799a0",
+]
 for c in checks:
     if c not in quick_html:
         print(f"[task03-smoke] 快速开单页缺少关键内容: {c}")

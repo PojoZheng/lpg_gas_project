@@ -1,0 +1,23 @@
+{
+  "id": "13-auth-security-hardening",
+  "title": "认证安全加固",
+  "status": "todo",
+  "depends_on": ["12-backend-auth-persistence"],
+  "input_spec": [
+    ".trellis/spec/backend/domain-user/overview.md",
+    ".trellis/spec/shared/api-contracts.md",
+    ".trellis/spec/master/architecture.md"
+  ],
+  "source_requirements": [
+    "requirements/08_系统/登录认证/需求.md",
+    "requirements/08_系统/规格.md",
+    "requirements/00_全局/产品概述.md"
+  ],
+  "acceptance": [
+    "验证码发送增加限流和频次控制",
+    "验证码校验增加失败次数限制与冷却策略",
+    "令牌刷新和设备下线具备最小安全校验",
+    "错误码与错误文案对齐 shared 契约",
+    "自动化测试通过"
+  ]
+}

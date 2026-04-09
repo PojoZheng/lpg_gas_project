@@ -6,6 +6,7 @@
 - 每个任务完成后更新 `task.json` 状态并补充验收结果。
 - 如任务涉及界面，必须满足：主色 `#4799a0`、视觉风格对齐参考图、文案中文化、禁用 emoji。
 - 新增任务前运行冲突检查：`python3 ./.trellis/scripts/task_conflict_check.py`。
+- 新增任务前运行产品评审检查：`python3 ./.trellis/scripts/pm_review_check.py --task <task-id>`。
 - 系统已配置自动触发：`task create/start` 后会自动执行冲突检查。
 - 跨会话启动建议统一执行：`python3 ./.trellis/scripts/session_bootstrap.py`（上下文 + 冲突检查）。
 - 会话结束建议执行：`python3 ./.trellis/scripts/session_finalize.py`（生成下会话初始指令包）。
@@ -33,6 +34,7 @@
 - `14-auth-api-contract-alignment`
 - `15-login-e2e-regression`
 - `16-workbench-experience-polish`
+- `17-quick-order-ux-alignment`
 
 ## 依赖图
 见 [feature-task-map.md](./feature-task-map.md)

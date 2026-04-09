@@ -12,6 +12,7 @@
   "03-quick-order": [
     "node --check \".trellis/backend/src/server.js\"",
     "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
-    "python3 \".trellis/scripts/task03_smoke_test.py\""
+    "python3 \".trellis/scripts/task03_smoke_test.py\"",
+    "python3 \".trellis/scripts/pm_review_check.py\" --task 03-quick-order"
   ]
 }

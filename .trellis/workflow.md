@@ -11,8 +11,9 @@
 3. [Session Start Process](#session-start-process)
 4. [Development Process](#development-process)
 5. [Session End](#session-end)
-6. [File Descriptions](#file-descriptions)
-7. [Best Practices](#best-practices)
+6. [Parallel multi-agent (optional)](#parallel-multi-agent-optional)
+7. [File Descriptions](#file-descriptions)
+8. [Best Practices](#best-practices)
 
 ---
 
@@ -167,6 +168,9 @@ python3 ./.trellis/scripts/session_bootstrap.py
 # Optional: generate next-session handoff package
 python3 ./.trellis/scripts/session_finalize.py
 
+# Optional: product-manager gap review for current task
+python3 ./.trellis/scripts/pm_review_check.py --task <task-id>
+
 # Get all context in one command
 python3 ./.trellis/scripts/get_context.py
 
@@ -280,6 +284,51 @@ Use `/trellis:finish-work` command to run through:
 
 ---
 
+## Parallel multi-agent (optional)
+
+Use this when you run **two coding agents** plus **one integrator** (merge, full test, release).
+
+### Isolation
+
+- Prefer **one git worktree per agent** (separate Cursor windows). Each worktree has its own `.trellis/.current-task` (gitignored), so `auto_test_runner.py` and `pm_review_check.py` resolve the correct task per tree.
+- **Integrator** should use a **dedicated checkout** (main repo or a third worktree) for `git merge` / `rebase` and for `session_finalize.py` (optional commit/push) so git state is not contested with active dev.
+
+### Roles
+
+| Role | Typical tasks | Scripts |
+|------|------------------|---------|
+| Dev A / B | Implement feature branches; run task-specific smoke tests | `session_bootstrap.py`, `auto_test_runner.py`, `task.py` as needed |
+| Integrator | Merge in agreed order; resolve conflicts; run full checks | `task_conflict_check.py`, `pm_review_check.py` (after merge), `pm_review_check.py --task <id>` if needed, `auto_test_runner.py` with `.current-task` set to integration target, `session_finalize.py` |
+
+### `config.yaml` lifecycle hooks vs parallel agents
+
+Hooks in `.trellis/config.yaml` (`after_create`, `after_start`, `after_finish`) run only when **`task.py`** runs the corresponding lifecycle (`create` / `start` / `finish`). They execute:
+
+- `task_conflict_check.py` — **read-only** scan of `tasks/*.json`; safe for parallel worktrees.
+- `pm_review_check.py` — reads **this worktree’s** `.trellis/.current-task` unless you pass `--task`; safe per worktree.
+
+They do **not** run automatically on every file save; no extra conflict beyond normal git merge.
+
+### Automation scripts: conflict risk
+
+| Script | Risk | Why |
+|--------|------|-----|
+| `task_conflict_check.py` | Low | Reads task JSON; no writes. |
+| `pm_review_check.py` | Low | Reads files; optional `--task` overrides `.current-task`. |
+| `session_bootstrap.py` | Low | Runs read-only checks + conflict check. |
+| `auto_test_runner.py` | Low | Uses local `.current-task`; each worktree should set its own. |
+| `get_context.py` | Low | Reads git + journal paths; no writes. |
+| `add_session.py` | **High** | Appends journal and rewrites `workspace/<dev>/index.md` — **serialize** (one agent at a time) or **integrator-only** after merge. |
+| `session_finalize.py` | **High** | Optional `git add -A` / commit / push — **integrator-only** or one session at a time. |
+| `multi_agent/start.py` | **Medium** | Writes `registry.json` and creates worktrees — avoid concurrent `registry_add_agent` from two processes; prefer one launcher or stagger starts. |
+
+### Optional optimizations (later)
+
+- Add **file locking or atomic replace** for `registry.json` if multiple `multi_agent/start.py` runs become common.
+- Teach `auto_test_runner.py` / CI to accept **`--task`** explicitly (currently driven by `.current-task`) for integration runs without touching the pointer file.
+
+---
+
 ## File Descriptions
 
 ### 1. workspace/ - Developer Workspaces
@@ -358,23 +407,24 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
 2. **During development**:
    - [!] **Follow** `.trellis/spec/` guidelines
    - For cross-layer features, use `/trellis:check-cross-layer`
-   - Develop only one task at a time
+   - Develop one task per session **unless** you use [parallel multi-agent](#parallel-multi-agent-optional) (worktrees + clear ownership).
    - Run lint and tests frequently
 
 3. **After development complete**:
    - Use `/trellis:finish-work` for completion checklist
    - After fix bug, use `/trellis:break-loop` for deep analysis
-   - Human commits after testing passes
+   - **Coding agents**: do not run `git commit` / `git push` in-repo; hand off a clean branch or PR.
+   - **Integrator agent** (merge + verify): may commit/push after checks pass, e.g. `python3 ./.trellis/scripts/session_finalize.py --commit-message "..."` (optionally `--push`).
    - Use `add_session.py` to record progress
 
 ### [X] DON'T - Should Not Do
 
 1. [!] **Don't** skip reading `.trellis/spec/` guidelines
 2. [!] **Don't** let journal single file exceed 2000 lines
-3. **Don't** develop multiple unrelated tasks simultaneously
+3. **Don't** develop multiple unrelated tasks **in the same working tree** without coordination (use worktrees + [Parallel multi-agent](#parallel-multi-agent-optional) if you need parallelism)
 4. **Don't** commit code with lint/test errors
 5. **Don't** forget to update spec docs after learning something
-6. [!] **Don't** execute `git commit` - AI should not commit code
+6. [!] **Don't** execute `git commit` as a **coding** agent; **integrator** may commit via `session_finalize.py --commit-message` after checks pass (see [Parallel multi-agent](#parallel-multi-agent-optional))
 
 ---
 

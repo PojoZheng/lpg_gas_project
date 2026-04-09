@@ -1,0 +1,23 @@
+{
+  "id": "14-auth-api-contract-alignment",
+  "title": "认证接口契约对齐",
+  "status": "todo",
+  "depends_on": ["01-auth-session"],
+  "input_spec": [
+    ".trellis/spec/shared/api-contracts.md",
+    ".trellis/spec/backend/domain-user/overview.md",
+    ".trellis/spec/delivery-app/domain-system/overview.md"
+  ],
+  "source_requirements": [
+    "requirements/08_系统/登录认证/接口.md",
+    "requirements/08_系统/登录认证/需求.md",
+    "requirements/08_系统/规格.md"
+  ],
+  "acceptance": [
+    "send-code/login/refresh/devices 接口响应结构统一",
+    "错误码和错误文案统一到 shared 契约",
+    "前端调用层适配并保留中文提示",
+    "更新接口文档与任务完成记录",
+    "自动化测试通过"
+  ]
+}

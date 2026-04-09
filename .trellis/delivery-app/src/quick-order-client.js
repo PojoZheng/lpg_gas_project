@@ -32,6 +32,45 @@ export async function fetchQuickCustomers() {
   return { success: true, data: mockCustomers, fromMock: true };
 }
 
+export function filterQuickCustomers(customers, keyword) {
+  const key = String(keyword || "").trim();
+  if (!key) return customers;
+  return customers.filter(
+    (x) => x.name.includes(key) || x.phone.includes(key) || x.address.includes(key)
+  );
+}
+
+export async function createQuickCustomer(payload) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/customers`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) return data;
+    return data;
+  } catch (_err) {
+    const name = String(payload.name || "").trim();
+    const phone = String(payload.phone || "").trim();
+    const address = String(payload.address || "").trim();
+    if (!name) return { success: false, error: "客户姓名不能为空" };
+    if (!/^1\d{10}$/.test(phone)) return { success: false, error: "手机号格式不正确" };
+    if (!address) return { success: false, error: "地址不能为空" };
+    if (mockCustomers.some((x) => x.phone === phone)) {
+      return { success: false, error: "该手机号已存在客户" };
+    }
+    const customer = {
+      id: `MC-${String(mockCustomers.length + 1).padStart(3, "0")}`,
+      name,
+      phone,
+      address,
+    };
+    mockCustomers.unshift(customer);
+    return { success: true, data: customer, fromMock: true };
+  }
+}
+
 export async function checkInventory(spec, quantity) {
   try {
     const res = await fetch(`${API_BASE_URL}/inventory/check`, {

@@ -1,0 +1,23 @@
+{
+  "id": "12-backend-auth-persistence",
+  "title": "认证数据持久化",
+  "status": "todo",
+  "depends_on": ["01-auth-session"],
+  "input_spec": [
+    ".trellis/spec/backend/domain-user/overview.md",
+    ".trellis/spec/shared/api-contracts.md",
+    ".trellis/spec/master/architecture.md"
+  ],
+  "source_requirements": [
+    "requirements/08_系统/登录认证/需求.md",
+    "requirements/08_系统/规格.md",
+    "requirements/08_系统/数据模型.md"
+  ],
+  "acceptance": [
+    "验证码、会话、令牌不再仅存于内存，服务重启后关键会话可恢复",
+    "登录与刷新接口保持向后兼容",
+    "持久化方案文档化并写入任务完成记录",
+    "自动化测试通过",
+    "如涉及界面，文案必须为中文且严禁 emoji"
+  ]
+}

@@ -36,6 +36,10 @@
       .list-btn, .tab-btn, .step-btn, .submit-btn {
         border: 1px solid var(--border); border-radius: 14px; background: #fff; cursor: pointer;
       }
+      .search {
+        width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 12px;
+        padding: 0 10px; margin-bottom: 8px;
+      }
       .list-btn {
         width: 100%; text-align: left; padding: 10px 12px; margin-bottom: 8px;
       }
@@ -54,6 +58,19 @@
       }
       .tip { min-height: 20px; color: var(--text-secondary); font-size: 13px; margin-top: 6px; }
       .err { color: var(--error); }
+      .text-btn {
+        width: 100%; border: 1px dashed var(--border); background: #fff; border-radius: 12px; height: 40px; cursor: pointer;
+        color: #1f6f76; margin-bottom: 8px;
+      }
+      .overlay {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.28); display: none; align-items: flex-end;
+      }
+      .overlay.show { display: flex; }
+      .sheet {
+        width: 100%; max-width: 460px; margin: 0 auto; background: #fff; border-radius: 18px 18px 0 0;
+        border: 1px solid var(--border); padding: 14px;
+      }
+      .sheet-title { margin: 0 0 10px; font-size: 16px; }
     </style>
   </head>
   <body>
@@ -65,7 +82,10 @@
 
       <section class="card">
         <h2 class="card-title">选择客户</h2>
+        <input id="searchInput" class="search" placeholder="搜索客户姓名、手机号或地址" />
         <div id="customerList"></div>
+        <button class="text-btn" id="addCustomerBtn">+ 添加新客户</button>
+        <button class="text-btn" id="viewAllBtn">查看全部客户</button>
       </section>
 
       <section class="card">
@@ -93,11 +113,30 @@
         <p class="tip" id="tip"></p>
       </section>
     </main>
+    <div class="overlay" id="addCustomerOverlay">
+      <div class="sheet">
+        <h3 class="sheet-title">添加新客户</h3>
+        <div class="row"><input id="newName" placeholder="客户姓名" /></div>
+        <div class="row"><input id="newPhone" placeholder="手机号（11位）" /></div>
+        <div class="row"><input id="newAddress" placeholder="配送地址" /></div>
+        <div class="row">
+          <button class="tab-btn" id="cancelAddBtn">取消</button>
+          <button class="tab-btn active" id="confirmAddBtn">确认添加</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module">
-      import { fetchQuickCustomers, checkInventory, quickCreateOrder } from "./quick-order-client.js";
+      import {
+        fetchQuickCustomers,
+        filterQuickCustomers,
+        createQuickCustomer,
+        checkInventory,
+        quickCreateOrder,
+      } from "./quick-order-client.js";
 
       const customerList = document.getElementById("customerList");
+      const searchInput = document.getElementById("searchInput");
       const tip = document.getElementById("tip");
       const qtyText = document.getElementById("qtyText");
       const specSelect = document.getElementById("specSelect");
@@ -106,38 +145,61 @@
       const backBtn = document.getElementById("backBtn");
       const minusBtn = document.getElementById("minusBtn");
       const plusBtn = document.getElementById("plusBtn");
-      const typeBtns = [...document.querySelectorAll(".tab-btn")];
+      const addCustomerBtn = document.getElementById("addCustomerBtn");
+      const viewAllBtn = document.getElementById("viewAllBtn");
+      const addCustomerOverlay = document.getElementById("addCustomerOverlay");
+      const cancelAddBtn = document.getElementById("cancelAddBtn");
+      const confirmAddBtn = document.getElementById("confirmAddBtn");
+      const newName = document.getElementById("newName");
+      const newPhone = document.getElementById("newPhone");
+      const newAddress = document.getElementById("newAddress");
+      const typeBtns = [...document.querySelectorAll(".tab-btn[data-type]")];
 
       let selectedCustomerId = "";
       let orderType = "later_delivery";
       let quantity = 1;
+      let loading = false;
+      let allCustomers = [];
 
       function setTip(text, isError = false) {
         tip.textContent = text;
         tip.className = isError ? "tip err" : "tip";
       }
 
-      async function loadCustomers() {
-        setTip("正在加载客户...");
-        const res = await fetchQuickCustomers();
+      function syncCustomerActive() {
+        [...customerList.querySelectorAll(".list-btn")].forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.customerId === selectedCustomerId);
+        });
+      }
+
+      function renderCustomers(customers) {
         customerList.innerHTML = "";
-        res.data.forEach((item, idx) => {
+        customers.forEach((item) => {
           const btn = document.createElement("button");
           btn.className = "list-btn";
           btn.type = "button";
+          btn.dataset.customerId = item.id;
           btn.innerHTML = `<div>${item.name}（${item.phone}）</div><div class="line2">${item.address}</div>`;
           btn.addEventListener("click", () => {
             selectedCustomerId = item.id;
-            [...customerList.querySelectorAll(".list-btn")].forEach((x) => x.classList.remove("active"));
-            btn.classList.add("active");
+            syncCustomerActive();
             setTip(`已选择客户：${item.name}`);
           });
           customerList.appendChild(btn);
-          if (idx === 0) {
-            selectedCustomerId = item.id;
-            btn.classList.add("active");
-          }
         });
+        if (customers.length && !selectedCustomerId) {
+          selectedCustomerId = customers[0].id;
+        }
+        syncCustomerActive();
+      }
+
+      async function loadCustomers(options = {}) {
+        const selectId = options.selectId || "";
+        setTip("正在加载客户...");
+        const res = await fetchQuickCustomers();
+        allCustomers = res.data || [];
+        selectedCustomerId = selectId;
+        renderCustomers(allCustomers);
         if (res.fromMock) {
           setTip("当前使用模拟客户数据，接口层已预留");
           return;
@@ -161,16 +223,43 @@
       minusBtn.addEventListener("click", () => updateQty(quantity - 1));
       plusBtn.addEventListener("click", () => updateQty(quantity + 1));
       backBtn.addEventListener("click", () => (window.location.href = "./workbench.html"));
+      searchInput.addEventListener("input", () => {
+        const list = filterQuickCustomers(allCustomers, searchInput.value);
+        selectedCustomerId = "";
+        renderCustomers(list);
+      });
+      addCustomerBtn.addEventListener("click", () => addCustomerOverlay.classList.add("show"));
+      cancelAddBtn.addEventListener("click", () => addCustomerOverlay.classList.remove("show"));
+      viewAllBtn.addEventListener("click", () => setTip("客户完整列表将在客户页提供（入口已预留）"));
+      confirmAddBtn.addEventListener("click", async () => {
+        const res = await createQuickCustomer({
+          name: newName.value,
+          phone: newPhone.value,
+          address: newAddress.value,
+        });
+        if (!res.success) return setTip(res.error || "添加客户失败", true);
+        addCustomerOverlay.classList.remove("show");
+        newName.value = "";
+        newPhone.value = "";
+        newAddress.value = "";
+        searchInput.value = "";
+        await loadCustomers({ selectId: res.data.id });
+        setTip(`客户已添加并选中：${res.data.name}`);
+      });
 
       createBtn.addEventListener("click", async () => {
+        if (loading) return;
         if (!selectedCustomerId) return setTip("请先选择客户", true);
         const spec = specSelect.value;
         const unitPrice = Number(priceInput.value || 0);
         if (unitPrice < 0) return setTip("单价不能为负数", true);
-
+        loading = true;
+        createBtn.disabled = true;
         setTip("正在校验库存...");
         const check = await checkInventory(spec, quantity);
         if (!check.data.canCreate) {
+          loading = false;
+          createBtn.disabled = false;
           return setTip(`库存不足：${spec} 可用 ${check.data.available} 瓶`, true);
         }
 
@@ -183,10 +272,14 @@
           unitPrice,
         });
         if (!result.success) {
+          loading = false;
+          createBtn.disabled = false;
           return setTip(result.error || "创建失败，请稍后重试", true);
         }
         const typeText = orderType === "immediate_complete" ? "当场完成" : "稍后配送";
         setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}`);
+        loading = false;
+        createBtn.disabled = false;
       });
 
       loadCustomers();
