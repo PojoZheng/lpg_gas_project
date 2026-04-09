@@ -1,7 +1,7 @@
 {
   "id": "10-platform-policy-release",
   "title": "平台规则配置与发布",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["07-safety-trigger-report"],
   "input_spec": [
     ".trellis/spec/platform/domain-config/overview.md",

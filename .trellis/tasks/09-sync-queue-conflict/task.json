@@ -1,7 +1,7 @@
 {
   "id": "09-sync-queue-conflict",
   "title": "同步队列与冲突处理",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "05-inventory-lock-revert",
     "06-customer-account-linkage"
