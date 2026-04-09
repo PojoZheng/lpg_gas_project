@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>平台端统一入口</title>
+    <style>
+      :root {
+        --brand: #4799a0;
+        --bg: #f7f8fa;
+        --surface: #ffffff;
+        --border: #eceff3;
+        --text-primary: #111111;
+        --text-secondary: #8b9098;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px 28px; }
+      .title { margin: 0 0 12px; font-size: 24px; font-weight: 700; }
+      .desc { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
+      .menu { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+      .menu-link { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 12px; height: 40px; text-decoration: none; color: var(--text-primary); background: #fff; font-size: 13px; }
+      .menu-link:hover { border-color: var(--brand); color: var(--brand); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 10px; }
+      .card-title { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+      .entry-link { display: inline-flex; align-items: center; justify-content: center; min-width: 120px; border-radius: 10px; border: 1px solid var(--brand); background: var(--brand); color: #fff; text-decoration: none; height: 36px; padding: 0 12px; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1 class="title">平台端统一入口</h1>
+      <p class="desc">验收建议从本页进入，顶部菜单可在三个平台页面之间一跳切换。</p>
+      <nav class="menu">
+        <a class="menu-link" href="./platform-monitor.html">监控看板</a>
+        <a class="menu-link" href="./policy-release.html">策略发布</a>
+        <a class="menu-link" href="./sync-queue.html">同步队列</a>
+      </nav>
+
+      <section class="card">
+        <h2 class="card-title">经营与合规监控</h2>
+        <a class="entry-link" href="./platform-monitor.html">进入监控看板</a>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">策略配置与发布</h2>
+        <a class="entry-link" href="./policy-release.html">进入策略发布</a>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">同步冲突与人工处理</h2>
+        <a class="entry-link" href="./sync-queue.html">进入同步队列</a>
+      </section>
+    </main>
+  </body>
+</html>

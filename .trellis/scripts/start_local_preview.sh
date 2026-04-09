@@ -41,7 +41,7 @@ frontend_up() {
 }
 
 platform_up() {
-  curl -sf -o /dev/null "http://127.0.0.1:${PLATFORM_PORT}/platform-monitor.html" 2>/dev/null
+  curl -sf -o /dev/null "http://127.0.0.1:${PLATFORM_PORT}/index.html" 2>/dev/null
 }
 if ! "$CHECK_ONLY"; then
   echo "[preview] repo: $REPO_ROOT"
@@ -117,11 +117,12 @@ echo "  [app] http://127.0.0.1:${FRONTEND_PORT}/workbench.html"
 echo "  [app] http://127.0.0.1:${FRONTEND_PORT}/quick-order.html"
 echo "  [app] http://127.0.0.1:${FRONTEND_PORT}/delivery-complete.html"
 if [[ -d "$PLATFORM_DIR" ]]; then
+  echo "  [platform-main] http://127.0.0.1:${PLATFORM_PORT}/index.html"
   echo "  [platform] http://127.0.0.1:${PLATFORM_PORT}/platform-monitor.html"
   echo "  [platform] http://127.0.0.1:${PLATFORM_PORT}/policy-release.html"
   echo "  [platform] http://127.0.0.1:${PLATFORM_PORT}/sync-queue.html"
 else
-  echo "  [platform] (pending task-25) http://127.0.0.1:${PLATFORM_PORT}/platform-monitor.html"
+  echo "  [platform-main] (pending task-25) http://127.0.0.1:${PLATFORM_PORT}/index.html"
 fi
 echo "  API: http://127.0.0.1:${BACKEND_PORT}/"
 echo ""

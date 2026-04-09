@@ -1,7 +1,7 @@
 {
   "id": "29-platform-top-menu",
   "title": "Platform 顶部菜单统一收口",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "25-platform-frontend-separation",
     "26-preview-backend-modularization"
