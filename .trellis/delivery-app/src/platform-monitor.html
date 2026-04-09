@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>平台监控与合规看板</title>
+    <style>
+      :root {
+        --brand: #4799a0;
+        --bg: #f7f8fa;
+        --surface: #ffffff;
+        --border: #eceff3;
+        --text-primary: #111111;
+        --text-secondary: #8b9098;
+        --error: #ef4444;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px 26px; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .title { margin: 0; font-size: 24px; font-weight: 700; }
+      .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 38px; padding: 0 12px; cursor: pointer; }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+      .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .metric { border: 1px solid var(--border); border-radius: 12px; padding: 10px; font-size: 13px; color: var(--text-secondary); }
+      .metric strong { color: var(--brand); font-size: 22px; }
+      .list-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }
+      .list-item .row { margin: 4px 0; }
+      .tip { min-height: 20px; font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+      .err { color: var(--error); }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1 class="title">平台监控看板</h1>
+        <button class="btn" id="backBtn">返回工作台</button>
+      </header>
+
+      <section class="card">
+        <h2 class="card-title">核心经营指标</h2>
+        <div class="grid" id="bizMetrics"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">合规上报状态</h2>
+        <div class="grid" id="complianceMetrics"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">异常下钻与处置</h2>
+        <div id="failedList"></div>
+      </section>
+
+      <p class="tip" id="tip"></p>
+    </main>
+
+    <script type="module">
+      import {
+        fetchBusinessMetrics,
+        fetchComplianceMetrics,
+        retrySafetyById,
+      } from "./platform-monitor-client.js";
+
+      const backBtn = document.getElementById("backBtn");
+      const bizMetrics = document.getElementById("bizMetrics");
+      const complianceMetrics = document.getElementById("complianceMetrics");
+      const failedList = document.getElementById("failedList");
+      const tip = document.getElementById("tip");
+
+      function setTip(text, isError = false) {
+        tip.textContent = text;
+        tip.className = isError ? "tip err" : "tip";
+      }
+
+      function renderMetric(target, rows) {
+        target.innerHTML = "";
+        rows.forEach(([label, value]) => {
+          const el = document.createElement("div");
+          el.className = "metric";
+          el.innerHTML = `<div>${label}</div><strong>${value}</strong>`;
+          target.appendChild(el);
+        });
+      }
+
+      function fmtTime(ts) {
+        if (!ts) return "未知";
+        return new Date(ts).toLocaleString("zh-CN", { hour12: false });
+      }
+
+      async function loadBusiness() {
+        const res = await fetchBusinessMetrics();
+        if (!res.success) throw new Error(res.error || "经营指标加载失败");
+        const d = res.data || {};
+        renderMetric(bizMetrics, [
+          ["总订单数", d.order?.totalOrders || 0],
+          ["待配送订单", d.order?.pendingDeliveryOrders || 0],
+          ["已完成订单", d.order?.completedOrders || 0],
+          ["累计实收", `￥${Number(d.finance?.totalRevenue || 0).toFixed(2)}`],
+          ["待收金额", `￥${Number(d.finance?.pendingReceivable || 0).toFixed(2)}`],
+          ["同步失败", d.sync?.failedCount || 0],
+        ]);
+      }
+
+      async function loadCompliance() {
+        const res = await fetchComplianceMetrics();
+        if (!res.success) throw new Error(res.error || "合规指标加载失败");
+        const s = res.data?.summary || {};
+        renderMetric(complianceMetrics, [
+          ["安检总数", s.total || 0],
+          ["上报成功", s.completed || 0],
+          ["上报失败", s.failed || 0],
+          ["待上报", s.pending || 0],
+          ["异常安检", s.abnormal || 0],
+        ]);
+
+        const failed = res.data?.failedList || [];
+        failedList.innerHTML = "";
+        if (!failed.length) {
+          failedList.innerHTML = "<p class=\"tip\">当前没有上报失败记录</p>";
+          return;
+        }
+        failed.forEach((x) => {
+          const row = document.createElement("div");
+          row.className = "list-item";
+          row.innerHTML = `
+            <div class="row">安检ID：${x.safetyId}</div>
+            <div class="row">订单：${x.orderId} / 客户：${x.customerName}</div>
+            <div class="row">失败原因：${x.lastError || "未知"}</div>
+            <div class="row">重试次数：${x.reportAttempts} / 更新时间：${fmtTime(x.updatedAt)}</div>
+            <button class="btn primary retry-btn" data-id="${x.safetyId}">立即重试上报</button>
+          `;
+          failedList.appendChild(row);
+        });
+        [...document.querySelectorAll(".retry-btn")].forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            setTip("正在执行重试...");
+            const r = await retrySafetyById(btn.dataset.id);
+            if (!r.success) return setTip(r.error || "重试失败，请稍后再试", true);
+            setTip("重试请求已提交");
+            await loadCompliance();
+          });
+        });
+      }
+
+      async function loadAll() {
+        try {
+          setTip("正在加载平台监控看板...");
+          await loadBusiness();
+          await loadCompliance();
+          setTip("看板已更新");
+        } catch (err) {
+          setTip(err.message || "加载失败，请稍后重试", true);
+        }
+      }
+
+      backBtn.addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
+
+      loadAll();
+    </script>
+  </body>
+</html>

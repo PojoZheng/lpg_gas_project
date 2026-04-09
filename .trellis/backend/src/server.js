@@ -805,6 +805,55 @@ function rollbackPolicy(payload) {
   return target;
 }
 
+function buildBusinessMetrics() {
+  const completed = quickOrders.filter((x) => x.orderStatus === "completed");
+  const pendingDelivery = quickOrders.filter((x) => x.orderStatus === "pending_delivery");
+  const failedSync = offlineQueue.filter((x) => x.syncStatus === "failed");
+  const totalRevenue = completed.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
+  const pendingReceivable = completed.reduce(
+    (sum, x) => sum + Math.max(0, Number(x.amount || 0) - Number(x.receivedAmount || 0)),
+    0
+  );
+  return {
+    order: {
+      totalOrders: quickOrders.length,
+      completedOrders: completed.length,
+      pendingDeliveryOrders: pendingDelivery.length,
+    },
+    finance: {
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      pendingReceivable: Number(pendingReceivable.toFixed(2)),
+    },
+    inventory: Object.keys(inventoryBySpec).map((spec) => getInventoryState(spec)),
+    sync: {
+      failedCount: failedSync.length,
+      manualRequiredCount: offlineQueue.filter((x) => x.manualRequired).length,
+    },
+  };
+}
+
+function buildComplianceMetrics() {
+  const total = safetyRecords.length;
+  const completed = safetyRecords.filter((x) => x.status === "completed").length;
+  const failed = safetyRecords.filter((x) => x.status === "failed").length;
+  const pending = safetyRecords.filter((x) => x.status === "pending").length;
+  const abnormal = safetyRecords.filter((x) => x.hasAbnormal).length;
+  return {
+    summary: { total, completed, failed, pending, abnormal },
+    failedList: safetyRecords
+      .filter((x) => x.status === "failed")
+      .slice(0, 50)
+      .map((x) => ({
+        safetyId: x.safetyId,
+        orderId: x.orderId,
+        customerName: x.customerName,
+        reportAttempts: x.reportAttempts,
+        lastError: x.lastError,
+        updatedAt: x.updatedAt,
+      })),
+  };
+}
+
 function getOfflineQueueStats(items) {
   const list = Array.isArray(items) ? items : [];
   return {
@@ -1441,6 +1490,24 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         success: true,
         data: policyAuditLogs,
+      });
+    }
+
+    if (req.method === "GET" && pathname === "/platform/monitor/business-metrics") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: buildBusinessMetrics(),
+      });
+    }
+
+    if (req.method === "GET" && pathname === "/platform/monitor/compliance-metrics") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: buildComplianceMetrics(),
       });
     }
 
