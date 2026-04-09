@@ -22,3 +22,11 @@
 3. 开发 Agent 只实现 acceptance，不执行 commit/push。
 4. 集成 Agent 负责合并、全量检查，必要时执行 `session_finalize.py --commit-message`。
 5. 会话上下文接近上限时，开新会话并重复步骤 1-2。
+
+## 本地预览（集成验收前）
+
+合并后若要给可点击的验收链接，先在仓库根执行：
+
+`bash ./.trellis/scripts/start_local_preview.sh`
+
+会同时起 **API :3100** 与 **静态页 :5174**，避免只给死链。

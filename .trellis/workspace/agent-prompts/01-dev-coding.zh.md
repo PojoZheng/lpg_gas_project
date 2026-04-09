@@ -2,6 +2,15 @@
 
 请严格执行以下流程：
 
+0. 新会话自动恢复（收到“开始”后必须先执行）
+- 先不要改代码，先执行并回传以下结果：
+  1) `pwd`
+  2) `git branch --show-current`
+  3) `cat .trellis/.current-task`
+  4) `python3 ./.trellis/scripts/session_bootstrap.py`
+  5) `git status --short`
+- 若 1)-3) 与本窗口角色不匹配，立即停止并回报，不继续开发。
+
 1. 读取当前任务
 - 先读取 `.trellis/.current-task`，将其作为唯一任务入口。
 - 再读取该任务目录下的 `task.json`，只围绕 `acceptance` 与 `input_spec` 实现。

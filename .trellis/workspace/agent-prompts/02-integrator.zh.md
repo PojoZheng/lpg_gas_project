@@ -2,6 +2,15 @@
 
 请严格执行以下流程：
 
+0. 新会话自动恢复（收到“开始”后必须先执行）
+- 先不要合并，先执行并回传以下结果：
+  1) `pwd`
+  2) `git branch --show-current`
+  3) `cat .trellis/.current-task`
+  4) `python3 ./.trellis/scripts/session_bootstrap.py`
+  5) `git status --short`
+- 若 1)-3) 与集成窗口预期不符，立即停止并回报。
+
 1. 会话启动
 - 先读取 `.trellis/.current-task`（若本次集成目标已指定，可显式更新后再开始）。
 - 执行：
@@ -29,3 +38,14 @@
   - 解决了哪些冲突
   - 哪些检查通过/失败
   - 是否已 push 到远端
+
+6. 给产品/协调器的验收链接（必须可打开）
+- **禁止**在未启动本地服务时只粘贴 `http://127.0.0.1:5174/...` 占位链接。
+- 合并与检查通过后，在仓库根执行：
+  `bash ./.trellis/scripts/start_local_preview.sh`
+- 脚本会启动 **后端 3100** 与 **静态页 5174**，并自检 `workbench.html` 可访问。
+- 仅在上述命令成功退出后，再回传以下 URL（与脚本输出一致）：
+  - `http://127.0.0.1:5174/workbench.html`
+  - `http://127.0.0.1:5174/quick-order.html`
+  - `http://127.0.0.1:5174/delivery-complete.html`
+- 若端口已被占用且脚本判定服务已在跑，可直接回传上述 URL，并注明「预览已由本机既有进程提供」。

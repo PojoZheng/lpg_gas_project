@@ -16,3 +16,15 @@ Use `@/.trellis/` to learn:
 Keep this managed block so 'trellis update' can refresh the instructions.
 
 <!-- TRELLIS:END -->
+
+## Session Recovery Baseline
+
+For any new chat session in this repository, run this recovery checklist before coding:
+
+1. `pwd`
+2. `git branch --show-current`
+3. `cat .trellis/.current-task` (if file exists in this worktree)
+4. `python3 ./.trellis/scripts/session_bootstrap.py`
+5. `git status --short`
+
+If the directory/branch/task pointer does not match the role for this window, stop and ask for correction before making edits.

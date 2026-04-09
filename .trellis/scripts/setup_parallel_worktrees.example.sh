@@ -69,5 +69,6 @@ echo "       1) ${DEV_A_DIR}"
 echo "       2) ${DEV_B_DIR}"
 echo "       3) ${INT_DIR}"
 echo "[next] In each window run: python3 ./.trellis/scripts/session_bootstrap.py"
+echo "[next] Coordinator: suggest_next_task.py / coordinator_broadcast.py (see agent-prompts/03-dispatcher.zh.md)"
 echo "[done] git worktree list"
 git worktree list
