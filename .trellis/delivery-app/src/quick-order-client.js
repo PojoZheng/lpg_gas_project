@@ -113,43 +113,9 @@ export async function quickCreateOrder(payload) {
     if (data.success) return data;
     return data;
   } catch (_err) {
-    const quantity = Number(payload.quantity || 0);
-    const state = getMockInventoryState(payload.spec);
-    if (state.available < quantity) {
-      return {
-        success: false,
-        error: `库存不足：${payload.spec} 可用 ${state.available} 瓶`,
-      };
-    }
-    const amount = Number((Number(payload.unitPrice || 0) * Number(payload.quantity || 0)).toFixed(2));
-    if (payload.orderType === "immediate_complete") {
-      if (!["cash", "wechat", "alipay", "transfer"].includes(String(payload.paymentMethod || ""))) {
-        return { success: false, error: "收款方式不合法，请重新选择" };
-      }
-      const received = Number(payload.receivedAmount || 0);
-      if (!Number.isFinite(received) || received < 0) {
-        return { success: false, error: "实收金额不合法，请输入有效金额" };
-      }
-      if (received < amount) {
-        return { success: false, error: "实收金额不能小于应收金额，请确认后再提交" };
-      }
-    }
-    if (payload.orderType === "later_delivery") {
-      mockInventory[payload.spec].locked = state.locked + quantity;
-    } else {
-      mockInventory[payload.spec].onHand = state.onHand - quantity;
-    }
     return {
-      success: true,
-      data: {
-        orderId: `MOCK-${Date.now()}`,
-        orderType: payload.orderType,
-        orderStatus: payload.orderType === "immediate_complete" ? "completed" : "pending_delivery",
-        amount,
-        paymentMethod: payload.orderType === "immediate_complete" ? payload.paymentMethod : "",
-        receivedAmount: payload.orderType === "immediate_complete" ? Number(payload.receivedAmount || 0) : 0,
-      },
-      fromMock: true,
+      success: false,
+      error: "开单接口不可用，请检查网络后重试",
     };
   }
 }

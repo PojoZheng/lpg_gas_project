@@ -33,32 +33,18 @@
         padding: 18px 14px 24px;
       }
       .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
+        display: block;
+        margin-bottom: 10px;
       }
       .title {
         margin: 0;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 700;
       }
-      .refresh-btn {
-        border: none;
-        background: var(--brand-soft);
-        color: #1f6f76;
-        border-radius: 16px;
-        height: 40px;
-        min-width: 88px;
-        padding: 0 14px;
-        cursor: pointer;
-      }
-      .pull-tip {
-        text-align: center;
+      .subtitle {
+        margin: 4px 0 0;
         color: var(--text-secondary);
-        font-size: 12px;
-        min-height: 18px;
-        margin-bottom: 8px;
+        font-size: 13px;
       }
       .card {
         background: var(--surface);
@@ -146,9 +132,8 @@
     <main class="page" id="page">
       <header class="header">
         <h1 class="title">工作台</h1>
-        <button class="refresh-btn" id="refreshBtn">刷新数据</button>
+        <p class="subtitle">今日概览与快捷入口</p>
       </header>
-      <p class="pull-tip" id="pullTip">下拉可刷新</p>
       <section class="card">
         <h2 class="card-title">今日收款汇总</h2>
         <div class="finance-grid">
@@ -203,8 +188,6 @@
       const syncStatusTag = document.getElementById("syncStatusTag");
       const syncPendingCount = document.getElementById("syncPendingCount");
       const syncLastAt = document.getElementById("syncLastAt");
-      const refreshBtn = document.getElementById("refreshBtn");
-      const pullTip = document.getElementById("pullTip");
       const tip = document.getElementById("tip");
 
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
@@ -251,7 +234,6 @@
         tip.textContent = "数据已更新";
       }
 
-      refreshBtn.addEventListener("click", () => loadData(true));
       quickOrderBtn.addEventListener("click", () => {
         window.location.href = "./quick-order.html";
       });
@@ -278,19 +260,21 @@
       window.addEventListener("touchmove", (e) => {
         if (!canPull) return;
         const delta = (e.touches[0]?.clientY || 0) - startY;
-        if (delta > 60) pullTip.textContent = "松开即可刷新";
+        if (delta > 60) tip.textContent = "松开即可刷新";
       });
       window.addEventListener("touchend", async (e) => {
         if (!canPull) return;
         const endY = e.changedTouches[0]?.clientY || 0;
         if (endY - startY > 60) {
-          pullTip.textContent = "正在刷新...";
+          tip.textContent = "正在刷新...";
           await loadData(true);
-          pullTip.textContent = "下拉可刷新";
         }
       });
 
       loadData();
+      window.setInterval(() => {
+        if (!document.hidden) loadData(true);
+      }, 30000);
     </script>
   </body>
 </html>
