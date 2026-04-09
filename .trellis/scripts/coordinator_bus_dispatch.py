@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import uuid
@@ -29,6 +30,30 @@ def _post_one(bus_dir: Path, role: str, task_path: str, note: str, round_id: str
     return cmd_id
 
 
+def _task_label(repo: Path, task_path: str) -> str:
+    p = repo / task_path / "task.json"
+    if not p.exists():
+        return task_path
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return task_path
+    tid = raw.get("id") or Path(task_path).name
+    title = raw.get("title", "")
+    return f"{tid} ({title})" if title else str(tid)
+
+
+def _print_kickoff(repo: Path, dev_a_task: str, dev_b_task: str, integrate_task: str) -> None:
+    a_label = _task_label(repo, dev_a_task)
+    b_label = _task_label(repo, dev_b_task)
+    i_label = _task_label(repo, integrate_task)
+    print("\n=== COPY FOR CHAT WINDOWS ===")
+    print(f"[开发A] 已下发任务 {a_label}。请按当前 .trellis/.current-task 连续执行到可提交状态（本地 commit，不 push），完成后回报 commit hash。")
+    print(f"[开发B] 已下发任务 {b_label}。请按当前 .trellis/.current-task 连续执行到可提交状态（本地 commit，不 push），完成后回报 commit hash。")
+    print(f"[集成] 当前主验收任务 {i_label}。等待 dev-a/dev-b commit hash；拿到后合并、跑检查、启动预览并回传 URL。")
+    print("=== END COPY ===")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='Dispatch tasks to local bus inbox for dev-a/dev-b/integrate')
     parser.add_argument('--dev-a-task', required=True)
@@ -37,6 +62,7 @@ def main() -> int:
     parser.add_argument('--round-id', default='')
     parser.add_argument('--note', default='')
     parser.add_argument('--notify', action='store_true')
+    parser.add_argument('--no-kickoff', action='store_true', help='Do not print chat-ready kickoff lines.')
     args = parser.parse_args()
 
     repo = repo_root_from_script()
@@ -52,6 +78,8 @@ def main() -> int:
     print(f'[bus] dev-a -> {args.dev_a_task} ({a})')
     print(f'[bus] dev-b -> {args.dev_b_task} ({b})')
     print(f'[bus] integrate -> {args.integrate_task} ({i})')
+    if not args.no_kickoff:
+        _print_kickoff(repo, args.dev_a_task, args.dev_b_task, args.integrate_task)
 
     if args.notify:
       notify_script = repo / '.trellis' / 'scripts' / 'notify_local.py'
