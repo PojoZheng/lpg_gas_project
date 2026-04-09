@@ -160,6 +160,7 @@
         <button class="text-btn" id="moreFieldsBtn">展开确认面板（更多字段）</button>
         <button class="submit-btn" id="createBtn">一键开单（确认开单）</button>
         <button class="ghost-btn" id="goWorkbenchBtn">返回工作台查看结果</button>
+        <button class="ghost-btn" id="traceOrderBtn">前往待配送/完单链路追踪订单</button>
         <p class="tip" id="tip"></p>
       </section>
     </main>
@@ -218,6 +219,7 @@
       const backBtn = document.getElementById("backBtn");
       const backLeftBtn = document.getElementById("backLeftBtn");
       const goWorkbenchBtn = document.getElementById("goWorkbenchBtn");
+      const traceOrderBtn = document.getElementById("traceOrderBtn");
       const minusBtn = document.getElementById("minusBtn");
       const plusBtn = document.getElementById("plusBtn");
       const addCustomerBtn = document.getElementById("addCustomerBtn");
@@ -246,6 +248,7 @@
       let quantity = 1;
       let loading = false;
       let allCustomers = [];
+      let lastCreatedOrderId = "";
       let defaults = {
         orderType: "later_delivery",
         spec: "15kg",
@@ -385,6 +388,10 @@
         backToWorkbench();
       });
       goWorkbenchBtn.addEventListener("click", backToWorkbench);
+      traceOrderBtn.addEventListener("click", () => {
+        if (!lastCreatedOrderId) return;
+        window.location.href = "./delivery-complete.html";
+      });
       specSelect.addEventListener("change", saveDefaults);
       priceInput.addEventListener("change", saveDefaults);
       paymentMethod.addEventListener("change", saveDefaults);
@@ -486,8 +493,10 @@
           return setTip(result.error || "创建失败，请检查信息后重试。", true);
         }
         const typeText = payload.orderType === "immediate_complete" ? "当场完成" : "稍后配送";
-        setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}`);
+        lastCreatedOrderId = result.data.orderId;
+        setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}，可在待配送/完单链路继续追踪。`);
         goWorkbenchBtn.classList.add("show");
+        traceOrderBtn.classList.add("show");
         confirmOverlay.classList.remove("show");
         saveDefaults();
         if (!continuousMode.checked) {

@@ -111,11 +111,39 @@ export async function quickCreateOrder(payload) {
     });
     const data = await res.json();
     if (data.success) return data;
-    return data;
+    const errorCode = data?.error?.code || "";
+    const errorMessage = data?.error?.message || data?.error || "";
+    if (res.status === 401 || errorCode === "AUTH_401") {
+      return {
+        success: false,
+        error: "鉴权失败：登录态已失效，请重新登录后再提交",
+        errorType: "auth",
+      };
+    }
+    if (res.status === 400 || errorCode === "VALIDATION_400") {
+      return {
+        success: false,
+        error: `参数失败：${errorMessage || "请检查客户、规格、数量与金额"}`,
+        errorType: "validation",
+      };
+    }
+    if (res.status === 409 || errorCode === "INVENTORY_409_STOCK") {
+      return {
+        success: false,
+        error: `参数失败：${errorMessage || "库存不足或冲突，请调整后重试"}`,
+        errorType: "validation",
+      };
+    }
+    return {
+      success: false,
+      error: `提交失败：${errorMessage || "服务暂不可用，请稍后重试"}`,
+      errorType: "server",
+    };
   } catch (_err) {
     return {
       success: false,
-      error: "开单接口不可用，请检查网络后重试",
+      error: "网络失败：无法连接开单接口，请检查网络后重试",
+      errorType: "network",
     };
   }
 }

@@ -19,5 +19,10 @@
     "node --check \".trellis/backend/src/server.js\"",
     "node --check \".trellis/delivery-app/src/auth-client.js\"",
     "python3 \".trellis/scripts/task15_login_e2e_regression.py\""
+  ],
+  "27-quick-order-submit-integration-fix": [
+    "node --check \".trellis/backend/src/server.js\"",
+    "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
+    "python3 \".trellis/scripts/task27_quick_order_integration.py\""
   ]
 }

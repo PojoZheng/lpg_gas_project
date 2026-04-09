@@ -205,6 +205,17 @@ function mapAuthError(err, pathname) {
   return { statusCode: 400, code: "VALIDATION_400", message };
 }
 
+function mapOrderError(err) {
+  const message = String(err?.message || "订单请求失败，请稍后重试");
+  if (err?.code === "AUTH_401") {
+    return { statusCode: Number(err.statusCode || 401), code: "AUTH_401", message: "登录态无效或已过期，请重新登录" };
+  }
+  if (message.includes("库存不足") || message.includes("库存冲突")) {
+    return { statusCode: 409, code: "INVENTORY_409_STOCK", message };
+  }
+  return { statusCode: 400, code: "VALIDATION_400", message };
+}
+
 function buildWorkbenchOverview() {
   const completedOrders = quickOrders.filter((x) => x.orderStatus === "completed");
   const receivedToday = completedOrders.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
@@ -1264,14 +1275,19 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && pathname === "/orders/quick-create") {
-      const accessToken = readAccessToken(req);
-      listDevices(accessToken);
-      const payload = await readBody(req);
-      const result = createQuickOrder(payload);
-      if (!result.success) {
-        return sendJson(res, 400, { success: false, error: result.error, data: result.inventory });
+      try {
+        const accessToken = readAccessToken(req);
+        listDevices(accessToken);
+        const payload = await readBody(req);
+        const result = createQuickOrder(payload);
+        if (!result.success) {
+          return sendContractError(res, 409, "INVENTORY_409_STOCK", result.error, requestId);
+        }
+        return sendContractSuccess(res, 200, result.data, requestId);
+      } catch (orderErr) {
+        const mapped = mapOrderError(orderErr);
+        return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
       }
-      return sendJson(res, 200, result);
     }
 
     if (req.method === "GET" && pathname === "/finance/today-summary") {
