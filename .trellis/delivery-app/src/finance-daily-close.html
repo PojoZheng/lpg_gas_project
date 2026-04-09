@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>财务记账与日结</title>
+    <style>
+      :root {
+        --brand: #4799a0;
+        --bg: #f7f8fa;
+        --surface: #ffffff;
+        --border: #eceff3;
+        --text-primary: #111111;
+        --text-secondary: #8b9098;
+        --error: #ef4444;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+        background: var(--bg);
+        color: var(--text-primary);
+      }
+      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px 28px; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .title { margin: 0; font-size: 24px; font-weight: 700; }
+      .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 40px; padding: 0 12px; cursor: pointer; }
+      .primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+      .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .metric { border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+      .label { color: var(--text-secondary); font-size: 13px; }
+      .value { margin-top: 4px; font-size: 24px; color: var(--brand); font-weight: 700; }
+      .entry { border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 8px; background: #fff; }
+      .line2 { margin-top: 4px; color: var(--text-secondary); font-size: 13px; }
+      .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+      .row input { flex: 1; height: 40px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; }
+      .tip { min-height: 20px; margin-top: 6px; color: var(--text-secondary); font-size: 13px; }
+      .err { color: var(--error); }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1 class="title">财务记账与日结</h1>
+        <button class="btn" id="backBtn">返回工作台</button>
+      </header>
+
+      <section class="card">
+        <h2 class="card-title">今日收入汇总</h2>
+        <div class="grid">
+          <div class="metric">
+            <div class="label">今日已收</div>
+            <div class="value" id="receivedToday">--</div>
+          </div>
+          <div class="metric">
+            <div class="label">今日待收</div>
+            <div class="value" id="pendingToday">--</div>
+          </div>
+        </div>
+        <p class="line2">流水条数：<strong id="entryCount">--</strong>，日结状态：<strong id="closeStatus">--</strong></p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">完单流水（今日）</h2>
+        <div id="entryList"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">日结确认</h2>
+        <div class="row">
+          <input id="closeNote" placeholder="请输入日结备注（可选）" />
+        </div>
+        <div class="row">
+          <button class="btn primary" id="closeBtn">确认今日日结</button>
+          <button class="btn" id="refreshBtn">刷新</button>
+        </div>
+        <p class="tip" id="tip"></p>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        fetchTodayFinanceSummary,
+        fetchTodayFinanceEntries,
+        confirmDailyClose,
+      } from "./finance-daily-close-client.js";
+
+      const backBtn = document.getElementById("backBtn");
+      const receivedToday = document.getElementById("receivedToday");
+      const pendingToday = document.getElementById("pendingToday");
+      const entryCount = document.getElementById("entryCount");
+      const closeStatus = document.getElementById("closeStatus");
+      const entryList = document.getElementById("entryList");
+      const closeNote = document.getElementById("closeNote");
+      const closeBtn = document.getElementById("closeBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const tip = document.getElementById("tip");
+
+      function setTip(text, isError = false) {
+        tip.textContent = text;
+        tip.className = isError ? "tip err" : "tip";
+      }
+      function fmtCurrency(num) {
+        return `￥${Number(num || 0).toFixed(2)}`;
+      }
+      function fmtTime(ts) {
+        return new Date(ts).toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function renderEntries(list) {
+        entryList.innerHTML = "";
+        if (!list.length) {
+          entryList.innerHTML = '<div class="line2">今日暂无完单流水，请先完成配送订单。</div>';
+          return;
+        }
+        list.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "entry";
+          div.innerHTML = `
+            <div>${item.customerName}｜订单号 ${item.orderId}</div>
+            <div class="line2">应收 ${fmtCurrency(item.amount)}，实收 ${fmtCurrency(
+              item.receivedAmount
+            )}，待收 ${fmtCurrency(item.pendingAmount)}</div>
+            <div class="line2">记账时间：${fmtTime(item.postedAt)}，状态：${
+              item.status === "posted" ? "已入账" : "已撤销"
+            }</div>
+          `;
+          entryList.appendChild(div);
+        });
+      }
+
+      async function loadAll() {
+        setTip("正在加载财务数据...");
+        const [summaryRes, entriesRes] = await Promise.all([
+          fetchTodayFinanceSummary(),
+          fetchTodayFinanceEntries(),
+        ]);
+        if (!summaryRes.success) return setTip(summaryRes.error || "汇总加载失败，请重试。", true);
+        if (!entriesRes.success) return setTip(entriesRes.error || "流水加载失败，请重试。", true);
+        receivedToday.textContent = fmtCurrency(summaryRes.data.receivedToday);
+        pendingToday.textContent = fmtCurrency(summaryRes.data.pendingToday);
+        entryCount.textContent = String(summaryRes.data.entryCount || 0);
+        closeStatus.textContent = summaryRes.data.closeStatus === "closed" ? "已日结" : "未日结";
+        renderEntries(entriesRes.data || []);
+        setTip("财务数据已更新。");
+      }
+
+      closeBtn.addEventListener("click", async () => {
+        if (!window.confirm("确认提交今日日结？提交后状态将更新为已日结。")) return;
+        setTip("正在确认日结...");
+        const res = await confirmDailyClose({ note: closeNote.value });
+        if (!res.success) return setTip(res.error || "日结失败，请重试。", true);
+        closeNote.value = "";
+        setTip("日结已确认，状态已更新。");
+        await loadAll();
+      });
+
+      refreshBtn.addEventListener("click", loadAll);
+      backBtn.addEventListener("click", () => (window.location.href = "./workbench.html"));
+      loadAll();
+    </script>
+  </body>
+</html>

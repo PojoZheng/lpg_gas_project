@@ -86,7 +86,8 @@ function directConsumeInventory(spec, quantity, orderId) {
   pushInventoryLog("direct_consume", spec, -quantity, 0, orderId);
   return { success: true, inventoryAfter: getInventoryState(spec) };
 }
-
+const financeEntries = [];
+const dailyCloseRecords = [];
 const customerAccounts = new Map(
   mockCustomers.map((x) => [
     x.id,
@@ -189,6 +190,76 @@ function buildWorkbenchOverview() {
   };
 }
 
+function startOfTodayMs() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+}
+
+function isSameFinanceDay(ts) {
+  return Number(ts || 0) >= startOfTodayMs();
+}
+
+function appendFinanceEntry(order, source) {
+  const receivedAmount = Number(order.receivedAmount || 0);
+  const amount = Number(order.amount || 0);
+  const pendingAmount = Number(Math.max(0, amount - receivedAmount).toFixed(2));
+  const entry = {
+    entryId: `FE-${Date.now()}-${financeEntries.length + 1}`,
+    orderId: order.orderId,
+    customerId: order.customerId,
+    customerName: order.customerName,
+    source,
+    amount,
+    receivedAmount,
+    pendingAmount,
+    paymentMethod: order.paymentMethod || "",
+    postedAt: Date.now(),
+    status: "posted",
+  };
+  financeEntries.push(entry);
+  return entry;
+}
+
+function voidLastFinanceEntry(orderId) {
+  for (let i = financeEntries.length - 1; i >= 0; i -= 1) {
+    const item = financeEntries[i];
+    if (item.orderId === orderId && item.status === "posted") {
+      item.status = "voided";
+      item.voidedAt = Date.now();
+      return item;
+    }
+  }
+  return null;
+}
+
+function getTodayFinanceEntries() {
+  return financeEntries
+    .filter((x) => isSameFinanceDay(x.postedAt))
+    .sort((a, b) => b.postedAt - a.postedAt);
+}
+
+function getLatestDailyClose() {
+  if (!dailyCloseRecords.length) return null;
+  return dailyCloseRecords[dailyCloseRecords.length - 1];
+}
+
+function buildTodayFinanceSummary() {
+  const todayPosted = getTodayFinanceEntries().filter((x) => x.status === "posted");
+  const receivedToday = todayPosted.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
+  const pendingToday = todayPosted.reduce((sum, x) => sum + Number(x.pendingAmount || 0), 0);
+  const latestClose = getLatestDailyClose();
+  const closeStatus =
+    latestClose && isSameFinanceDay(latestClose.closedAt) ? "closed" : "open";
+  return {
+    date: new Date(startOfTodayMs()).toISOString().slice(0, 10),
+    receivedToday: Number(receivedToday.toFixed(2)),
+    pendingToday: Number(pendingToday.toFixed(2)),
+    entryCount: todayPosted.length,
+    closeStatus,
+    latestClose,
+  };
+}
+
 function createQuickOrder(payload) {
   const customer = mockCustomers.find((x) => x.id === payload.customerId);
   if (!customer) {
@@ -258,6 +329,10 @@ function createQuickOrder(payload) {
     inventoryStage: orderType === "later_delivery" ? "locked" : "consumed",
     createdAt: Date.now(),
   });
+  if (orderStatus === "completed") {
+    const createdOrder = quickOrders[quickOrders.length - 1];
+    appendFinanceEntry(createdOrder, "quick_order_immediate_complete");
+  }
 
   return {
     success: true,
@@ -489,6 +564,7 @@ function completeDeliveryOrder(order, payload) {
   order.lastActionSnapshot = prev;
   adjustCustomerDebt(order, order.debtRecordedAmount, order.debtRecordedEmptyCount);
   const safetyRecord = ensureSafetyTriggered(order);
+  appendFinanceEntry(order, "delivery_complete");
 
   return {
     orderId: order.orderId,
@@ -603,6 +679,7 @@ function undoOrderAction(order) {
       -Number(order.debtRecordedAmount || 0),
       -Number(order.debtRecordedEmptyCount || 0)
     );
+    voidLastFinanceEntry(order.orderId);
     order.debtRecordedAmount = 0;
     order.debtRecordedEmptyCount = 0;
   } else if (order.lastAction === "cancel") {
@@ -641,6 +718,26 @@ function updateCollectionStatus(customerId, payload) {
   account.lastCollectionAt = Date.now();
   account.updatedAt = Date.now();
   return buildCustomerAccountSummary(customerId);
+}
+
+function createDailyClose(payload) {
+  const summary = buildTodayFinanceSummary();
+  if (summary.closeStatus === "closed") {
+    throw new Error("今日已完成日结，请勿重复提交");
+  }
+  const note = String(payload.note || "").trim();
+  const record = {
+    closeId: `DC-${Date.now()}`,
+    date: summary.date,
+    receivedToday: summary.receivedToday,
+    pendingToday: summary.pendingToday,
+    entryCount: summary.entryCount,
+    note,
+    status: "closed",
+    closedAt: Date.now(),
+  };
+  dailyCloseRecords.push(record);
+  return record;
 }
 
 function createCustomer(payload) {
@@ -793,6 +890,29 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { success: false, error: result.error, data: result.inventory });
       }
       return sendJson(res, 200, result);
+    }
+
+    if (req.method === "GET" && pathname === "/finance/today-summary") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, { success: true, data: buildTodayFinanceSummary() });
+    }
+
+    if (req.method === "GET" && pathname === "/finance/entries") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const onlyToday = reqUrl.searchParams.get("today") !== "0";
+      const list = onlyToday
+        ? getTodayFinanceEntries()
+        : [...financeEntries].sort((a, b) => b.postedAt - a.postedAt);
+      return sendJson(res, 200, { success: true, data: list });
+    }
+
+    if (req.method === "POST" && pathname === "/finance/daily-close") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      return sendJson(res, 200, { success: true, data: createDailyClose(payload) });
     }
 
     if (req.method === "GET" && pathname === "/orders/pending-delivery") {
