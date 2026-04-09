@@ -110,6 +110,12 @@
         font-size: 16px;
         cursor: pointer;
       }
+      .quick-action.secondary {
+        margin-top: 8px;
+        background: #f0f9fa;
+        color: #1f6f76;
+        border: 1px solid #cce7ea;
+      }
       .sync-status {
         display: inline-block;
         padding: 4px 10px;
@@ -168,6 +174,7 @@
       <section class="card">
         <h2 class="card-title">快捷入口</h2>
         <button class="quick-action" id="quickOrderBtn">快速开单</button>
+        <button class="quick-action secondary" id="deliveryCompleteBtn">待配送完单</button>
       </section>
 
       <section class="card">
@@ -190,6 +197,7 @@
       const nextSchedule = document.getElementById("nextSchedule");
       const nextOrderId = document.getElementById("nextOrderId");
       const quickOrderBtn = document.getElementById("quickOrderBtn");
+      const deliveryCompleteBtn = document.getElementById("deliveryCompleteBtn");
       const syncStatusTag = document.getElementById("syncStatusTag");
       const syncPendingCount = document.getElementById("syncPendingCount");
       const syncLastAt = document.getElementById("syncLastAt");
@@ -244,6 +252,9 @@
       refreshBtn.addEventListener("click", () => loadData(true));
       quickOrderBtn.addEventListener("click", () => {
         window.location.href = "./quick-order.html";
+      });
+      deliveryCompleteBtn.addEventListener("click", () => {
+        window.location.href = "./delivery-complete.html";
       });
 
       window.addEventListener("offline", () => {

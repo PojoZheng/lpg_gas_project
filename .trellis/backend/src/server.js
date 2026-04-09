@@ -25,7 +25,7 @@ function sendJson(res, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
   });
   res.end(JSON.stringify(payload));
 }
@@ -52,22 +52,34 @@ function readAccessToken(req) {
 }
 
 function buildWorkbenchOverview() {
+  const completedOrders = quickOrders.filter((x) => x.orderStatus === "completed");
+  const receivedToday = completedOrders.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
+  const pendingToday = completedOrders.reduce((sum, x) => sum + Math.max(0, Number(x.amount || 0) - Number(x.receivedAmount || 0)), 0);
+  const nextPending = quickOrders.find((x) => x.orderStatus === "pending_delivery");
   return {
     finance: {
-      receivedToday: 1680,
-      pendingToday: 520,
+      receivedToday: Number(receivedToday.toFixed(2)),
+      pendingToday: Number(pendingToday.toFixed(2)),
       currency: "CNY",
     },
-    nextDelivery: {
-      orderId: "ORD-20260408-001",
-      customerName: "城北五金店",
-      address: "城北大道 88 号",
-      scheduleAt: "今天 15:30",
-      orderStatus: "pending_delivery",
-    },
+    nextDelivery: nextPending
+      ? {
+          orderId: nextPending.orderId,
+          customerName: nextPending.customerName,
+          address: nextPending.address,
+          scheduleAt: nextPending.scheduleAt || "尽快配送",
+          orderStatus: "pending_delivery",
+        }
+      : {
+          orderId: "暂无",
+          customerName: "暂无待配送订单",
+          address: "可先从快速开单创建稍后配送订单",
+          scheduleAt: "待创建",
+          orderStatus: "pending_delivery",
+        },
     sync: {
       syncStatus: "pending",
-      pendingCount: 3,
+      pendingCount: quickOrders.filter((x) => x.syncStatus !== "completed").length,
       lastSyncAt: Date.now() - 2 * 60 * 1000,
     },
     quickActions: [
@@ -121,6 +133,17 @@ function createQuickOrder(payload) {
     quantity,
     unitPrice,
     amount,
+    paymentStatus: orderStatus === "completed" ? "paid" : "unpaid",
+    receivedAmount: orderStatus === "completed" ? amount : 0,
+    paymentMethod: orderStatus === "completed" ? "cash" : "",
+    recycledEmptyCount: 0,
+    owedEmptyCount: 0,
+    syncStatus: "pending",
+    lastAction: "",
+    lastActionUndoUntil: 0,
+    canModifyUntil: Date.now() + 24 * 60 * 60 * 1000,
+    address: customer.address,
+    scheduleAt: payload.scheduleAt || "尽快配送",
     createdAt: Date.now(),
   });
 
@@ -140,6 +163,160 @@ function createQuickOrder(payload) {
       },
     },
   };
+}
+
+function getPendingOrders() {
+  return quickOrders
+    .filter((x) => x.orderStatus === "pending_delivery")
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((x) => ({
+      orderId: x.orderId,
+      customerName: x.customerName,
+      address: x.address,
+      scheduleAt: x.scheduleAt,
+      spec: x.spec,
+      quantity: x.quantity,
+      amount: x.amount,
+      orderStatus: x.orderStatus,
+      paymentStatus: x.paymentStatus,
+    }));
+}
+
+function getOrderById(orderId) {
+  const order = quickOrders.find((x) => x.orderId === orderId);
+  if (!order) throw new Error("订单不存在，请刷新后重试");
+  return order;
+}
+
+function completeDeliveryOrder(order, payload) {
+  if (order.orderStatus !== "pending_delivery") {
+    throw new Error("仅待配送订单可执行完单");
+  }
+  const receivedAmount = Number(payload.receivedAmount);
+  if (!Number.isFinite(receivedAmount) || receivedAmount < 0) {
+    throw new Error("实收金额必须为大于等于 0 的数字");
+  }
+  const paymentMethod = String(payload.paymentMethod || "").trim();
+  if (!["wechat", "cash", "credit"].includes(paymentMethod)) {
+    throw new Error("请选择有效收款方式");
+  }
+  const recycledEmptyCount = Number(payload.recycledEmptyCount || 0);
+  const owedEmptyCount = Number(payload.owedEmptyCount || 0);
+  if (!Number.isInteger(recycledEmptyCount) || recycledEmptyCount < 0) {
+    throw new Error("回收空瓶数量必须为非负整数");
+  }
+  if (!Number.isInteger(owedEmptyCount) || owedEmptyCount < 0) {
+    throw new Error("欠瓶数量必须为非负整数");
+  }
+
+  const prev = { orderStatus: order.orderStatus, paymentStatus: order.paymentStatus };
+  order.orderStatus = "completed";
+  order.receivedAmount = Number(receivedAmount.toFixed(2));
+  order.paymentMethod = paymentMethod;
+  order.recycledEmptyCount = recycledEmptyCount;
+  order.owedEmptyCount = owedEmptyCount;
+  order.paymentStatus =
+    receivedAmount <= 0 ? "unpaid" : receivedAmount < order.amount ? "partial_paid" : "paid";
+  order.completedAt = Date.now();
+  order.syncStatus = "pending";
+  order.lastAction = "complete";
+  order.lastActionUndoUntil = Date.now() + 5000;
+  order.lastActionSnapshot = prev;
+
+  return {
+    orderId: order.orderId,
+    orderStatus: order.orderStatus,
+    paymentStatus: order.paymentStatus,
+    amount: order.amount,
+    receivedAmount: order.receivedAmount,
+    undoAvailableUntil: order.lastActionUndoUntil,
+  };
+}
+
+function cancelDeliveryOrder(order) {
+  if (order.orderStatus !== "pending_delivery") {
+    throw new Error("仅待配送订单可取消");
+  }
+  order.orderStatus = "cancelled";
+  order.syncStatus = "pending";
+  const available = Number(inventoryBySpec[order.spec] || 0);
+  inventoryBySpec[order.spec] = available + Number(order.quantity || 0);
+  order.lastAction = "cancel";
+  order.lastActionUndoUntil = Date.now() + 5000;
+  return {
+    orderId: order.orderId,
+    orderStatus: order.orderStatus,
+    inventoryRollback: { spec: order.spec, available: inventoryBySpec[order.spec] },
+    undoAvailableUntil: order.lastActionUndoUntil,
+  };
+}
+
+function basicUpdateOrder(order, payload) {
+  if (order.orderStatus === "cancelled") {
+    throw new Error("已取消订单不允许修改");
+  }
+  if (Date.now() > Number(order.canModifyUntil || 0)) {
+    throw new Error("订单已超过 24 小时可修改时限");
+  }
+
+  if (payload.scheduleAt !== undefined) {
+    const scheduleAt = String(payload.scheduleAt || "").trim();
+    if (!scheduleAt) throw new Error("配送时间不能为空");
+    order.scheduleAt = scheduleAt;
+  }
+  if (payload.address !== undefined) {
+    const address = String(payload.address || "").trim();
+    if (!address) throw new Error("配送地址不能为空");
+    order.address = address;
+  }
+
+  const hasQuantity = payload.quantity !== undefined;
+  const hasUnitPrice = payload.unitPrice !== undefined;
+  if (hasQuantity) {
+    const quantity = Number(payload.quantity);
+    if (!Number.isInteger(quantity) || quantity <= 0) throw new Error("数量必须为正整数");
+    order.quantity = quantity;
+  }
+  if (hasUnitPrice) {
+    const unitPrice = Number(payload.unitPrice);
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error("单价不能为负数");
+    order.unitPrice = unitPrice;
+  }
+  if (hasQuantity || hasUnitPrice) {
+    order.amount = Number((Number(order.unitPrice || 0) * Number(order.quantity || 0)).toFixed(2));
+  }
+
+  order.syncStatus = "pending";
+  return {
+    orderId: order.orderId,
+    scheduleAt: order.scheduleAt,
+    address: order.address,
+    quantity: order.quantity,
+    unitPrice: order.unitPrice,
+    amount: order.amount,
+  };
+}
+
+function undoOrderAction(order) {
+  if (!order.lastAction || Date.now() > Number(order.lastActionUndoUntil || 0)) {
+    throw new Error("已超过 5 秒撤销时限，请按修改流程处理");
+  }
+  if (order.lastAction === "complete") {
+    if (!order.lastActionSnapshot) throw new Error("撤销失败，请稍后重试");
+    order.orderStatus = order.lastActionSnapshot.orderStatus;
+    order.paymentStatus = order.lastActionSnapshot.paymentStatus;
+    order.receivedAmount = 0;
+    order.paymentMethod = "";
+    order.completedAt = 0;
+  } else if (order.lastAction === "cancel") {
+    order.orderStatus = "pending_delivery";
+    const available = Number(inventoryBySpec[order.spec] || 0);
+    inventoryBySpec[order.spec] = Math.max(0, available - Number(order.quantity || 0));
+  }
+  order.syncStatus = "pending";
+  order.lastAction = "";
+  order.lastActionUndoUntil = 0;
+  return { orderId: order.orderId, orderStatus: order.orderStatus, paymentStatus: order.paymentStatus };
 }
 
 function createCustomer(payload) {
@@ -164,9 +341,11 @@ function createCustomer(payload) {
 
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
+  const reqUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  const pathname = reqUrl.pathname;
 
   try {
-    if (req.method === "POST" && req.url === "/auth/send-code") {
+    if (req.method === "POST" && pathname === "/auth/send-code") {
       const { phone } = await readBody(req);
       if (!/^1\d{10}$/.test(phone || "")) {
         return sendJson(res, 400, { success: false, error: "手机号格式不正确" });
@@ -178,7 +357,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    if (req.method === "POST" && req.url === "/auth/login") {
+    if (req.method === "POST" && pathname === "/auth/login") {
       const { phone, code, deviceName } = await readBody(req);
       const result = login(phone, code, deviceName || "网页端");
       return sendJson(res, 200, {
@@ -198,38 +377,38 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    if (req.method === "POST" && req.url === "/auth/refresh") {
+    if (req.method === "POST" && pathname === "/auth/refresh") {
       const { refreshToken } = await readBody(req);
       const result = refresh(refreshToken);
       return sendJson(res, 200, { success: true, data: result });
     }
 
-    if (req.method === "GET" && req.url === "/auth/devices") {
+    if (req.method === "GET" && pathname === "/auth/devices") {
       const accessToken = readAccessToken(req);
       const devices = listDevices(accessToken);
       return sendJson(res, 200, { success: true, data: devices });
     }
 
-    if (req.method === "POST" && req.url === "/auth/devices/logout") {
+    if (req.method === "POST" && pathname === "/auth/devices/logout") {
       const accessToken = readAccessToken(req);
       const { sessionId } = await readBody(req);
       const result = logoutSession(accessToken, sessionId);
       return sendJson(res, 200, { success: true, data: result });
     }
 
-    if (req.method === "GET" && req.url === "/workbench/overview") {
+    if (req.method === "GET" && pathname === "/workbench/overview") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       return sendJson(res, 200, { success: true, data: buildWorkbenchOverview() });
     }
 
-    if (req.method === "GET" && req.url === "/customers/quick-select") {
+    if (req.method === "GET" && pathname === "/customers/quick-select") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       return sendJson(res, 200, { success: true, data: mockCustomers });
     }
 
-    if (req.method === "POST" && req.url === "/customers") {
+    if (req.method === "POST" && pathname === "/customers") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
@@ -237,7 +416,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, data: customer });
     }
 
-    if (req.method === "POST" && req.url === "/inventory/check") {
+    if (req.method === "POST" && pathname === "/inventory/check") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const { spec, quantity } = await readBody(req);
@@ -254,7 +433,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    if (req.method === "POST" && req.url === "/orders/quick-create") {
+    if (req.method === "POST" && pathname === "/orders/quick-create") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
@@ -263,6 +442,55 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { success: false, error: result.error, data: result.inventory });
       }
       return sendJson(res, 200, result);
+    }
+
+    if (req.method === "GET" && pathname === "/orders/pending-delivery") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, { success: true, data: getPendingOrders() });
+    }
+
+    if (req.method === "GET" && pathname.startsWith("/orders/")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", ""));
+      if (!orderId || orderId.includes("/")) return sendJson(res, 404, { success: false, error: "接口不存在" });
+      const order = getOrderById(orderId);
+      return sendJson(res, 200, { success: true, data: order });
+    }
+
+    if (req.method === "POST" && pathname.endsWith("/complete")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/complete", ""));
+      const order = getOrderById(orderId);
+      const payload = await readBody(req);
+      return sendJson(res, 200, { success: true, data: completeDeliveryOrder(order, payload) });
+    }
+
+    if (req.method === "POST" && pathname.endsWith("/cancel")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/cancel", ""));
+      const order = getOrderById(orderId);
+      return sendJson(res, 200, { success: true, data: cancelDeliveryOrder(order) });
+    }
+
+    if (req.method === "PATCH" && pathname.endsWith("/basic-update")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/basic-update", ""));
+      const order = getOrderById(orderId);
+      const payload = await readBody(req);
+      return sendJson(res, 200, { success: true, data: basicUpdateOrder(order, payload) });
+    }
+
+    if (req.method === "POST" && pathname.endsWith("/undo")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/undo", ""));
+      const order = getOrderById(orderId);
+      return sendJson(res, 200, { success: true, data: undoOrderAction(order) });
     }
 
     return sendJson(res, 404, { success: false, error: "接口不存在" });
