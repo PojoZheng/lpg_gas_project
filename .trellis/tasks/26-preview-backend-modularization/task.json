@@ -1,0 +1,20 @@
+{
+  "id": "26-preview-backend-modularization",
+  "title": "预览脚本与后端路由模块化收口",
+  "status": "todo",
+  "depends_on": [
+    "25-platform-frontend-separation"
+  ],
+  "input_spec": [
+    ".trellis/spec/master/architecture.md",
+    ".trellis/spec/backend/directory-structure.md",
+    ".trellis/spec/structure-mapping.md"
+  ],
+  "acceptance": [
+    "start_local_preview.sh 输出 app 与 platform 的完整验收 URL 清单",
+    "后端将平台相关路由从 server.js 中抽离到独立模块并保持行为一致",
+    "保留现有 API 路径兼容，不破坏既有页面调用",
+    "新增或更新收口说明文档与任务完成记录",
+    "自动化测试通过"
+  ]
+}

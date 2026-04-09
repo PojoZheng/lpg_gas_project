@@ -1,0 +1,20 @@
+{
+  "id": "25-platform-frontend-separation",
+  "title": "平台前端目录拆分与独立入口",
+  "status": "todo",
+  "depends_on": [
+    "11-platform-monitor-compliance"
+  ],
+  "input_spec": [
+    ".trellis/spec/structure-mapping.md",
+    ".trellis/spec/platform/index.md",
+    ".trellis/spec/master/architecture.md"
+  ],
+  "acceptance": [
+    "将平台页面与客户端脚本从 .trellis/delivery-app/src 拆分到独立目录（建议 .trellis/platform/src）",
+    "平台页面保留可访问入口并与 delivery-app 的入口职责分离",
+    "不改变既有业务接口契约与权限校验逻辑",
+    "更新目录映射文档与任务完成记录，明确 app/platform 代码边界",
+    "自动化测试通过"
+  ]
+}

@@ -21,6 +21,8 @@
 18. 工作台底部导航与头部信息层级优化
 19. React 最佳实践审查与修复
 20. impeccable 驱动的页面重构
+21. 平台前端目录拆分与独立入口
+22. 预览脚本与后端路由模块化收口
 
 ```mermaid
 flowchart TD
@@ -52,4 +54,6 @@ t16 --> t23[task-23-react-best-practices]
 t19 --> t24[task-24-impeccable-redesign]
 t20 --> t24
 t22 --> t24
+t11 --> t25[task-25-platform-frontend-separation]
+t25 --> t26[task-26-preview-backend-modularization]
 ```
