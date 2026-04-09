@@ -24,5 +24,8 @@
     "node --check \".trellis/backend/src/server.js\"",
     "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
     "python3 \".trellis/scripts/task27_quick_order_integration.py\""
+  ],
+  "24-ui-ux-pro-max-redesign": [
+    "python3 \".trellis/scripts/task24_ui_refactor_smoke.py\""
   ]
 }
