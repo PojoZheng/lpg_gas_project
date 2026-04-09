@@ -1,0 +1,53 @@
+import { getCurrentSession } from "./auth-client.js";
+
+const API_BASE_URL = "http://localhost:3100";
+
+function authHeaders() {
+  const session = getCurrentSession();
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session?.accessToken || ""}`,
+  };
+}
+
+async function requestJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const data = await res.json();
+  return data;
+}
+
+export async function fetchPendingDeliveryOrders() {
+  return requestJson(`${API_BASE_URL}/orders/pending-delivery`, {
+    headers: authHeaders(),
+  });
+}
+
+export async function completeOrder(orderId, payload) {
+  return requestJson(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/complete`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function cancelOrder(orderId) {
+  return requestJson(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/cancel`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+export async function updateOrder(orderId, payload) {
+  return requestJson(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/basic-update`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function undoOrderAction(orderId) {
+  return requestJson(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/undo`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
