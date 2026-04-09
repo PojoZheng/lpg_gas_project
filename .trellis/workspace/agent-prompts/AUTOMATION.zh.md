@@ -43,3 +43,35 @@ COORDINATOR_NOTIFY=0 bash .trellis/scripts/coordinator_round.sh
 
 - Cursor Agent 不会自动读通知；通知只提醒你**去三窗口发消息**。
 - `sync_worktrees.sh` 在非 `main` 分支上对 `origin/main` 做 merge，若有冲突需本地解决。
+
+
+## 本机消息总线（可选，减少四窗口来回）
+
+你可以让三个执行窗口运行监听器，协调器只需下发任务：
+
+1) 协调器下发（主仓库）：
+```bash
+python3 ./.trellis/scripts/coordinator_bus_dispatch.py   --dev-a-task .trellis/tasks/07-safety-trigger-report   --dev-b-task .trellis/tasks/08-finance-posting-daily-close   --integrate-task .trellis/tasks/07-safety-trigger-report   --notify
+```
+
+2) 三窗口各运行监听（各自 worktree）：
+```bash
+# 开发A窗口
+python3 ./.trellis/scripts/agent_bus_listener.py --role dev-a --watch --run-bootstrap
+# 开发B窗口
+python3 ./.trellis/scripts/agent_bus_listener.py --role dev-b --watch --run-bootstrap
+# 集成窗口
+python3 ./.trellis/scripts/agent_bus_listener.py --role integrate --watch --run-bootstrap
+```
+
+3) 每个窗口完成后回报（在对应窗口执行）：
+```bash
+python3 ./.trellis/scripts/agent_bus_report.py --role dev-a --status done --task 07-safety-trigger-report --commit <hash> --summary "acceptance 完成"
+```
+
+4) 协调器汇总查看（主仓库）：
+```bash
+python3 ./.trellis/scripts/coordinator_bus_collect.py
+```
+
+说明：监听器能自动切 `.current-task` + 跑 bootstrap，但**不能替代 Agent 聊天窗口做编码决策**；它主要减少你手动分发与回收状态的次数。
