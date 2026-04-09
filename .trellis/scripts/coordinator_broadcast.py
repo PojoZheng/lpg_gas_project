@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -152,7 +153,27 @@ def emit(args: argparse.Namespace) -> int:
             print(f"[err] 无法写入 {root} 的 .current-task", file=sys.stderr)
             return 1
 
+    _run_notify(args, id_a, id_b, id_i)
     return 0
+
+
+def _run_notify(args: argparse.Namespace, id_a: str, id_b: str, id_i: str) -> None:
+    if not args.notify:
+        return
+    title = args.notify_title or "Trellis"
+    custom = (args.notify_body or "").strip()
+    if custom:
+        body = custom
+    else:
+        body = (
+            f"指针: A→{id_a}  B→{id_b}  集成→{id_i}。"
+            " 请到三窗口各发一条: session_bootstrap 后继续。"
+        )
+    exe = Path(__file__).resolve().parent / "notify_local.py"
+    subprocess.run(
+        [sys.executable, str(exe), "--title", title, "--body", body],
+        check=False,
+    )
 
 
 def main() -> int:
@@ -168,6 +189,13 @@ def main() -> int:
     parser.add_argument("--write-dev-a", default="", help="Absolute path to dev A worktree root.")
     parser.add_argument("--write-dev-b", default="", help="Absolute path to dev B worktree root.")
     parser.add_argument("--write-integrate", default="", help="Absolute path to integrator worktree root.")
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="成功后发本机通知（macOS 通知中心；见 notify_local.py）。",
+    )
+    parser.add_argument("--notify-title", default="Trellis", help="通知标题")
+    parser.add_argument("--notify-body", default="", help="通知正文（默认含任务 id 与下一步提示）")
     args = parser.parse_args()
     return emit(args)
 
