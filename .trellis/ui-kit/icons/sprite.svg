@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="i-home" viewBox="0 0 24 24">
+    <path d="M4 11.5L12 5l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-8.5z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-customer" viewBox="0 0 24 24">
+    <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2-8 4.5V22h16v-3.5C20 16 16.4 14 12 14z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-my" viewBox="0 0 24 24">
+    <path d="M12 13a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.9 0-7 2-7 4.5V22h14v-2.5C19 17 15.9 15 12 15z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24">
+    <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>

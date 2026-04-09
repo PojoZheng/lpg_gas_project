@@ -1,0 +1,115 @@
+/* Foundation */
+body.ds-root {
+  margin: 0;
+  font-family: var(--ds-font-family);
+  background: var(--ds-color-bg);
+  color: var(--ds-color-text-primary);
+}
+
+.ds-page {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: var(--ds-space-m) var(--ds-space-s) var(--ds-space-xl);
+}
+
+.ds-card {
+  background: var(--ds-color-surface);
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-card);
+  padding: var(--ds-space-s);
+  margin-bottom: var(--ds-space-s);
+}
+
+.ds-card-title {
+  margin: 0 0 var(--ds-space-xs);
+  font-size: var(--ds-font-size-title);
+  font-weight: 600;
+}
+
+/* Buttons */
+.ds-btn {
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-btn);
+  background: #fff;
+  color: var(--ds-color-text-primary);
+  height: 48px;
+  min-height: 48px;
+  padding: 0 var(--ds-space-s);
+  cursor: pointer;
+  font-size: var(--ds-font-size-body);
+}
+
+.ds-btn-primary {
+  background: var(--ds-color-brand);
+  color: #fff;
+  border-color: var(--ds-color-brand);
+}
+
+.ds-btn-ghost {
+  background: var(--ds-color-brand-soft);
+  color: #1f6f76;
+  border-color: #cce7ea;
+}
+
+.ds-btn:disabled,
+.ds-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Nav */
+.ds-nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ds-space-xs);
+}
+
+.ds-nav-btn {
+  height: 48px;
+  min-height: 48px;
+  border-radius: var(--ds-radius-nav);
+  border: 1px solid var(--ds-color-border);
+  background: #fff;
+  color: #1f6f76;
+  font-size: var(--ds-font-size-body);
+}
+
+.ds-nav-btn.active {
+  background: var(--ds-color-brand);
+  color: #fff;
+  border-color: var(--ds-color-brand);
+}
+
+/* Form */
+.ds-field {
+  margin-bottom: var(--ds-space-xs);
+}
+
+.ds-label {
+  display: block;
+  margin-bottom: var(--ds-space-2xs);
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-body);
+}
+
+.ds-input,
+.ds-select {
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-input);
+  padding: 0 var(--ds-space-xs);
+  background: #fff;
+  font-size: var(--ds-font-size-body);
+}
+
+.ds-tip {
+  min-height: 20px;
+  font-size: 13px;
+  color: var(--ds-color-text-secondary);
+}
+
+.ds-tip.error {
+  color: var(--ds-color-error);
+}

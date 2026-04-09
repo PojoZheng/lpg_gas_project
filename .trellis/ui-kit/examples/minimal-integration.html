@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design System 最小接入示例</title>
+    <link rel="stylesheet" href="../styles/tokens.css" />
+    <link rel="stylesheet" href="../styles/components.css" />
+  </head>
+  <body class="ds-root">
+    <main class="ds-page">
+      <h1 style="font-size: var(--ds-font-size-page-title)">最小接入示例（app/web 共用）</h1>
+
+      <section class="ds-card">
+        <h2 class="ds-card-title">按钮 / 卡片</h2>
+        <button class="ds-btn ds-btn-primary">确认操作</button>
+        <button class="ds-btn ds-btn-ghost" style="margin-left: 8px">次级操作</button>
+      </section>
+
+      <section class="ds-card">
+        <h2 class="ds-card-title">表单</h2>
+        <div class="ds-field">
+          <label class="ds-label">客户姓名</label>
+          <input class="ds-input" placeholder="请输入客户姓名" />
+        </div>
+        <div class="ds-tip">提示信息示例（错误时使用 .error）</div>
+      </section>
+
+      <section class="ds-card">
+        <h2 class="ds-card-title">底部导航</h2>
+        <div class="ds-nav">
+          <button class="ds-nav-btn active">首页</button>
+          <button class="ds-nav-btn">客户</button>
+          <button class="ds-nav-btn">我的</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

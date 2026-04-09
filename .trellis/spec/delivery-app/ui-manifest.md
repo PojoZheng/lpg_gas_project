@@ -13,7 +13,7 @@
 - 严禁中英混杂文案（必要技术词除外）。
 
 ## 3. 图标规范
-- 图标统一使用矢量图标库（例如 `MaterialCommunityIcons`）。
+- 图标统一使用矢量图标库或共享 SVG symbol（`/.trellis/ui-kit/icons/sprite.svg`）。
 - 图标应置于统一圆角容器中，使用 `Brand.PrimarySoft` 或中性色浅底。
 - 禁止将 emoji 当作业务图标或状态图标。
 
@@ -32,3 +32,8 @@
 - 底部导航常驻且仅允许 3 个 Tab：`首页 / 客户 / 我的`。
 - 低频能力（财务、同步、配置、平台相关入口）默认收敛到“我的”页面。
 - 首页保留高频流程入口（如快速开单、待配送完单），避免堆叠低频管理入口。
+
+## 7. Design System 接入规范（v0）
+- app 与 web 优先复用 `/.trellis/ui-kit/styles/tokens.css` 与 `/.trellis/ui-kit/styles/components.css`。
+- 组件类名统一使用 `ds-*` 前缀，避免业务样式污染。
+- 新页面至少复用 1 组基础组件（按钮/卡片/导航/表单）后再补业务样式。
