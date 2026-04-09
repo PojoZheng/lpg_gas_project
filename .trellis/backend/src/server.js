@@ -14,11 +14,77 @@ const mockCustomers = [
   { id: "CUST-003", name: "东港小区李阿姨", phone: "13800000003", address: "东港小区 2 栋 301" },
 ];
 const inventoryBySpec = {
-  "10kg": 8,
-  "15kg": 12,
-  "50kg": 3,
+  "10kg": { onHand: 8, locked: 0 },
+  "15kg": { onHand: 12, locked: 0 },
+  "50kg": { onHand: 3, locked: 0 },
 };
 const quickOrders = [];
+const inventoryLogs = [];
+
+function getInventoryState(spec) {
+  if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
+  const onHand = Number(inventoryBySpec[spec].onHand || 0);
+  const locked = Number(inventoryBySpec[spec].locked || 0);
+  const available = Math.max(0, onHand - locked);
+  return { spec, onHand, locked, available };
+}
+
+function pushInventoryLog(type, spec, deltaOnHand, deltaLocked, orderId) {
+  inventoryLogs.unshift({
+    id: `INV-LOG-${Date.now()}`,
+    type,
+    spec,
+    deltaOnHand,
+    deltaLocked,
+    orderId,
+    createdAt: Date.now(),
+  });
+  if (inventoryLogs.length > 200) inventoryLogs.pop();
+}
+
+function lockInventory(spec, quantity, orderId) {
+  const state = getInventoryState(spec);
+  if (state.available < quantity) {
+    return {
+      success: false,
+      error: `库存不足：${spec} 可用 ${state.available} 瓶`,
+      inventory: { spec, available: state.available, requested: quantity, locked: state.locked, onHand: state.onHand },
+    };
+  }
+  inventoryBySpec[spec].locked = state.locked + quantity;
+  pushInventoryLog("lock", spec, 0, quantity, orderId);
+  return { success: true, inventoryAfter: getInventoryState(spec) };
+}
+
+function releaseLockedInventory(spec, quantity, orderId) {
+  const state = getInventoryState(spec);
+  if (state.locked < quantity) throw new Error(`锁定库存异常：${spec} 锁定量不足，需人工处理`);
+  inventoryBySpec[spec].locked = state.locked - quantity;
+  pushInventoryLog("release", spec, 0, -quantity, orderId);
+  return getInventoryState(spec);
+}
+
+function consumeInventoryFromLock(spec, quantity, orderId) {
+  const released = releaseLockedInventory(spec, quantity, orderId);
+  if (released.onHand < quantity) throw new Error(`库存冲突：${spec} 在途扣减失败，需人工处理`);
+  inventoryBySpec[spec].onHand = released.onHand - quantity;
+  pushInventoryLog("consume", spec, -quantity, 0, orderId);
+  return getInventoryState(spec);
+}
+
+function directConsumeInventory(spec, quantity, orderId) {
+  const state = getInventoryState(spec);
+  if (state.available < quantity) {
+    return {
+      success: false,
+      error: `库存不足：${spec} 可用 ${state.available} 瓶`,
+      inventory: { spec, available: state.available, requested: quantity, locked: state.locked, onHand: state.onHand },
+    };
+  }
+  inventoryBySpec[spec].onHand = state.onHand - quantity;
+  pushInventoryLog("direct_consume", spec, -quantity, 0, orderId);
+  return { success: true, inventoryAfter: getInventoryState(spec) };
+}
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -107,15 +173,6 @@ function createQuickOrder(payload) {
     throw new Error("数量必须为正整数");
   }
 
-  const available = Number(inventoryBySpec[spec] || 0);
-  if (available < quantity) {
-    return {
-      success: false,
-      error: `库存不足：${spec} 可用 ${available} 瓶`,
-      inventory: { spec, available, requested: quantity },
-    };
-  }
-
   const unitPrice = Number(payload.unitPrice || 0);
   if (!Number.isFinite(unitPrice) || unitPrice < 0) {
     throw new Error("单价不合法，请输入大于等于 0 的金额");
@@ -138,7 +195,14 @@ function createQuickOrder(payload) {
   }
   const orderId = `ORD-${Date.now()}`;
 
-  inventoryBySpec[spec] = available - quantity;
+  let inventoryResult;
+  if (orderType === "later_delivery") {
+    inventoryResult = lockInventory(spec, quantity, orderId);
+    if (!inventoryResult.success) return inventoryResult;
+  } else {
+    inventoryResult = directConsumeInventory(spec, quantity, orderId);
+    if (!inventoryResult.success) return inventoryResult;
+  }
   quickOrders.push({
     orderId,
     customerId: customer.id,
@@ -160,6 +224,7 @@ function createQuickOrder(payload) {
     canModifyUntil: Date.now() + 24 * 60 * 60 * 1000,
     address: customer.address,
     scheduleAt: payload.scheduleAt || "尽快配送",
+    inventoryStage: orderType === "later_delivery" ? "locked" : "consumed",
     createdAt: Date.now(),
   });
 
@@ -177,7 +242,9 @@ function createQuickOrder(payload) {
       receivedAmount: orderType === "immediate_complete" ? receivedAmount : 0,
       inventoryAfter: {
         spec,
-        available: inventoryBySpec[spec],
+        available: inventoryResult.inventoryAfter.available,
+        onHand: inventoryResult.inventoryAfter.onHand,
+        locked: inventoryResult.inventoryAfter.locked,
       },
     },
   };
@@ -197,6 +264,7 @@ function getPendingOrders() {
       amount: x.amount,
       orderStatus: x.orderStatus,
       paymentStatus: x.paymentStatus,
+      inventoryStage: x.inventoryStage,
     }));
 }
 
@@ -235,8 +303,10 @@ function completeDeliveryOrder(order, payload) {
   order.owedEmptyCount = owedEmptyCount;
   order.paymentStatus =
     receivedAmount <= 0 ? "unpaid" : receivedAmount < order.amount ? "partial_paid" : "paid";
+  const inventoryAfter = consumeInventoryFromLock(order.spec, Number(order.quantity || 0), order.orderId);
   order.completedAt = Date.now();
   order.syncStatus = "pending";
+  order.inventoryStage = "consumed";
   order.lastAction = "complete";
   order.lastActionUndoUntil = Date.now() + 5000;
   order.lastActionSnapshot = prev;
@@ -247,6 +317,7 @@ function completeDeliveryOrder(order, payload) {
     paymentStatus: order.paymentStatus,
     amount: order.amount,
     receivedAmount: order.receivedAmount,
+    inventoryAfter,
     undoAvailableUntil: order.lastActionUndoUntil,
   };
 }
@@ -255,16 +326,16 @@ function cancelDeliveryOrder(order) {
   if (order.orderStatus !== "pending_delivery") {
     throw new Error("仅待配送订单可取消");
   }
+  const inventoryAfter = releaseLockedInventory(order.spec, Number(order.quantity || 0), order.orderId);
   order.orderStatus = "cancelled";
   order.syncStatus = "pending";
-  const available = Number(inventoryBySpec[order.spec] || 0);
-  inventoryBySpec[order.spec] = available + Number(order.quantity || 0);
+  order.inventoryStage = "released";
   order.lastAction = "cancel";
   order.lastActionUndoUntil = Date.now() + 5000;
   return {
     orderId: order.orderId,
     orderStatus: order.orderStatus,
-    inventoryRollback: { spec: order.spec, available: inventoryBySpec[order.spec] },
+    inventoryRollback: inventoryAfter,
     undoAvailableUntil: order.lastActionUndoUntil,
   };
 }
@@ -290,6 +361,17 @@ function basicUpdateOrder(order, payload) {
 
   const hasQuantity = payload.quantity !== undefined;
   const hasUnitPrice = payload.unitPrice !== undefined;
+  if (hasQuantity && order.orderStatus === "pending_delivery") {
+    const nextQuantity = Number(payload.quantity);
+    const delta = nextQuantity - Number(order.quantity || 0);
+    if (delta > 0) {
+      const lockResult = lockInventory(order.spec, delta, order.orderId);
+      if (!lockResult.success) throw new Error(lockResult.error);
+    } else if (delta < 0) {
+      releaseLockedInventory(order.spec, Math.abs(delta), order.orderId);
+    }
+  }
+
   if (hasQuantity) {
     const quantity = Number(payload.quantity);
     if (!Number.isInteger(quantity) || quantity <= 0) throw new Error("数量必须为正整数");
@@ -321,15 +403,25 @@ function undoOrderAction(order) {
   }
   if (order.lastAction === "complete") {
     if (!order.lastActionSnapshot) throw new Error("撤销失败，请稍后重试");
+    const state = getInventoryState(order.spec);
+    inventoryBySpec[order.spec].onHand = state.onHand + Number(order.quantity || 0);
+    inventoryBySpec[order.spec].locked = state.locked + Number(order.quantity || 0);
+    pushInventoryLog("undo_complete", order.spec, Number(order.quantity || 0), Number(order.quantity || 0), order.orderId);
     order.orderStatus = order.lastActionSnapshot.orderStatus;
     order.paymentStatus = order.lastActionSnapshot.paymentStatus;
     order.receivedAmount = 0;
     order.paymentMethod = "";
     order.completedAt = 0;
+    order.inventoryStage = "locked";
   } else if (order.lastAction === "cancel") {
     order.orderStatus = "pending_delivery";
-    const available = Number(inventoryBySpec[order.spec] || 0);
-    inventoryBySpec[order.spec] = Math.max(0, available - Number(order.quantity || 0));
+    const state = getInventoryState(order.spec);
+    if (state.available < Number(order.quantity || 0)) {
+      throw new Error("撤销失败：可用库存不足，需人工处理");
+    }
+    inventoryBySpec[order.spec].locked = state.locked + Number(order.quantity || 0);
+    pushInventoryLog("undo_cancel", order.spec, 0, Number(order.quantity || 0), order.orderId);
+    order.inventoryStage = "locked";
   }
   order.syncStatus = "pending";
   order.lastAction = "";
@@ -438,17 +530,26 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const { spec, quantity } = await readBody(req);
-      const available = Number(inventoryBySpec[spec] || 0);
+      const state = getInventoryState(spec);
       const requested = Number(quantity || 0);
       return sendJson(res, 200, {
         success: true,
         data: {
           spec,
-          available,
+          available: state.available,
+          onHand: state.onHand,
+          locked: state.locked,
           requested,
-          canCreate: available >= requested,
+          canCreate: state.available >= requested,
         },
       });
+    }
+
+    if (req.method === "GET" && pathname === "/inventory/snapshot") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const data = Object.keys(inventoryBySpec).map((spec) => getInventoryState(spec));
+      return sendJson(res, 200, { success: true, data, logs: inventoryLogs.slice(0, 20) });
     }
 
     if (req.method === "POST" && pathname === "/orders/quick-create") {

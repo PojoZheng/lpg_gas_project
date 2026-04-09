@@ -51,3 +51,9 @@ export async function undoOrderAction(orderId) {
     headers: authHeaders(),
   });
 }
+
+export async function fetchInventorySnapshot() {
+  return requestJson(`${API_BASE_URL}/inventory/snapshot`, {
+    headers: authHeaders(),
+  });
+}

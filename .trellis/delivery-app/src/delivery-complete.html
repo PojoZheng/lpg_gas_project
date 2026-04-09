@@ -36,6 +36,15 @@
       .warn { color: #b45309; border-color: #f5d9a5; background: #fff7ed; }
       .tip { min-height: 20px; margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
       .err { color: var(--error); }
+      .inventory-list { display: grid; gap: 8px; }
+      .inventory-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .inventory-item strong { color: var(--text-primary); }
     </style>
   </head>
   <body>
@@ -48,6 +57,11 @@
       <section class="card">
         <h2 class="card-title">待配送订单</h2>
         <div id="orderList"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">库存快照</h2>
+        <div class="inventory-list" id="inventoryList"></div>
       </section>
 
       <section class="card">
@@ -80,6 +94,7 @@
         cancelOrder,
         updateOrder,
         undoOrderAction,
+        fetchInventorySnapshot,
       } from "./delivery-complete-client.js";
 
       const orderList = document.getElementById("orderList");
@@ -95,6 +110,7 @@
       const cancelBtn = document.getElementById("cancelBtn");
       const undoBtn = document.getElementById("undoBtn");
       const tip = document.getElementById("tip");
+      const inventoryList = document.getElementById("inventoryList");
       const payBtns = [...document.querySelectorAll(".pay-btn")];
 
       let selectedOrder = null;
@@ -151,6 +167,21 @@
         if ((res.data || []).length) setTip("待配送订单加载完成");
       }
 
+      async function loadInventory() {
+        const res = await fetchInventorySnapshot();
+        if (!res.success) {
+          inventoryList.innerHTML = "<div class=\"inventory-item\">库存快照加载失败，请稍后重试</div>";
+          return;
+        }
+        inventoryList.innerHTML = "";
+        (res.data || []).forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "inventory-item";
+          row.innerHTML = `<div><strong>${item.spec}</strong></div><div>总库存：${item.onHand} 瓶</div><div>锁定库存：${item.locked} 瓶</div><div>可用库存：${item.available} 瓶</div>`;
+          inventoryList.appendChild(row);
+        });
+      }
+
       payBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
           paymentMethod = btn.dataset.method;
@@ -171,6 +202,7 @@
         if (!res.success) return setTip(`${res.error || "完单失败"}，请修改后重试`, true);
         setTip("完单成功，5 秒内可点击“5 秒撤销”恢复");
         await loadOrders();
+        await loadInventory();
       });
 
       cancelBtn.addEventListener("click", async () => {
@@ -181,6 +213,7 @@
         if (!res.success) return setTip(`${res.error || "取消失败"}，请重试`, true);
         setTip("订单已取消，库存已回滚，5 秒内可撤销");
         await loadOrders();
+        await loadInventory();
       });
 
       updateBtn.addEventListener("click", async () => {
@@ -193,6 +226,7 @@
         if (!res.success) return setTip(`${res.error || "修改失败"}，请检查后重试`, true);
         setTip("订单基础信息已更新");
         await loadOrders();
+        await loadInventory();
       });
 
       undoBtn.addEventListener("click", async () => {
@@ -202,6 +236,7 @@
         if (!res.success) return setTip(`${res.error || "撤销失败"}，可改用修改流程`, true);
         setTip("已撤销最近关键操作");
         await loadOrders();
+        await loadInventory();
       });
 
       backBtn.addEventListener("click", () => {
@@ -210,6 +245,7 @@
 
       syncPayBtn();
       loadOrders();
+      loadInventory();
     </script>
   </body>
 </html>
