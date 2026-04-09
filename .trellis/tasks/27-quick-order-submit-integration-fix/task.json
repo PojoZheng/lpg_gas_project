@@ -1,7 +1,7 @@
 {
   "id": "27-quick-order-submit-integration-fix",
   "title": "快速开单提交联调修复",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "19-quick-order-navigation-and-submit-contract",
     "26-preview-backend-modularization"
