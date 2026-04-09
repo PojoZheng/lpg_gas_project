@@ -424,6 +424,7 @@ function enqueueOfflineChange(payload) {
     conflictType: "",
     lastError: "",
     resultSummary: "",
+    nextRetryAt: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -460,6 +461,16 @@ function detectSyncConflict(item) {
 }
 
 function syncOneOfflineItem(item) {
+  if (item.nextRetryAt && Date.now() < Number(item.nextRetryAt)) {
+    return {
+      offlineId: item.offlineId,
+      syncStatus: item.syncStatus,
+      conflictType: item.conflictType,
+      manualRequired: item.manualRequired,
+      message: "未到重试时间，请稍后再试",
+      nextRetryAt: item.nextRetryAt,
+    };
+  }
   item.syncStatus = "syncing";
   item.updatedAt = Date.now();
   const conflict = detectSyncConflict(item);
@@ -472,6 +483,10 @@ function syncOneOfflineItem(item) {
     if (item.retryCount >= 3) {
       item.manualRequired = true;
       item.resultSummary = "重试已达上限，需人工处理";
+      item.nextRetryAt = 0;
+    } else {
+      // 指数退避：2s, 4s, 8s
+      item.nextRetryAt = Date.now() + 1000 * Math.pow(2, item.retryCount);
     }
     item.updatedAt = Date.now();
     return {
@@ -480,12 +495,14 @@ function syncOneOfflineItem(item) {
       conflictType: item.conflictType,
       manualRequired: item.manualRequired,
       message: item.lastError,
+      nextRetryAt: item.nextRetryAt,
     };
   }
   item.syncStatus = "completed";
   item.conflictType = "";
   item.lastError = "";
   item.resultSummary = "同步成功";
+  item.nextRetryAt = 0;
   item.updatedAt = Date.now();
   return {
     offlineId: item.offlineId,
@@ -493,6 +510,7 @@ function syncOneOfflineItem(item) {
     conflictType: "",
     manualRequired: false,
     message: "同步成功",
+    nextRetryAt: 0,
   };
 }
 
@@ -502,6 +520,7 @@ function batchSyncOfflineQueue(payload) {
   const targets = offlineQueue.filter((x) => {
     if (idSet.size > 0 && !idSet.has(x.offlineId)) return false;
     if (x.syncStatus === "completed") return false;
+    if (x.nextRetryAt && Date.now() < Number(x.nextRetryAt)) return false;
     return !x.manualRequired;
   });
   const results = targets.map((x) => syncOneOfflineItem(x));
@@ -518,6 +537,9 @@ function retryOfflineItem(offlineId) {
   const item = offlineQueue.find((x) => x.offlineId === offlineId);
   if (!item) throw new Error("离线队列记录不存在");
   if (item.manualRequired) throw new Error("该记录已进入人工处理，请先人工确认");
+  if (item.nextRetryAt && Date.now() < Number(item.nextRetryAt)) {
+    throw new Error("未到重试时间，请稍后再试");
+  }
   return syncOneOfflineItem(item);
 }
 
@@ -527,6 +549,7 @@ function markOfflineManual(offlineId) {
   item.manualRequired = true;
   item.syncStatus = "failed";
   item.resultSummary = "已转人工处理";
+  item.nextRetryAt = 0;
   item.updatedAt = Date.now();
   return {
     offlineId: item.offlineId,
@@ -934,6 +957,7 @@ const server = http.createServer(async (req, res) => {
             failed: offlineQueue.filter((x) => x.syncStatus === "failed").length,
             completed: offlineQueue.filter((x) => x.syncStatus === "completed").length,
             manualRequired: offlineQueue.filter((x) => x.manualRequired).length,
+            waitingRetry: offlineQueue.filter((x) => x.nextRetryAt && Date.now() < Number(x.nextRetryAt)).length,
           },
           items: offlineQueue.slice(0, 100),
         },

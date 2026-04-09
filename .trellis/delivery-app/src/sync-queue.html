@@ -110,6 +110,7 @@
           ["同步失败", data.failed || 0],
           ["已完成", data.completed || 0],
           ["人工处理", data.manualRequired || 0],
+          ["等待重试", data.waitingRetry || 0],
         ];
         rows.forEach(([label, value]) => {
           const el = document.createElement("div");
@@ -133,6 +134,7 @@
             <div class="item-line">离线ID：${item.offlineId}</div>
             <div class="item-line">重试次数：${item.retryCount}，冲突类型：${item.conflictType || "无"}</div>
             <div class="item-line">处理结果：${item.resultSummary || "待处理"}${item.lastError ? `（${item.lastError}）` : ""}</div>
+            <div class="item-line">下次重试：${item.nextRetryAt ? new Date(item.nextRetryAt).toLocaleString("zh-CN", { hour12: false }) : "可立即重试"}</div>
             <div class="item-actions">
               <button class="btn retry-btn" data-id="${item.offlineId}">失败重试</button>
               <button class="btn manual-btn" data-id="${item.offlineId}">转人工处理</button>
