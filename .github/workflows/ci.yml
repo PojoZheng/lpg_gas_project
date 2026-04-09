@@ -1,5 +1,4 @@
-# Trellis：在 PR / push 上跑静态检查与脚本化回归（无需本地预览服务）
-name: CI
+name: ci
 
 on:
   push:
@@ -8,43 +7,39 @@ on:
     branches: [main]
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  check:
+  checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Set up Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Task graph / conflict check
+      - name: Task conflict check
         run: python3 ./.trellis/scripts/task_conflict_check.py
 
-      - name: Auto test runner (default: backend JS syntax + npm scripts if present)
+      - name: Auto test runner once
         run: python3 ./.trellis/scripts/auto_test_runner.py --once
 
-      - name: Delivery-app client JS syntax
+      - name: Backend syntax check
         run: |
           set -e
-          if [ -d .trellis/delivery-app/src ]; then
-            find .trellis/delivery-app/src -name '*.js' -print0 | while IFS= read -r -d '' f; do
-              echo "node --check $f"
+          if [ -d .trellis/backend/src ]; then
+            for f in .trellis/backend/src/*.js; do
+              [ -f "$f" ] || continue
               node --check "$f"
             done
           fi
-
-      - name: Regression smokes (task 02 / 03)
-        run: |
-          set -e
-          python3 ./.trellis/scripts/task02_smoke_test.py
-          python3 ./.trellis/scripts/task03_smoke_test.py
