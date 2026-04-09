@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>平台规则配置与发布</title>
+    <style>
+      :root {
+        --brand: #4799a0;
+        --bg: #f7f8fa;
+        --surface: #ffffff;
+        --border: #eceff3;
+        --text-primary: #111111;
+        --text-secondary: #8b9098;
+        --error: #ef4444;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px 28px; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .title { margin: 0; font-size: 24px; font-weight: 700; }
+      .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 38px; padding: 0 12px; cursor: pointer; }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+      .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+      .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+      .row label { width: 96px; color: var(--text-secondary); font-size: 14px; }
+      .row input, .row textarea, .row select { flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+      .row textarea { min-height: 84px; resize: vertical; }
+      .list-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }
+      .tip { min-height: 20px; font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+      .err { color: var(--error); }
+      .actions { display: flex; gap: 8px; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1 class="title">平台策略发布</h1>
+        <button class="btn" id="backBtn">返回工作台</button>
+      </header>
+
+      <section class="card">
+        <h2 class="card-title">当前生效配置</h2>
+        <div id="currentPolicy"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">策略编辑与发布</h2>
+        <div class="row"><label>操作人</label><input id="operatorInput" value="平台管理员" /></div>
+        <div class="row"><label>区域编码</label><input id="regionInput" value="CN-DEFAULT" /></div>
+        <div class="row"><label>策略内容</label><textarea id="contentInput">{"safetyCheckRequired":true,"maxRetry":3,"syncBatchSize":20}</textarea></div>
+        <div class="actions">
+          <button class="btn primary" id="saveDraftBtn">保存草稿</button>
+          <button class="btn" id="publishBtn">发布选中版本</button>
+        </div>
+        <div class="row" style="margin-top:10px;"><label>回滚版本</label><select id="rollbackVersionSelect"></select></div>
+        <button class="btn" id="rollbackBtn">回滚到该版本</button>
+        <p class="tip" id="opTip"></p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">版本列表</h2>
+        <div id="versionList"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">审计日志</h2>
+        <div id="auditList"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        fetchCurrentPolicy,
+        fetchPolicyVersions,
+        fetchPolicyAuditLogs,
+        editPolicyDraft,
+        publishPolicyVersion,
+        rollbackPolicyVersion,
+      } from "./policy-release-client.js";
+
+      const backBtn = document.getElementById("backBtn");
+      const currentPolicy = document.getElementById("currentPolicy");
+      const operatorInput = document.getElementById("operatorInput");
+      const regionInput = document.getElementById("regionInput");
+      const contentInput = document.getElementById("contentInput");
+      const saveDraftBtn = document.getElementById("saveDraftBtn");
+      const publishBtn = document.getElementById("publishBtn");
+      const rollbackBtn = document.getElementById("rollbackBtn");
+      const rollbackVersionSelect = document.getElementById("rollbackVersionSelect");
+      const versionList = document.getElementById("versionList");
+      const auditList = document.getElementById("auditList");
+      const opTip = document.getElementById("opTip");
+
+      let selectedVersion = "";
+
+      function setTip(text, isError = false) {
+        opTip.textContent = text;
+        opTip.className = isError ? "tip err" : "tip";
+      }
+
+      function formatTime(ts) {
+        if (!ts) return "未发布";
+        return new Date(ts).toLocaleString("zh-CN", { hour12: false });
+      }
+
+      async function loadCurrent() {
+        const res = await fetchCurrentPolicy();
+        if (!res.success || !res.data) {
+          currentPolicy.innerHTML = "<p class=\"tip\">暂无生效策略</p>";
+          return;
+        }
+        currentPolicy.innerHTML = `<div class="list-item">版本：${res.data.version}<br/>区域：${res.data.regionCode}<br/>发布时间：${formatTime(res.data.publishedAt)}<br/>发布人：${res.data.publishedBy || "未知"}<br/>内容：${JSON.stringify(res.data.content)}</div>`;
+      }
+
+      async function loadVersions() {
+        const res = await fetchPolicyVersions();
+        if (!res.success) return;
+        const list = res.data || [];
+        versionList.innerHTML = "";
+        rollbackVersionSelect.innerHTML = "";
+        list.forEach((item, idx) => {
+          const row = document.createElement("div");
+          row.className = "list-item";
+          row.innerHTML = `版本：${item.version}<br/>状态：${item.status}<br/>区域：${item.regionCode}<br/>发布时间：${formatTime(item.publishedAt)}`;
+          row.addEventListener("click", () => {
+            selectedVersion = item.version;
+            setTip(`已选中版本：${item.version}`);
+          });
+          versionList.appendChild(row);
+
+          const opt = document.createElement("option");
+          opt.value = item.version;
+          opt.textContent = item.version;
+          if (idx === 0) opt.selected = true;
+          rollbackVersionSelect.appendChild(opt);
+        });
+        if (!selectedVersion && list[0]) selectedVersion = list[0].version;
+      }
+
+      async function loadAudit() {
+        const res = await fetchPolicyAuditLogs();
+        if (!res.success) return;
+        const list = res.data || [];
+        auditList.innerHTML = list.length
+          ? list
+              .map(
+                (x) =>
+                  `<div class="list-item">时间：${formatTime(x.createdAt)}<br/>动作：${x.action}<br/>操作人：${x.operator}<br/>详情：${x.detail}</div>`
+              )
+              .join("")
+          : "<p class=\"tip\">暂无审计日志</p>";
+      }
+
+      saveDraftBtn.addEventListener("click", async () => {
+        let content = {};
+        try {
+          content = JSON.parse(contentInput.value || "{}");
+        } catch (_e) {
+          return setTip("策略内容不是合法 JSON，请修正后重试", true);
+        }
+        setTip("正在保存策略草稿...");
+        const res = await editPolicyDraft({
+          operator: operatorInput.value,
+          regionCode: regionInput.value,
+          content,
+        });
+        if (!res.success) return setTip(res.error || "保存失败，请重试", true);
+        selectedVersion = res.data.version;
+        setTip(`草稿已保存：${res.data.version}`);
+        await loadVersions();
+        await loadAudit();
+      });
+
+      publishBtn.addEventListener("click", async () => {
+        if (!selectedVersion) return setTip("请先选择一个版本", true);
+        if (!window.confirm(`确认发布版本 ${selectedVersion}？`)) return;
+        setTip("正在发布策略版本...");
+        const res = await publishPolicyVersion({
+          version: selectedVersion,
+          operator: operatorInput.value,
+        });
+        if (!res.success) return setTip(res.error || "发布失败，请重试", true);
+        setTip(`发布成功：${selectedVersion}`);
+        await loadCurrent();
+        await loadVersions();
+        await loadAudit();
+      });
+
+      rollbackBtn.addEventListener("click", async () => {
+        const toVersion = rollbackVersionSelect.value;
+        if (!toVersion) return setTip("请选择回滚版本", true);
+        if (!window.confirm(`确认回滚到版本 ${toVersion}？`)) return;
+        setTip("正在执行回滚...");
+        const res = await rollbackPolicyVersion({
+          toVersion,
+          operator: operatorInput.value,
+        });
+        if (!res.success) return setTip(res.error || "回滚失败，请重试", true);
+        setTip(`已回滚到版本：${toVersion}`);
+        await loadCurrent();
+        await loadVersions();
+        await loadAudit();
+      });
+
+      backBtn.addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
+
+      loadCurrent();
+      loadVersions();
+      loadAudit();
+    </script>
+  </body>
+</html>

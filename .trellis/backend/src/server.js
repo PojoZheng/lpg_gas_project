@@ -22,6 +22,22 @@ const quickOrders = [];
 const inventoryLogs = [];
 const safetyRecords = [];
 const offlineQueue = [];
+const policyVersions = [
+  {
+    version: "v1.0.0",
+    regionCode: "CN-DEFAULT",
+    content: {
+      safetyCheckRequired: true,
+      maxRetry: 3,
+      syncBatchSize: 20,
+    },
+    status: "active",
+    publishedAt: Date.now() - 24 * 60 * 60 * 1000,
+    publishedBy: "system",
+    rolledBackFrom: "",
+  },
+];
+const policyAuditLogs = [];
 
 function getInventoryState(spec) {
   if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
@@ -691,6 +707,71 @@ function markOfflineManual(offlineId) {
   };
 }
 
+function getActivePolicy() {
+  return policyVersions.find((x) => x.status === "active") || null;
+}
+
+function addPolicyAudit(action, operator, detail) {
+  policyAuditLogs.unshift({
+    id: `AUD-${Date.now()}`,
+    action,
+    operator: operator || "unknown",
+    detail,
+    createdAt: Date.now(),
+  });
+  if (policyAuditLogs.length > 200) policyAuditLogs.pop();
+}
+
+function savePolicyDraft(payload) {
+  const regionCode = String(payload.regionCode || "CN-DEFAULT").trim();
+  const content = payload.content && typeof payload.content === "object" ? payload.content : {};
+  const draftVersion = `v${new Date().toISOString().slice(0, 19).replace(/[-T:]/g, ".")}`;
+  const draft = {
+    version: draftVersion,
+    regionCode,
+    content,
+    status: "draft",
+    publishedAt: 0,
+    publishedBy: "",
+    rolledBackFrom: "",
+  };
+  policyVersions.unshift(draft);
+  addPolicyAudit("edit", payload.operator, `编辑策略草稿 ${draftVersion}`);
+  return draft;
+}
+
+function publishPolicy(payload) {
+  const version = String(payload.version || "").trim();
+  const operator = String(payload.operator || "unknown").trim();
+  const target = policyVersions.find((x) => x.version === version);
+  if (!target) throw new Error("目标策略版本不存在");
+  policyVersions.forEach((x) => {
+    if (x.status === "active") x.status = "history";
+  });
+  target.status = "active";
+  target.publishedAt = Date.now();
+  target.publishedBy = operator;
+  addPolicyAudit("publish", operator, `发布策略 ${version}`);
+  return target;
+}
+
+function rollbackPolicy(payload) {
+  const toVersion = String(payload.toVersion || "").trim();
+  const operator = String(payload.operator || "unknown").trim();
+  const target = policyVersions.find((x) => x.version === toVersion);
+  if (!target) throw new Error("回滚目标版本不存在");
+  const current = getActivePolicy();
+  policyVersions.forEach((x) => {
+    if (x.status === "active") x.status = "history";
+  });
+  target.status = "active";
+  target.rolledBackFrom = current ? current.version : "";
+  target.publishedAt = Date.now();
+  target.publishedBy = operator;
+  addPolicyAudit("rollback", operator, `回滚到策略 ${toVersion}`);
+  return target;
+}
+
 function getOfflineQueueStats(items) {
   const list = Array.isArray(items) ? items : [];
   return {
@@ -1277,6 +1358,57 @@ const server = http.createServer(async (req, res) => {
       const offlineId = decodeURIComponent(pathname.replace("/sync/queue/", "").replace("/manual", ""));
       const data = markOfflineManual(offlineId);
       return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "GET" && pathname === "/platform/policies/current") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: getActivePolicy(),
+      });
+    }
+
+    if (req.method === "GET" && pathname === "/platform/policies/versions") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: policyVersions,
+      });
+    }
+
+    if (req.method === "POST" && pathname === "/platform/policies/edit") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const data = savePolicyDraft(payload);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "POST" && pathname === "/platform/policies/publish") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const data = publishPolicy(payload);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "POST" && pathname === "/platform/policies/rollback") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const data = rollbackPolicy(payload);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "GET" && pathname === "/platform/policies/audit-logs") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: policyAuditLogs,
+      });
     }
 
     return sendJson(res, 404, { success: false, error: "接口不存在" });
