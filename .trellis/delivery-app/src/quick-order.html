@@ -233,9 +233,9 @@
     </div>
     <div class="bottom-nav-wrap">
       <nav class="bottom-nav" aria-label="底部导航">
-        <button class="nav-btn" id="navWorkbenchBtn">工作台</button>
-        <button class="nav-btn active" id="navQuickOrderBtn">快速开单</button>
-        <button class="nav-btn" id="navDeliveryBtn">待配送完单</button>
+        <button class="nav-btn" id="navWorkbenchBtn">首页</button>
+        <button class="nav-btn active" id="navQuickOrderBtn">客户</button>
+        <button class="nav-btn" id="navDeliveryBtn">我的</button>
       </nav>
     </div>
 
@@ -432,6 +432,8 @@
       goWorkbenchBtn.addEventListener("click", backToWorkbench);
       traceOrderBtn.addEventListener("click", () => {
         if (!lastCreatedOrderId) return;
+        window.location.href = "./delivery-complete.html";
+      });
       navWorkbenchBtn.addEventListener("click", backToWorkbench);
       navQuickOrderBtn.addEventListener("click", () => {
         window.location.href = "./quick-order.html";
