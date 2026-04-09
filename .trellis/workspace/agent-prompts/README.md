@@ -4,6 +4,8 @@
 
 ## 文件说明
 
+- `AUTOMATION.zh.md`：**协调器本机自动化**（`coordinator_round.sh`、`coordinator.env`、与 CI 的分工）。
+- `SESSION_KICKOFF.zh.md`：三个执行窗口的**首条消息**模板（开发 A / 开发 B / 集成）。
 - `00-unattended-runbook.zh.md`：三窗口少打扰、仅卡住时人工介入的约定（与协调器单点沟通时阅读）。
 - `01-dev-coding.zh.md`：开发 Agent（编码）提示词。
 - `02-integrator.zh.md`：集成 Agent（合并、验证、发布）提示词。

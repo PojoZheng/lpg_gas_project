@@ -56,6 +56,7 @@
 - 生成三句广播：`python3 ./.trellis/scripts/coordinator_broadcast.py --dev-a-task <path> --dev-b-task <path> --integrate-task <path>`
 - 同时写入各 worktree：在同一命令上加 `--write-dev-a <abs>`、`--write-dev-b <abs>`、`--write-integrate <abs>`，或设置环境变量 `TRELLIS_WT_DEV_A` / `TRELLIS_WT_DEV_B` / `TRELLIS_WT_INTEGRATE` 后重跑（见 `setup_parallel_worktrees.example.sh`）。
 - **本机通知（macOS）**：成功执行完上述命令后加 `--notify`，会弹系统通知（`notify_local.py`），提醒你去三窗口发 `session_bootstrap`；可配 `--notify-title` / `--notify-body`。
+- **一键**：配置好 `coordinator.env` 后执行 `bash ./.trellis/scripts/coordinator_round.sh`（见 `AUTOMATION.zh.md`）。
 
 3. 会话接力
 - 若某开发会话上下文满，指示其在同一 worktree 开新会话。
