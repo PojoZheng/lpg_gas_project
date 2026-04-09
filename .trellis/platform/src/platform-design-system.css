@@ -1,0 +1,270 @@
+:root {
+  --brand: #4799a0;
+  --brand-soft: #e7f3f4;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --border: #eceff3;
+  --text-primary: #111111;
+  --text-secondary: #8b9098;
+  --error: #ef4444;
+  --success: #16a34a;
+  --warning: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+}
+
+.platform-app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.side-nav {
+  border-right: 1px solid var(--border);
+  background: #fff;
+  padding: 16px 12px;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.menu-group {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.menu-link:hover {
+  border-color: var(--border);
+}
+
+.menu-link.active {
+  background: #111;
+  color: #fff;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 10px 0;
+}
+
+.content-wrap {
+  min-width: 0;
+}
+
+.top-bar {
+  height: 62px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.top-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.page-content {
+  padding: 18px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.metric-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.metric-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.metric-value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-note {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  height: 40px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn.primary {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.metric {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.metric strong {
+  color: var(--brand);
+  font-size: 20px;
+}
+
+.item-line {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.status-tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.tip {
+  min-height: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.tip.err {
+  color: var(--error);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.field label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+@media (max-width: 960px) {
+  .platform-app {
+    grid-template-columns: 1fr;
+  }
+  .side-nav {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
