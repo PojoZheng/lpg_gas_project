@@ -58,9 +58,24 @@
       }
       .tip { min-height: 20px; color: var(--text-secondary); font-size: 13px; margin-top: 6px; }
       .err { color: var(--error); }
+      .warn { color: #b45309; }
       .text-btn {
         width: 100%; border: 1px dashed var(--border); background: #fff; border-radius: 12px; height: 40px; cursor: pointer;
         color: #1f6f76; margin-bottom: 8px;
+      }
+      .switch-row {
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        border: 1px solid var(--border); border-radius: 12px; padding: 9px 10px;
+      }
+      .switch-row input { width: auto; height: auto; }
+      .switch-label { font-size: 14px; color: var(--text-primary); }
+      .switch-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+      .empty {
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        color: var(--text-secondary);
+        font-size: 13px;
       }
       .overlay {
         position: fixed; inset: 0; background: rgba(0, 0, 0, 0.28); display: none; align-items: flex-end;
@@ -71,6 +86,15 @@
         border: 1px solid var(--border); padding: 14px;
       }
       .sheet-title { margin: 0 0 10px; font-size: 16px; }
+      .sheet-desc { color: var(--text-secondary); font-size: 13px; margin: 0 0 8px; }
+      .sheet-summary {
+        background: #f8fbfb;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
     </style>
   </head>
   <body>
@@ -109,7 +133,22 @@
         <div class="row">
           <input id="priceInput" type="number" min="0" value="120" placeholder="请输入单价（元）" />
         </div>
-        <button class="submit-btn" id="createBtn">确认开单</button>
+        <div class="switch-row">
+          <div>
+            <div class="switch-label">连续开单模式</div>
+            <div class="switch-desc">开单成功后保留客户与常用配置</div>
+          </div>
+          <input id="continuousMode" type="checkbox" />
+        </div>
+        <div class="switch-row">
+          <div>
+            <div class="switch-label">记住默认值</div>
+            <div class="switch-desc">保存配送方式、规格、单价与收款方式</div>
+          </div>
+          <input id="rememberDefaults" type="checkbox" checked />
+        </div>
+        <button class="text-btn" id="moreFieldsBtn">展开确认面板（更多字段）</button>
+        <button class="submit-btn" id="createBtn">一键开单（确认开单）</button>
         <p class="tip" id="tip"></p>
       </section>
     </main>
@@ -122,6 +161,29 @@
         <div class="row">
           <button class="tab-btn" id="cancelAddBtn">取消</button>
           <button class="tab-btn active" id="confirmAddBtn">确认添加</button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="confirmOverlay">
+      <div class="sheet">
+        <h3 class="sheet-title">开单确认</h3>
+        <p class="sheet-desc">确认订单信息后提交，若为当场完成需填写收款信息。</p>
+        <div class="sheet-summary" id="confirmSummary"></div>
+        <div class="row">
+          <select id="paymentMethod">
+            <option value="cash">现金</option>
+            <option value="wechat">微信收款</option>
+            <option value="alipay">支付宝收款</option>
+            <option value="transfer">转账</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="receivedAmount" type="number" min="0" step="0.01" placeholder="请输入实收金额（元）" />
+        </div>
+        <p class="tip" id="confirmTip"></p>
+        <div class="row">
+          <button class="tab-btn" id="cancelConfirmBtn">取消</button>
+          <button class="tab-btn active" id="submitConfirmBtn">确认并开单</button>
         </div>
       </div>
     </div>
@@ -147,23 +209,90 @@
       const plusBtn = document.getElementById("plusBtn");
       const addCustomerBtn = document.getElementById("addCustomerBtn");
       const viewAllBtn = document.getElementById("viewAllBtn");
+      const moreFieldsBtn = document.getElementById("moreFieldsBtn");
       const addCustomerOverlay = document.getElementById("addCustomerOverlay");
       const cancelAddBtn = document.getElementById("cancelAddBtn");
       const confirmAddBtn = document.getElementById("confirmAddBtn");
       const newName = document.getElementById("newName");
       const newPhone = document.getElementById("newPhone");
       const newAddress = document.getElementById("newAddress");
+      const continuousMode = document.getElementById("continuousMode");
+      const rememberDefaults = document.getElementById("rememberDefaults");
+      const confirmOverlay = document.getElementById("confirmOverlay");
+      const confirmSummary = document.getElementById("confirmSummary");
+      const confirmTip = document.getElementById("confirmTip");
+      const paymentMethod = document.getElementById("paymentMethod");
+      const receivedAmount = document.getElementById("receivedAmount");
+      const cancelConfirmBtn = document.getElementById("cancelConfirmBtn");
+      const submitConfirmBtn = document.getElementById("submitConfirmBtn");
       const typeBtns = [...document.querySelectorAll(".tab-btn[data-type]")];
+      const PREF_KEY = "quick-order-prefs-v1";
 
       let selectedCustomerId = "";
       let orderType = "later_delivery";
       let quantity = 1;
       let loading = false;
       let allCustomers = [];
+      let defaults = {
+        orderType: "later_delivery",
+        spec: "15kg",
+        unitPrice: 120,
+        paymentMethod: "cash",
+        continuousMode: false,
+        rememberDefaults: true,
+      };
 
       function setTip(text, isError = false) {
         tip.textContent = text;
         tip.className = isError ? "tip err" : "tip";
+      }
+      function setConfirmTip(text, level = "normal") {
+        confirmTip.textContent = text;
+        confirmTip.className =
+          level === "error" ? "tip err" : level === "warn" ? "tip warn" : "tip";
+      }
+      function loadDefaults() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+          defaults = { ...defaults, ...parsed };
+        } catch (_err) {}
+      }
+      function saveDefaults() {
+        if (!rememberDefaults.checked) {
+          localStorage.removeItem(PREF_KEY);
+          return;
+        }
+        const next = {
+          orderType,
+          spec: specSelect.value,
+          unitPrice: Number(priceInput.value || 0),
+          paymentMethod: paymentMethod.value,
+          continuousMode: continuousMode.checked,
+          rememberDefaults: rememberDefaults.checked,
+        };
+        localStorage.setItem(PREF_KEY, JSON.stringify(next));
+      }
+      function applyDefaults() {
+        loadDefaults();
+        orderType = defaults.orderType;
+        typeBtns.forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.type === orderType);
+        });
+        specSelect.value = defaults.spec;
+        priceInput.value = String(defaults.unitPrice);
+        paymentMethod.value = defaults.paymentMethod;
+        continuousMode.checked = Boolean(defaults.continuousMode);
+        rememberDefaults.checked = defaults.rememberDefaults !== false;
+      }
+      function paymentMethodText(value) {
+        return (
+          {
+            cash: "现金",
+            wechat: "微信收款",
+            alipay: "支付宝收款",
+            transfer: "转账",
+          }[value] || "现金"
+        );
       }
 
       function syncCustomerActive() {
@@ -174,6 +303,11 @@
 
       function renderCustomers(customers) {
         customerList.innerHTML = "";
+        if (!customers.length) {
+          customerList.innerHTML = '<div class="empty">暂无匹配客户，请调整关键词后重试。</div>';
+          selectedCustomerId = "";
+          return;
+        }
         customers.forEach((item) => {
           const btn = document.createElement("button");
           btn.className = "list-btn";
@@ -217,12 +351,21 @@
           orderType = btn.dataset.type;
           typeBtns.forEach((x) => x.classList.remove("active"));
           btn.classList.add("active");
+          if (orderType === "immediate_complete") {
+            setTip("当场完成需要确认收款信息，请先展开确认面板。");
+          }
+          saveDefaults();
         });
       });
 
       minusBtn.addEventListener("click", () => updateQty(quantity - 1));
       plusBtn.addEventListener("click", () => updateQty(quantity + 1));
       backBtn.addEventListener("click", () => (window.location.href = "./workbench.html"));
+      specSelect.addEventListener("change", saveDefaults);
+      priceInput.addEventListener("change", saveDefaults);
+      paymentMethod.addEventListener("change", saveDefaults);
+      continuousMode.addEventListener("change", saveDefaults);
+      rememberDefaults.addEventListener("change", saveDefaults);
       searchInput.addEventListener("input", () => {
         const list = filterQuickCustomers(allCustomers, searchInput.value);
         selectedCustomerId = "";
@@ -230,7 +373,9 @@
       });
       addCustomerBtn.addEventListener("click", () => addCustomerOverlay.classList.add("show"));
       cancelAddBtn.addEventListener("click", () => addCustomerOverlay.classList.remove("show"));
-      viewAllBtn.addEventListener("click", () => setTip("客户完整列表将在客户页提供（入口已预留）"));
+      viewAllBtn.addEventListener("click", () =>
+        setTip("客户完整列表入口暂未开放，请在搜索中输入手机号或地址。")
+      );
       confirmAddBtn.addEventListener("click", async () => {
         const res = await createQuickCustomer({
           name: newName.value,
@@ -247,41 +392,102 @@
         setTip(`客户已添加并选中：${res.data.name}`);
       });
 
-      createBtn.addEventListener("click", async () => {
+      function buildPayload() {
         if (loading) return;
         if (!selectedCustomerId) return setTip("请先选择客户", true);
         const spec = specSelect.value;
         const unitPrice = Number(priceInput.value || 0);
-        if (unitPrice < 0) return setTip("单价不能为负数", true);
-        loading = true;
-        createBtn.disabled = true;
-        setTip("正在校验库存...");
-        const check = await checkInventory(spec, quantity);
-        if (!check.data.canCreate) {
-          loading = false;
-          createBtn.disabled = false;
-          return setTip(`库存不足：${spec} 可用 ${check.data.available} 瓶`, true);
-        }
-
-        setTip("正在创建订单...");
-        const result = await quickCreateOrder({
+        if (unitPrice < 0) return setTip("单价不能为负数，请输入合法金额。", true);
+        const amount = Number((unitPrice * quantity).toFixed(2));
+        const payAmount = Number(receivedAmount.value || amount);
+        const payload = {
           customerId: selectedCustomerId,
           orderType,
           spec,
           quantity,
           unitPrice,
-        });
+          paymentMethod: paymentMethod.value,
+          receivedAmount: payAmount,
+        };
+        if (orderType === "immediate_complete") {
+          if (!Number.isFinite(payAmount) || payAmount < 0) {
+            setConfirmTip("收款信息不完整，请输入有效实收金额。", "error");
+            return null;
+          }
+          if (payAmount < amount) {
+            setConfirmTip("实收金额小于应收金额，请确认后再提交。", "warn");
+            return null;
+          }
+        }
+        return payload;
+      }
+
+      function openConfirmPanel() {
+        const unitPrice = Number(priceInput.value || 0);
+        const amount = Number((unitPrice * quantity).toFixed(2));
+        if (orderType === "immediate_complete" && !receivedAmount.value) {
+          receivedAmount.value = String(amount);
+        }
+        confirmSummary.innerHTML = `
+          <div>配送方式：${orderType === "immediate_complete" ? "当场完成" : "稍后配送"}</div>
+          <div>规格与数量：${specSelect.value} × ${quantity}</div>
+          <div>应收金额：${amount.toFixed(2)} 元</div>
+          <div>收款方式：${paymentMethodText(paymentMethod.value)}</div>
+        `;
+        setConfirmTip(
+          orderType === "immediate_complete"
+            ? "请确认收款方式与实收金额，避免完单后差异。"
+            : "该订单将进入待配送列表，可在工作台继续处理。"
+        );
+        confirmOverlay.classList.add("show");
+      }
+
+      async function submitOrder(payload) {
+        if (!payload) return;
+        loading = true;
+        createBtn.disabled = true;
+        setTip("正在校验库存...");
+        const check = await checkInventory(payload.spec, payload.quantity);
+        if (!check.data.canCreate) {
+          loading = false;
+          createBtn.disabled = false;
+          return setTip(`库存不足，请调整数量后重试：${payload.spec} 可用 ${check.data.available} 瓶`, true);
+        }
+
+        setTip("正在创建订单...");
+        const result = await quickCreateOrder(payload);
         if (!result.success) {
           loading = false;
           createBtn.disabled = false;
-          return setTip(result.error || "创建失败，请稍后重试", true);
+          return setTip(result.error || "创建失败，请检查信息后重试。", true);
         }
-        const typeText = orderType === "immediate_complete" ? "当场完成" : "稍后配送";
+        const typeText = payload.orderType === "immediate_complete" ? "当场完成" : "稍后配送";
         setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}`);
+        confirmOverlay.classList.remove("show");
+        saveDefaults();
+        if (!continuousMode.checked) {
+          quantity = 1;
+          qtyText.textContent = "1";
+          selectedCustomerId = "";
+          syncCustomerActive();
+        }
         loading = false;
         createBtn.disabled = false;
+      }
+
+      moreFieldsBtn.addEventListener("click", openConfirmPanel);
+      cancelConfirmBtn.addEventListener("click", () => confirmOverlay.classList.remove("show"));
+      submitConfirmBtn.addEventListener("click", async () => {
+        const payload = buildPayload();
+        await submitOrder(payload);
       });
 
+      createBtn.addEventListener("click", async () => {
+        const payload = buildPayload();
+        await submitOrder(payload);
+      });
+
+      applyDefaults();
       loadCustomers();
     </script>
   </body>

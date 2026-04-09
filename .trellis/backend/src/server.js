@@ -105,9 +105,25 @@ function createQuickOrder(payload) {
   }
 
   const unitPrice = Number(payload.unitPrice || 0);
+  if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+    throw new Error("单价不合法，请输入大于等于 0 的金额");
+  }
   const amount = Number((unitPrice * quantity).toFixed(2));
   const orderType = payload.orderType === "immediate_complete" ? "immediate_complete" : "later_delivery";
   const orderStatus = orderType === "immediate_complete" ? "completed" : "pending_delivery";
+  const paymentMethod = String(payload.paymentMethod || "").trim();
+  const receivedAmount = Number(payload.receivedAmount || 0);
+  if (orderType === "immediate_complete") {
+    if (!["cash", "wechat", "alipay", "transfer"].includes(paymentMethod)) {
+      throw new Error("收款方式不合法，请重新选择");
+    }
+    if (!Number.isFinite(receivedAmount) || receivedAmount < 0) {
+      throw new Error("实收金额不合法，请输入有效金额");
+    }
+    if (receivedAmount < amount) {
+      throw new Error("实收金额不能小于应收金额，请确认后再提交");
+    }
+  }
   const orderId = `ORD-${Date.now()}`;
 
   inventoryBySpec[spec] = available - quantity;
@@ -121,6 +137,8 @@ function createQuickOrder(payload) {
     quantity,
     unitPrice,
     amount,
+    paymentMethod: orderType === "immediate_complete" ? paymentMethod : "",
+    receivedAmount: orderType === "immediate_complete" ? receivedAmount : 0,
     createdAt: Date.now(),
   });
 
@@ -134,6 +152,8 @@ function createQuickOrder(payload) {
       spec,
       quantity,
       amount,
+      paymentMethod: orderType === "immediate_complete" ? paymentMethod : "",
+      receivedAmount: orderType === "immediate_complete" ? receivedAmount : 0,
       inventoryAfter: {
         spec,
         available: inventoryBySpec[spec],
