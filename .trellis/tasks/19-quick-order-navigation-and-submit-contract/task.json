@@ -1,7 +1,7 @@
 {
   "id": "19-quick-order-navigation-and-submit-contract",
   "title": "快速开单导航与确认开单契约补齐",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "03-quick-order"
   ],
