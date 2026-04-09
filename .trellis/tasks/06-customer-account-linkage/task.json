@@ -1,7 +1,7 @@
 {
   "id": "06-customer-account-linkage",
   "title": "客户账户联动（欠瓶/欠款）",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["04-delivery-to-complete"],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-customer/overview.md",

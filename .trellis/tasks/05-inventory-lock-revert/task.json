@@ -1,7 +1,7 @@
 {
   "id": "05-inventory-lock-revert",
   "title": "库存锁定与回滚",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["04-delivery-to-complete"],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-inventory/overview.md",
