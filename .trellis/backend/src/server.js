@@ -21,6 +21,7 @@ const inventoryBySpec = {
 const quickOrders = [];
 const inventoryLogs = [];
 const safetyRecords = [];
+const offlineQueue = [];
 
 function getInventoryState(spec) {
   if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
@@ -145,8 +146,14 @@ function buildWorkbenchOverview() {
           orderStatus: "pending_delivery",
         },
     sync: {
-      syncStatus: "pending",
-      pendingCount: quickOrders.filter((x) => x.syncStatus !== "completed").length,
+      syncStatus: offlineQueue.some((x) => x.syncStatus === "failed")
+        ? "failed"
+        : offlineQueue.some((x) => x.syncStatus === "syncing")
+          ? "syncing"
+          : offlineQueue.some((x) => x.syncStatus === "pending")
+            ? "pending"
+            : "completed",
+      pendingCount: offlineQueue.filter((x) => x.syncStatus !== "completed").length,
       lastSyncAt: Date.now() - 2 * 60 * 1000,
     },
     quickActions: [
@@ -389,6 +396,143 @@ function retrySafetyReport(safetyId) {
     reportAttempts: record.reportAttempts,
     lastError: record.lastError,
     updatedAt: record.updatedAt,
+  };
+}
+
+function enqueueOfflineChange(payload) {
+  const entityType = String(payload.entityType || "").trim();
+  const action = String(payload.action || "").trim();
+  const changePayload = payload.payload || {};
+  if (!["order", "inventory", "customer"].includes(entityType)) {
+    throw new Error("同步实体类型不支持");
+  }
+  if (!action) {
+    throw new Error("同步动作不能为空");
+  }
+  const offlineId = String(payload.offlineId || `OFF-${Date.now()}`);
+  if (offlineQueue.some((x) => x.offlineId === offlineId)) {
+    return offlineQueue.find((x) => x.offlineId === offlineId);
+  }
+  const item = {
+    offlineId,
+    entityType,
+    action,
+    payload: changePayload,
+    syncStatus: "pending",
+    retryCount: 0,
+    manualRequired: false,
+    conflictType: "",
+    lastError: "",
+    resultSummary: "",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  offlineQueue.unshift(item);
+  return item;
+}
+
+function detectSyncConflict(item) {
+  if (item.entityType === "order") {
+    const orderId = String(item.payload.orderId || "");
+    const localStatus = String(item.payload.orderStatus || "");
+    const serverOrder = quickOrders.find((x) => x.orderId === orderId);
+    if (serverOrder && localStatus && localStatus !== serverOrder.orderStatus) {
+      return {
+        conflictType: "order_status_conflict",
+        message: `订单状态冲突：服务端为 ${serverOrder.orderStatus}，本地为 ${localStatus}`,
+      };
+    }
+  }
+  if (item.entityType === "inventory") {
+    const spec = String(item.payload.spec || "");
+    const baseOnHand = Number(item.payload.baseOnHand);
+    if (spec && Number.isFinite(baseOnHand) && inventoryBySpec[spec]) {
+      const serverOnHand = getInventoryState(spec).onHand;
+      if (serverOnHand !== baseOnHand) {
+        return {
+          conflictType: "inventory_baseline_conflict",
+          message: `库存基线冲突：服务端 ${serverOnHand}，本地基线 ${baseOnHand}`,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function syncOneOfflineItem(item) {
+  item.syncStatus = "syncing";
+  item.updatedAt = Date.now();
+  const conflict = detectSyncConflict(item);
+  if (conflict) {
+    item.retryCount += 1;
+    item.syncStatus = "failed";
+    item.conflictType = conflict.conflictType;
+    item.lastError = conflict.message;
+    item.resultSummary = "检测到冲突，待处理";
+    if (item.retryCount >= 3) {
+      item.manualRequired = true;
+      item.resultSummary = "重试已达上限，需人工处理";
+    }
+    item.updatedAt = Date.now();
+    return {
+      offlineId: item.offlineId,
+      syncStatus: item.syncStatus,
+      conflictType: item.conflictType,
+      manualRequired: item.manualRequired,
+      message: item.lastError,
+    };
+  }
+  item.syncStatus = "completed";
+  item.conflictType = "";
+  item.lastError = "";
+  item.resultSummary = "同步成功";
+  item.updatedAt = Date.now();
+  return {
+    offlineId: item.offlineId,
+    syncStatus: item.syncStatus,
+    conflictType: "",
+    manualRequired: false,
+    message: "同步成功",
+  };
+}
+
+function batchSyncOfflineQueue(payload) {
+  const inputIds = Array.isArray(payload.offlineIds) ? payload.offlineIds : [];
+  const idSet = new Set(inputIds.map((x) => String(x)));
+  const targets = offlineQueue.filter((x) => {
+    if (idSet.size > 0 && !idSet.has(x.offlineId)) return false;
+    if (x.syncStatus === "completed") return false;
+    return !x.manualRequired;
+  });
+  const results = targets.map((x) => syncOneOfflineItem(x));
+  return {
+    total: results.length,
+    completed: results.filter((x) => x.syncStatus === "completed").length,
+    failed: results.filter((x) => x.syncStatus === "failed").length,
+    manualRequired: results.filter((x) => x.manualRequired).length,
+    results,
+  };
+}
+
+function retryOfflineItem(offlineId) {
+  const item = offlineQueue.find((x) => x.offlineId === offlineId);
+  if (!item) throw new Error("离线队列记录不存在");
+  if (item.manualRequired) throw new Error("该记录已进入人工处理，请先人工确认");
+  return syncOneOfflineItem(item);
+}
+
+function markOfflineManual(offlineId) {
+  const item = offlineQueue.find((x) => x.offlineId === offlineId);
+  if (!item) throw new Error("离线队列记录不存在");
+  item.manualRequired = true;
+  item.syncStatus = "failed";
+  item.resultSummary = "已转人工处理";
+  item.updatedAt = Date.now();
+  return {
+    offlineId: item.offlineId,
+    syncStatus: item.syncStatus,
+    manualRequired: item.manualRequired,
+    message: "已转人工处理",
   };
 }
 
@@ -775,6 +919,56 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const safetyId = decodeURIComponent(pathname.replace("/safety/", "").replace("/retry", ""));
       const data = retrySafetyReport(safetyId);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "GET" && pathname === "/sync/queue") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: {
+          stats: {
+            pending: offlineQueue.filter((x) => x.syncStatus === "pending").length,
+            syncing: offlineQueue.filter((x) => x.syncStatus === "syncing").length,
+            failed: offlineQueue.filter((x) => x.syncStatus === "failed").length,
+            completed: offlineQueue.filter((x) => x.syncStatus === "completed").length,
+            manualRequired: offlineQueue.filter((x) => x.manualRequired).length,
+          },
+          items: offlineQueue.slice(0, 100),
+        },
+      });
+    }
+
+    if (req.method === "POST" && pathname === "/sync/queue/enqueue") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const data = enqueueOfflineChange(payload);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "POST" && pathname === "/sync/queue/batch-submit") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const data = batchSyncOfflineQueue(payload);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "POST" && pathname.startsWith("/sync/queue/") && pathname.endsWith("/retry")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const offlineId = decodeURIComponent(pathname.replace("/sync/queue/", "").replace("/retry", ""));
+      const data = retryOfflineItem(offlineId);
+      return sendJson(res, 200, { success: true, data });
+    }
+
+    if (req.method === "POST" && pathname.startsWith("/sync/queue/") && pathname.endsWith("/manual")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const offlineId = decodeURIComponent(pathname.replace("/sync/queue/", "").replace("/manual", ""));
+      const data = markOfflineManual(offlineId);
       return sendJson(res, 200, { success: true, data });
     }
 

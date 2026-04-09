@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>同步队列与冲突处理</title>
+    <style>
+      :root {
+        --brand: #4799a0;
+        --bg: #f7f8fa;
+        --surface: #ffffff;
+        --border: #eceff3;
+        --text-primary: #111111;
+        --text-secondary: #8b9098;
+        --error: #ef4444;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px 28px; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .title { margin: 0; font-size: 24px; font-weight: 700; }
+      .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 38px; padding: 0 12px; cursor: pointer; }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+      .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+      .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+      .row label { width: 82px; color: var(--text-secondary); font-size: 14px; }
+      .row input, .row select { flex: 1; height: 40px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; }
+      .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+      .metric { border: 1px solid var(--border); border-radius: 12px; padding: 10px; font-size: 13px; color: var(--text-secondary); }
+      .metric strong { color: var(--brand); font-size: 20px; }
+      .item { border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+      .item-line { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+      .item-actions { display: flex; gap: 8px; margin-top: 8px; }
+      .tip { min-height: 20px; font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+      .err { color: var(--error); }
+      .status-tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #fff7ed; color: #b45309; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1 class="title">同步队列</h1>
+        <button class="btn" id="backBtn">返回工作台</button>
+      </header>
+
+      <section class="card">
+        <h2 class="card-title">新增离线变更</h2>
+        <div class="row">
+          <label>实体类型</label>
+          <select id="entitySelect">
+            <option value="order">订单</option>
+            <option value="inventory">库存</option>
+            <option value="customer">客户</option>
+          </select>
+        </div>
+        <div class="row"><label>动作</label><input id="actionInput" value="update" /></div>
+        <div class="row"><label>关联ID</label><input id="refIdInput" placeholder="如：ORD-xxxx 或 CUST-xxx" /></div>
+        <div class="row"><label>本地状态</label><input id="localStatusInput" placeholder="如：pending_delivery/completed" /></div>
+        <div class="row"><label>库存基线</label><input id="baseOnHandInput" type="number" placeholder="库存同步时填写" /></div>
+        <button class="btn primary" id="enqueueBtn">加入离线队列</button>
+        <p class="tip" id="enqueueTip"></p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">队列统计</h2>
+        <div class="stats" id="stats"></div>
+        <button class="btn primary" id="batchBtn">批量同步</button>
+        <p class="tip" id="batchTip"></p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">冲突与处理结果</h2>
+        <div id="queueList"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        fetchSyncQueue,
+        enqueueSyncItem,
+        batchSubmitSync,
+        retrySyncItem,
+        markSyncManual,
+      } from "./sync-queue-client.js";
+
+      const backBtn = document.getElementById("backBtn");
+      const entitySelect = document.getElementById("entitySelect");
+      const actionInput = document.getElementById("actionInput");
+      const refIdInput = document.getElementById("refIdInput");
+      const localStatusInput = document.getElementById("localStatusInput");
+      const baseOnHandInput = document.getElementById("baseOnHandInput");
+      const enqueueBtn = document.getElementById("enqueueBtn");
+      const enqueueTip = document.getElementById("enqueueTip");
+      const stats = document.getElementById("stats");
+      const batchBtn = document.getElementById("batchBtn");
+      const batchTip = document.getElementById("batchTip");
+      const queueList = document.getElementById("queueList");
+
+      function setTip(el, text, isError = false) {
+        el.textContent = text;
+        el.className = isError ? "tip err" : "tip";
+      }
+
+      function renderStats(data) {
+        stats.innerHTML = "";
+        const rows = [
+          ["待同步", data.pending || 0],
+          ["同步中", data.syncing || 0],
+          ["同步失败", data.failed || 0],
+          ["已完成", data.completed || 0],
+          ["人工处理", data.manualRequired || 0],
+        ];
+        rows.forEach(([label, value]) => {
+          const el = document.createElement("div");
+          el.className = "metric";
+          el.innerHTML = `<div>${label}</div><strong>${value}</strong>`;
+          stats.appendChild(el);
+        });
+      }
+
+      function renderList(items) {
+        queueList.innerHTML = "";
+        if (!items.length) {
+          queueList.innerHTML = "<p class=\"tip\">当前无离线队列记录</p>";
+          return;
+        }
+        items.forEach((item) => {
+          const box = document.createElement("div");
+          box.className = "item";
+          box.innerHTML = `
+            <div><strong>${item.entityType}</strong> / ${item.action} <span class="status-tag">${item.syncStatus}</span></div>
+            <div class="item-line">离线ID：${item.offlineId}</div>
+            <div class="item-line">重试次数：${item.retryCount}，冲突类型：${item.conflictType || "无"}</div>
+            <div class="item-line">处理结果：${item.resultSummary || "待处理"}${item.lastError ? `（${item.lastError}）` : ""}</div>
+            <div class="item-actions">
+              <button class="btn retry-btn" data-id="${item.offlineId}">失败重试</button>
+              <button class="btn manual-btn" data-id="${item.offlineId}">转人工处理</button>
+            </div>
+          `;
+          queueList.appendChild(box);
+        });
+        [...document.querySelectorAll(".retry-btn")].forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const res = await retrySyncItem(btn.dataset.id);
+            if (!res.success) return setTip(batchTip, res.error || "重试失败", true);
+            setTip(batchTip, "重试已执行，结果已更新");
+            await loadQueue();
+          });
+        });
+        [...document.querySelectorAll(".manual-btn")].forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const res = await markSyncManual(btn.dataset.id);
+            if (!res.success) return setTip(batchTip, res.error || "转人工失败", true);
+            setTip(batchTip, "该记录已转人工处理");
+            await loadQueue();
+          });
+        });
+      }
+
+      async function loadQueue() {
+        const res = await fetchSyncQueue();
+        if (!res.success) {
+          setTip(batchTip, res.error || "队列加载失败，请稍后重试", true);
+          return;
+        }
+        renderStats(res.data.stats || {});
+        renderList(res.data.items || []);
+      }
+
+      enqueueBtn.addEventListener("click", async () => {
+        const entityType = entitySelect.value;
+        const action = String(actionInput.value || "").trim();
+        const refId = String(refIdInput.value || "").trim();
+        const localStatus = String(localStatusInput.value || "").trim();
+        const baseOnHand = Number(baseOnHandInput.value || "");
+        const payload = {};
+        if (entityType === "order") {
+          payload.orderId = refId;
+          payload.orderStatus = localStatus;
+        } else if (entityType === "inventory") {
+          payload.spec = refId || "15kg";
+          if (Number.isFinite(baseOnHand)) payload.baseOnHand = baseOnHand;
+        } else {
+          payload.customerId = refId;
+        }
+        setTip(enqueueTip, "正在写入离线队列...");
+        const res = await enqueueSyncItem({
+          entityType,
+          action,
+          payload,
+        });
+        if (!res.success) return setTip(enqueueTip, res.error || "入队失败，请检查后重试", true);
+        setTip(enqueueTip, "离线变更已加入队列");
+        await loadQueue();
+      });
+
+      batchBtn.addEventListener("click", async () => {
+        setTip(batchTip, "正在批量同步...");
+        const res = await batchSubmitSync({});
+        if (!res.success) return setTip(batchTip, res.error || "批量同步失败，请稍后重试", true);
+        const data = res.data || {};
+        setTip(batchTip, `批量同步完成：成功 ${data.completed || 0} 条，失败 ${data.failed || 0} 条`);
+        await loadQueue();
+      });
+
+      backBtn.addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
+
+      loadQueue();
+    </script>
+  </body>
+</html>
