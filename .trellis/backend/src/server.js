@@ -19,6 +19,35 @@ const inventoryBySpec = {
   "50kg": 3,
 };
 const quickOrders = [];
+const customerAccounts = new Map(
+  mockCustomers.map((x) => [
+    x.id,
+    {
+      customerId: x.id,
+      owedAmount: 0,
+      owedEmptyCount: 0,
+      collectionStatus: "none",
+      collectionNote: "",
+      updatedAt: Date.now(),
+      lastCollectionAt: 0,
+    },
+  ])
+);
+
+function ensureCustomerAccount(customerId) {
+  if (!customerAccounts.has(customerId)) {
+    customerAccounts.set(customerId, {
+      customerId,
+      owedAmount: 0,
+      owedEmptyCount: 0,
+      collectionStatus: "none",
+      collectionNote: "",
+      updatedAt: Date.now(),
+      lastCollectionAt: 0,
+    });
+  }
+  return customerAccounts.get(customerId);
+}
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -189,6 +218,7 @@ function getPendingOrders() {
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((x) => ({
       orderId: x.orderId,
+      customerId: x.customerId,
       customerName: x.customerName,
       address: x.address,
       scheduleAt: x.scheduleAt,
@@ -204,6 +234,32 @@ function getOrderById(orderId) {
   const order = quickOrders.find((x) => x.orderId === orderId);
   if (!order) throw new Error("订单不存在，请刷新后重试");
   return order;
+}
+
+function buildCustomerAccountSummary(customerId) {
+  const account = ensureCustomerAccount(customerId);
+  const orders = quickOrders.filter((x) => x.customerId === customerId);
+  const completed = orders.filter((x) => x.orderStatus === "completed");
+  const lastOrderAt = orders.length ? Math.max(...orders.map((x) => Number(x.createdAt || 0))) : 0;
+  return {
+    customerId,
+    owedAmount: Number(Number(account.owedAmount || 0).toFixed(2)),
+    owedEmptyCount: Number(account.owedEmptyCount || 0),
+    collectionStatus: account.collectionStatus || "none",
+    collectionNote: account.collectionNote || "",
+    updatedAt: Number(account.updatedAt || 0),
+    lastCollectionAt: Number(account.lastCollectionAt || 0),
+    totalOrders: orders.length,
+    completedOrders: completed.length,
+    lastOrderAt,
+  };
+}
+
+function adjustCustomerDebt(order, owedAmount, owedEmptyCount) {
+  const account = ensureCustomerAccount(order.customerId);
+  account.owedAmount = Number((Number(account.owedAmount || 0) + Number(owedAmount || 0)).toFixed(2));
+  account.owedEmptyCount = Math.max(0, Number(account.owedEmptyCount || 0) + Number(owedEmptyCount || 0));
+  account.updatedAt = Date.now();
 }
 
 function completeDeliveryOrder(order, payload) {
@@ -235,11 +291,14 @@ function completeDeliveryOrder(order, payload) {
   order.owedEmptyCount = owedEmptyCount;
   order.paymentStatus =
     receivedAmount <= 0 ? "unpaid" : receivedAmount < order.amount ? "partial_paid" : "paid";
+  order.debtRecordedAmount = Number(Math.max(0, order.amount - receivedAmount).toFixed(2));
+  order.debtRecordedEmptyCount = owedEmptyCount;
   order.completedAt = Date.now();
   order.syncStatus = "pending";
   order.lastAction = "complete";
   order.lastActionUndoUntil = Date.now() + 5000;
   order.lastActionSnapshot = prev;
+  adjustCustomerDebt(order, order.debtRecordedAmount, order.debtRecordedEmptyCount);
 
   return {
     orderId: order.orderId,
@@ -247,6 +306,8 @@ function completeDeliveryOrder(order, payload) {
     paymentStatus: order.paymentStatus,
     amount: order.amount,
     receivedAmount: order.receivedAmount,
+    owedAmount: order.debtRecordedAmount,
+    owedEmptyCount: order.debtRecordedEmptyCount,
     undoAvailableUntil: order.lastActionUndoUntil,
   };
 }
@@ -326,6 +387,13 @@ function undoOrderAction(order) {
     order.receivedAmount = 0;
     order.paymentMethod = "";
     order.completedAt = 0;
+    adjustCustomerDebt(
+      order,
+      -Number(order.debtRecordedAmount || 0),
+      -Number(order.debtRecordedEmptyCount || 0)
+    );
+    order.debtRecordedAmount = 0;
+    order.debtRecordedEmptyCount = 0;
   } else if (order.lastAction === "cancel") {
     order.orderStatus = "pending_delivery";
     const available = Number(inventoryBySpec[order.spec] || 0);
@@ -335,6 +403,28 @@ function undoOrderAction(order) {
   order.lastAction = "";
   order.lastActionUndoUntil = 0;
   return { orderId: order.orderId, orderStatus: order.orderStatus, paymentStatus: order.paymentStatus };
+}
+
+function getCustomerDetail(customerId) {
+  const customer = mockCustomers.find((x) => x.id === customerId);
+  if (!customer) throw new Error("客户不存在，请刷新后重试");
+  return {
+    ...customer,
+    account: buildCustomerAccountSummary(customerId),
+  };
+}
+
+function updateCollectionStatus(customerId, payload) {
+  const account = ensureCustomerAccount(customerId);
+  const status = String(payload.status || "").trim();
+  if (!["none", "pending", "contacted", "promised", "resolved"].includes(status)) {
+    throw new Error("催收状态不合法，请重新选择");
+  }
+  account.collectionStatus = status;
+  account.collectionNote = String(payload.note || "").trim();
+  account.lastCollectionAt = Date.now();
+  account.updatedAt = Date.now();
+  return buildCustomerAccountSummary(customerId);
 }
 
 function createCustomer(payload) {
@@ -354,6 +444,7 @@ function createCustomer(payload) {
     address,
   };
   mockCustomers.unshift(customer);
+  ensureCustomerAccount(customer.id);
   return customer;
 }
 
@@ -432,6 +523,23 @@ const server = http.createServer(async (req, res) => {
       const payload = await readBody(req);
       const customer = createCustomer(payload);
       return sendJson(res, 200, { success: true, data: customer });
+    }
+
+    if (req.method === "GET" && pathname.startsWith("/customers/") && pathname.endsWith("/detail")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const customerId = decodeURIComponent(pathname.replace("/customers/", "").replace("/detail", ""));
+      return sendJson(res, 200, { success: true, data: getCustomerDetail(customerId) });
+    }
+
+    if (req.method === "PATCH" && pathname.startsWith("/customers/") && pathname.endsWith("/collection-status")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const customerId = decodeURIComponent(
+        pathname.replace("/customers/", "").replace("/collection-status", "")
+      );
+      const payload = await readBody(req);
+      return sendJson(res, 200, { success: true, data: updateCollectionStatus(customerId, payload) });
     }
 
     if (req.method === "POST" && pathname === "/inventory/check") {
