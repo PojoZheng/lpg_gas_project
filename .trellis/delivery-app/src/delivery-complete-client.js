@@ -57,3 +57,20 @@ export async function fetchInventorySnapshot() {
     headers: authHeaders(),
   });
 }
+
+export async function fetchCustomerDetail(customerId) {
+  return requestJson(`${API_BASE_URL}/customers/${encodeURIComponent(customerId)}/detail`, {
+    headers: authHeaders(),
+  });
+}
+
+export async function updateCollectionStatus(customerId, payload) {
+  return requestJson(
+    `${API_BASE_URL}/customers/${encodeURIComponent(customerId)}/collection-status`,
+    {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    }
+  );
+}

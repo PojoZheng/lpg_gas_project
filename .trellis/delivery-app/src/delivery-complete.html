@@ -45,6 +45,8 @@
         color: var(--text-secondary);
       }
       .inventory-item strong { color: var(--text-primary); }
+      .summary { border: 1px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; line-height: 1.6; background: #fbfcfe; }
+      .muted { color: var(--text-secondary); font-size: 13px; }
     </style>
   </head>
   <body>
@@ -85,6 +87,27 @@
         </div>
         <p class="tip" id="tip"></p>
       </section>
+
+      <section class="card">
+        <h2 class="card-title">客户详情与账户摘要</h2>
+        <div class="summary" id="accountSummary">请选择订单后查看客户账户摘要。</div>
+        <div class="row">
+          <label>催收状态</label>
+          <select id="collectionStatus">
+            <option value="none">未开始</option>
+            <option value="pending">待催收</option>
+            <option value="contacted">已联系</option>
+            <option value="promised">承诺付款</option>
+            <option value="resolved">已结清</option>
+          </select>
+        </div>
+        <div class="row"><label>备注</label><input id="collectionNote" placeholder="请输入催收备注（可选）" /></div>
+        <div class="actions">
+          <button class="btn primary" id="saveCollectionBtn">保存催收状态</button>
+          <button class="btn" id="refreshAccountBtn">刷新账户摘要</button>
+        </div>
+        <p class="tip muted" id="accountTip"></p>
+      </section>
     </main>
 
     <script type="module">
@@ -95,6 +118,8 @@
         updateOrder,
         undoOrderAction,
         fetchInventorySnapshot,
+        fetchCustomerDetail,
+        updateCollectionStatus,
       } from "./delivery-complete-client.js";
 
       const orderList = document.getElementById("orderList");
@@ -111,6 +136,12 @@
       const undoBtn = document.getElementById("undoBtn");
       const tip = document.getElementById("tip");
       const inventoryList = document.getElementById("inventoryList");
+      const accountSummary = document.getElementById("accountSummary");
+      const collectionStatus = document.getElementById("collectionStatus");
+      const collectionNote = document.getElementById("collectionNote");
+      const saveCollectionBtn = document.getElementById("saveCollectionBtn");
+      const refreshAccountBtn = document.getElementById("refreshAccountBtn");
+      const accountTip = document.getElementById("accountTip");
       const payBtns = [...document.querySelectorAll(".pay-btn")];
 
       let selectedOrder = null;
@@ -119,6 +150,10 @@
       function setTip(text, isError = false) {
         tip.textContent = text;
         tip.className = isError ? "tip err" : "tip";
+      }
+      function setAccountTip(text, isError = false) {
+        accountTip.textContent = text;
+        accountTip.className = isError ? "tip err" : "tip muted";
       }
 
       function syncPayBtn() {
@@ -133,6 +168,30 @@
         scheduleInput.value = order.scheduleAt || "";
         addressInput.value = order.address || "";
       }
+      async function loadCustomerAccountByOrder(order) {
+        if (!order || !order.customerId) {
+          accountSummary.textContent = "当前订单未关联客户，无法加载账户摘要。";
+          return;
+        }
+        setAccountTip("正在加载客户账户摘要...");
+        const res = await fetchCustomerDetail(order.customerId);
+        if (!res.success) {
+          setAccountTip(res.error || "账户摘要加载失败，请稍后重试。", true);
+          return;
+        }
+        const account = res.data.account || {};
+        collectionStatus.value = account.collectionStatus || "none";
+        collectionNote.value = account.collectionNote || "";
+        accountSummary.innerHTML = `
+          <div>客户名称：${res.data.name}</div>
+          <div>手机号：${res.data.phone}</div>
+          <div>账户欠款：${Number(account.owedAmount || 0).toFixed(2)} 元</div>
+          <div>账户欠瓶：${Number(account.owedEmptyCount || 0)} 瓶</div>
+          <div>催收状态：${collectionStatus.options[collectionStatus.selectedIndex].text}</div>
+          <div>历史完单：${Number(account.completedOrders || 0)} 单</div>
+        `;
+        setAccountTip("客户账户摘要已更新。");
+      }
 
       function renderOrders(list) {
         orderList.innerHTML = "";
@@ -144,6 +203,7 @@
           btn.addEventListener("click", () => {
             selectedOrder = item;
             syncForm(item);
+            loadCustomerAccountByOrder(item);
             [...orderList.children].forEach((x) => x.classList.remove("active"));
             btn.classList.add("active");
             setTip("已选择订单，可完单、取消或修改");
@@ -156,6 +216,7 @@
         }
         selectedOrder = list[0];
         syncForm(list[0]);
+        loadCustomerAccountByOrder(list[0]);
         orderList.firstChild.classList.add("active");
       }
 
@@ -200,7 +261,11 @@
           owedEmptyCount: Number(owedInput.value || 0),
         });
         if (!res.success) return setTip(`${res.error || "完单失败"}，请修改后重试`, true);
-        setTip("完单成功，5 秒内可点击“5 秒撤销”恢复");
+        setTip(
+          `完单成功：欠款 ${Number(res.data.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(
+            res.data.owedEmptyCount || 0
+          )} 瓶；5 秒内可撤销`
+        );
         await loadOrders();
         await loadInventory();
       });
@@ -237,6 +302,21 @@
         setTip("已撤销最近关键操作");
         await loadOrders();
         await loadInventory();
+      });
+      saveCollectionBtn.addEventListener("click", async () => {
+        if (!selectedOrder || !selectedOrder.customerId) return setAccountTip("请先选择待配送订单。", true);
+        setAccountTip("正在保存催收状态...");
+        const res = await updateCollectionStatus(selectedOrder.customerId, {
+          status: collectionStatus.value,
+          note: collectionNote.value,
+        });
+        if (!res.success) return setAccountTip(res.error || "保存失败，请稍后重试。", true);
+        await loadCustomerAccountByOrder(selectedOrder);
+        setAccountTip("催收状态已保存。");
+      });
+      refreshAccountBtn.addEventListener("click", async () => {
+        if (!selectedOrder) return setAccountTip("请先选择待配送订单。", true);
+        await loadCustomerAccountByOrder(selectedOrder);
       });
 
       backBtn.addEventListener("click", () => {
