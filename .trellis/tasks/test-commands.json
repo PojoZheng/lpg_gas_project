@@ -27,5 +27,8 @@
   ],
   "24-ui-ux-pro-max-redesign": [
     "python3 \".trellis/scripts/task24_ui_refactor_smoke.py\""
+  ],
+  "16-workbench-experience-polish": [
+    "python3 \".trellis/scripts/task16_workbench_smoke.py\""
   ]
 }
