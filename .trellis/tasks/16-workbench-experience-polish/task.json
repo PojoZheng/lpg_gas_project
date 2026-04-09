@@ -1,7 +1,7 @@
 {
   "id": "16-workbench-experience-polish",
   "title": "工作台体验优化",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["03-quick-order", "09-sync-queue-conflict"],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-workbench/overview.md",

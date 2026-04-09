@@ -9,6 +9,23 @@
       .page { padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
       .header-main { min-width: 0; }
       .subtitle { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
+      .network-badge {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--text-secondary);
+        background: #fff;
+      }
+      .network-badge.offline {
+        color: #b45309;
+        background: #fff7ed;
+        border-color: #fed7aa;
+      }
+      .header-actions { display: flex; align-items: center; gap: 8px; }
+      .refresh-btn { min-height: 40px; height: 40px; padding: 0 12px; }
       .login-btn { min-height: 40px; height: 40px; white-space: nowrap; }
       .line { margin: 6px 0; color: var(--text-secondary); }
       .line strong { color: var(--text-primary); }
@@ -53,8 +70,12 @@
         <div class="header-main">
           <h1 class="app-title">工作台</h1>
           <p class="subtitle">今日概览与主操作</p>
+          <span class="network-badge" id="networkBadge">在线</span>
         </div>
-        <button class="app-btn soft login-btn" id="loginBtn">登录 / 切换账号</button>
+        <div class="header-actions">
+          <button class="app-btn soft refresh-btn" id="refreshBtn">刷新</button>
+          <button class="app-btn soft login-btn" id="loginBtn">登录 / 切换账号</button>
+        </div>
       </header>
 
       <section class="app-card hero-card">
@@ -152,7 +173,9 @@
       const quickOrderBtn = document.getElementById("quickOrderBtn");
       const deliveryCompleteBtn = document.getElementById("deliveryCompleteBtn");
       const loginBtn = document.getElementById("loginBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
       const tip = document.getElementById("tip");
+      const networkBadge = document.getElementById("networkBadge");
       const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
       const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
       const navMyBtn = document.getElementById("navMyBtn");
@@ -199,6 +222,11 @@
 
       function hideSyncOverlay() {
         syncOverlay.classList.remove("show");
+      }
+      function renderNetworkBadge() {
+        const online = navigator.onLine;
+        networkBadge.textContent = online ? "在线" : "离线";
+        networkBadge.classList.toggle("offline", !online);
       }
 
       function shouldSkipSyncPopup() {
@@ -279,6 +307,10 @@
       loginBtn.addEventListener("click", () => {
         window.location.href = "./login.html";
       });
+      refreshBtn.addEventListener("click", async () => {
+        tip.textContent = "正在刷新...";
+        await loadData(true);
+      });
       navWorkbenchBtn.addEventListener("click", () => {
         window.location.href = "./workbench.html";
       });
@@ -325,10 +357,12 @@
       });
 
       window.addEventListener("offline", () => {
+        renderNetworkBadge();
         tip.textContent = "当前网络不可用，已切换离线提示";
         hideSyncOverlay();
       });
       window.addEventListener("online", () => {
+        renderNetworkBadge();
         tip.textContent = "网络已恢复，可下拉刷新";
       });
 
@@ -352,6 +386,7 @@
         }
       });
 
+      renderNetworkBadge();
       loadData();
       window.setInterval(() => {
         if (!document.hidden) loadData(true);
