@@ -10,6 +10,19 @@
 }
 ```
 
+### 认证接口约定（task-14）
+- 适用接口：`/auth/send-code`、`/auth/login`、`/auth/refresh`、`/auth/devices`
+- 成功响应统一：
+  - `success=true`
+  - `data` 为业务数据
+  - `error=null`
+  - `request_id` 必填
+- 失败响应统一：
+  - `success=false`
+  - `data=null`
+  - `error` 为对象：`{ code, message }`
+  - `request_id` 必填
+
 ## 关键接口分组
 - 认证：`/auth/send-code`、`/auth/login`、`/auth/refresh`
 - 订单：`/orders`、`/orders/:id/complete`、`/orders/:id/cancel`

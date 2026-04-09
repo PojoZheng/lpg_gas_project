@@ -14,13 +14,28 @@ export function getCurrentSession() {
   return storage.getSession();
 }
 
+function normalizeApiResult(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  if (payload.success && payload.error === null) {
+    return payload;
+  }
+  if (payload.error && typeof payload.error === "object") {
+    return {
+      ...payload,
+      error: payload.error.message || "请求失败，请稍后重试",
+      error_code: payload.error.code || "",
+    };
+  }
+  return payload;
+}
+
 export async function sendCode(phone) {
   const res = await fetch(`${API_BASE_URL}/auth/send-code`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone }),
   });
-  return res.json();
+  return normalizeApiResult(await res.json());
 }
 
 export async function loginByCode(phone, code) {
@@ -33,7 +48,7 @@ export async function loginByCode(phone, code) {
       deviceName: "配送员端-Web原型",
     }),
   });
-  const data = await res.json();
+  const data = normalizeApiResult(await res.json());
   if (data.success) storage.setSession(data.data);
   return data;
 }
@@ -47,7 +62,7 @@ export async function refreshTokenIfNeeded() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken: session.refreshToken }),
   });
-  const data = await res.json();
+  const data = normalizeApiResult(await res.json());
   if (data.success) {
     storage.setSession({ ...session, ...data.data });
   }
@@ -61,5 +76,5 @@ export async function listDevices() {
       Authorization: `Bearer ${session?.accessToken || ""}`,
     },
   });
-  return res.json();
+  return normalizeApiResult(await res.json());
 }

@@ -1,7 +1,7 @@
 {
   "id": "14-auth-api-contract-alignment",
   "title": "认证接口契约对齐",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["01-auth-session"],
   "input_spec": [
     ".trellis/spec/shared/api-contracts.md",

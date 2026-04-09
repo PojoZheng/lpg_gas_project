@@ -1,4 +1,5 @@
 const http = require("http");
+const crypto = require("crypto");
 const {
   issueCode,
   login,
@@ -164,6 +165,38 @@ function readAccessToken(req) {
   const auth = req.headers.authorization || "";
   if (!auth.startsWith("Bearer ")) return "";
   return auth.slice(7);
+}
+
+function sendContractSuccess(res, statusCode, data, requestId) {
+  return sendJson(res, statusCode, {
+    success: true,
+    data,
+    error: null,
+    request_id: requestId,
+  });
+}
+
+function sendContractError(res, statusCode, code, message, requestId) {
+  return sendJson(res, statusCode, {
+    success: false,
+    data: null,
+    error: { code, message },
+    request_id: requestId,
+  });
+}
+
+function mapAuthError(err, pathname) {
+  const message = String(err?.message || "请求失败，请稍后重试");
+  if (message.includes("登录态已失效") || message.includes("刷新令牌无效")) {
+    return { statusCode: 401, code: "AUTH_401", message: "登录态无效或已过期，请重新登录" };
+  }
+  if (pathname === "/auth/login" && message.includes("验证码无效或已过期")) {
+    return { statusCode: 400, code: "VALIDATION_400", message: "验证码无效或已过期，请重新获取" };
+  }
+  if (pathname === "/auth/send-code" && message.includes("手机号")) {
+    return { statusCode: 400, code: "VALIDATION_400", message: "手机号格式不正确" };
+  }
+  return { statusCode: 400, code: "VALIDATION_400", message };
 }
 
 function buildWorkbenchOverview() {
@@ -1059,26 +1092,25 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
   const reqUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const pathname = reqUrl.pathname;
+  const requestId = crypto.randomUUID();
 
   try {
     if (req.method === "POST" && pathname === "/auth/send-code") {
       const { phone } = await readBody(req);
       if (!/^1\d{10}$/.test(phone || "")) {
-        return sendJson(res, 400, { success: false, error: "手机号格式不正确" });
+        return sendContractError(res, 400, "VALIDATION_400", "手机号格式不正确", requestId);
       }
       const code = issueCode(phone);
-      return sendJson(res, 200, {
-        success: true,
-        data: { message: "验证码已发送", dev_code: code },
-      });
+      return sendContractSuccess(res, 200, { message: "验证码已发送", dev_code: code }, requestId);
     }
 
     if (req.method === "POST" && pathname === "/auth/login") {
       const { phone, code, deviceName } = await readBody(req);
       const result = login(phone, code, deviceName || "网页端");
-      return sendJson(res, 200, {
-        success: true,
-        data: {
+      return sendContractSuccess(
+        res,
+        200,
+        {
           user: {
             id: result.user.id,
             phone: result.user.phone,
@@ -1090,26 +1122,27 @@ const server = http.createServer(async (req, res) => {
           accessExpiresAt: result.accessExpiresAt,
           refreshExpiresAt: result.refreshExpiresAt,
         },
-      });
+        requestId
+      );
     }
 
     if (req.method === "POST" && pathname === "/auth/refresh") {
       const { refreshToken } = await readBody(req);
       const result = refresh(refreshToken);
-      return sendJson(res, 200, { success: true, data: result });
+      return sendContractSuccess(res, 200, result, requestId);
     }
 
     if (req.method === "GET" && pathname === "/auth/devices") {
       const accessToken = readAccessToken(req);
       const devices = listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: devices });
+      return sendContractSuccess(res, 200, devices, requestId);
     }
 
     if (req.method === "POST" && pathname === "/auth/devices/logout") {
       const accessToken = readAccessToken(req);
       const { sessionId } = await readBody(req);
       const result = logoutSession(accessToken, sessionId);
-      return sendJson(res, 200, { success: true, data: result });
+      return sendContractSuccess(res, 200, result, requestId);
     }
 
     if (req.method === "GET" && pathname === "/workbench/overview") {
@@ -1413,6 +1446,10 @@ const server = http.createServer(async (req, res) => {
 
     return sendJson(res, 404, { success: false, error: "接口不存在" });
   } catch (err) {
+    if (pathname.startsWith("/auth/")) {
+      const mapped = mapAuthError(err, pathname);
+      return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
+    }
     return sendJson(res, 400, { success: false, error: err.message });
   }
 });
