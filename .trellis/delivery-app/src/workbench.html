@@ -159,7 +159,7 @@
     </div>
 
     <script type="module">
-      import { batchSyncNow, fetchSyncQueueOverview, fetchWorkbenchOverview } from "./workbench-client.js";
+      import * as workbenchClient from "./workbench-client.js";
 
       const receivedToday = document.getElementById("receivedToday");
       const pendingToday = document.getElementById("pendingToday");
@@ -186,6 +186,13 @@
       const syncLaterBtn = document.getElementById("syncLaterBtn");
       const syncDetailBtn = document.getElementById("syncDetailBtn");
       const syncRetryBtn = document.getElementById("syncRetryBtn");
+      const fetchWorkbenchOverview = workbenchClient.fetchWorkbenchOverview;
+      const fetchSyncQueueOverview =
+        workbenchClient.fetchSyncQueueOverview ||
+        (async () => ({ success: false, error: "当前页面资源未完全刷新，请重试" }));
+      const batchSyncNow =
+        workbenchClient.batchSyncNow ||
+        (async () => ({ success: false, error: "当前页面资源未完全刷新，请重试" }));
 
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
       const DISMISS_KEY = "workbench-sync-dismiss-until";
