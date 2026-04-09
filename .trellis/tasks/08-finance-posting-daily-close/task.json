@@ -1,8 +1,10 @@
 {
   "id": "08-finance-posting-daily-close",
   "title": "财务记账与日结",
-  "status": "todo",
-  "depends_on": ["04-delivery-to-complete"],
+  "status": "completed",
+  "depends_on": [
+    "04-delivery-to-complete"
+  ],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-finance/overview.md",
     ".trellis/spec/backend/domain-finance/overview.md"

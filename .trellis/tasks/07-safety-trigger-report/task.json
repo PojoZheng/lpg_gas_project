@@ -1,8 +1,10 @@
 {
   "id": "07-safety-trigger-report",
   "title": "安检触发与上报",
-  "status": "todo",
-  "depends_on": ["04-delivery-to-complete"],
+  "status": "completed",
+  "depends_on": [
+    "04-delivery-to-complete"
+  ],
   "input_spec": [
     ".trellis/spec/delivery-app/domain-safety/overview.md",
     ".trellis/spec/backend/domain-safety/overview.md"

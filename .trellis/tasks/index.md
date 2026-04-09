@@ -36,6 +36,8 @@
 - `16-workbench-experience-polish`
 - `17-quick-order-ux-alignment`
 - `18-customer-account-persistence-history`
+- `19-quick-order-navigation-and-submit-contract`
+- `20-safety-complete-mobile-layout`
 
 ## 依赖图
 见 [feature-task-map.md](./feature-task-map.md)

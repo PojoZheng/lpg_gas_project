@@ -1,0 +1,21 @@
+{
+  "id": "20-safety-complete-mobile-layout",
+  "title": "完单安检移动端布局优化",
+  "status": "todo",
+  "depends_on": [
+    "07-safety-trigger-report"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-safety/overview.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md"
+  ],
+  "acceptance": [
+    "完单安检页面关键操作区符合移动端单手操作习惯（主操作固定在底部或等效方案）",
+    "拍照、检查项、上报状态的布局在 390x844 等主流移动视口下无溢出、无遮挡",
+    "安检结果反馈与回退路径清晰，返回入口符合移动端习惯",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji",
+    "自动化测试通过"
+  ]
+}
