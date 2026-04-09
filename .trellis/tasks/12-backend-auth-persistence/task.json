@@ -1,7 +1,7 @@
 {
   "id": "12-backend-auth-persistence",
   "title": "认证数据持久化",
-  "status": "todo",
+  "status": "completed",
   "depends_on": ["01-auth-session"],
   "input_spec": [
     ".trellis/spec/backend/domain-user/overview.md",

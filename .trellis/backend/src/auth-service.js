@@ -1,15 +1,63 @@
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
 const codes = new Map();
 const users = new Map();
 const accessTokens = new Map();
 const refreshTokens = new Map();
 
+const AUTH_STATE_PATH = path.join(__dirname, "..", "data", "auth-state.json");
+
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function now() {
   return Date.now();
+}
+
+function mapToEntries(map) {
+  return Array.from(map.entries());
+}
+
+function persistState() {
+  const dir = path.dirname(AUTH_STATE_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const payload = {
+    savedAt: now(),
+    codes: mapToEntries(codes),
+    users: mapToEntries(users),
+    accessTokens: mapToEntries(accessTokens),
+    refreshTokens: mapToEntries(refreshTokens),
+  };
+  fs.writeFileSync(AUTH_STATE_PATH, JSON.stringify(payload, null, 2), "utf-8");
+}
+
+function restoreState() {
+  if (!fs.existsSync(AUTH_STATE_PATH)) return;
+  const raw = fs.readFileSync(AUTH_STATE_PATH, "utf-8");
+  if (!raw.trim()) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_err) {
+    return;
+  }
+  const applyEntries = (targetMap, entries) => {
+    targetMap.clear();
+    if (!Array.isArray(entries)) return;
+    entries.forEach((item) => {
+      if (!Array.isArray(item) || item.length < 2) return;
+      targetMap.set(item[0], item[1]);
+    });
+  };
+  applyEntries(codes, parsed.codes);
+  applyEntries(users, parsed.users);
+  applyEntries(accessTokens, parsed.accessTokens);
+  applyEntries(refreshTokens, parsed.refreshTokens);
+  cleanupExpired();
 }
 
 function cleanupExpired() {
@@ -20,11 +68,16 @@ function cleanupExpired() {
   for (const [token, info] of refreshTokens) {
     if (info.expiresAt <= ts) refreshTokens.delete(token);
   }
+  for (const [phone, info] of codes) {
+    if (info.expiresAt <= ts) codes.delete(phone);
+  }
+  persistState();
 }
 
 function issueCode(phone) {
   const code = String(Math.floor(100000 + Math.random() * 900000));
   codes.set(phone, { code, expiresAt: now() + 5 * 60 * 1000 });
+  persistState();
   return code;
 }
 
@@ -32,7 +85,12 @@ function verifyCode(phone, code) {
   const record = codes.get(phone);
   if (!record) return false;
   if (record.expiresAt < now()) return false;
-  return record.code === code;
+  const ok = record.code === code;
+  if (ok) {
+    codes.delete(phone);
+    persistState();
+  }
+  return ok;
 }
 
 function createOrGetUser(phone) {
@@ -74,6 +132,7 @@ function createSession(phone, deviceName = "未知设备") {
     sessionId,
     expiresAt: createdAt + REFRESH_TTL_MS,
   });
+  persistState();
   return {
     user,
     sessionId,
@@ -123,6 +182,7 @@ function refresh(refreshToken) {
     sessionId: tokenInfo.sessionId,
     expiresAt: ts + REFRESH_TTL_MS,
   });
+  persistState();
 
   return {
     accessToken: newAccessToken,
@@ -157,8 +217,11 @@ function logoutSession(accessToken, sessionId) {
   accessTokens.delete(session.accessToken);
   refreshTokens.delete(session.refreshToken);
   user.sessions = user.sessions.filter((x) => x.sessionId !== sessionId);
+  persistState();
   return { ok: true };
 }
+
+restoreState();
 
 module.exports = {
   issueCode,
