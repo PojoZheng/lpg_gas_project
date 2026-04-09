@@ -19,7 +19,7 @@
       .page {
         max-width: 460px;
         margin: 0 auto;
-        padding: 16px 14px calc(148px + env(safe-area-inset-bottom, 0px));
+        padding: 16px 14px calc(206px + env(safe-area-inset-bottom, 0px));
       }
       .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
       .title { margin: 0; font-size: 22px; font-weight: 700; }
@@ -105,6 +105,28 @@
         font-size: 12px;
         color: var(--text-secondary);
         padding: 0 2px;
+      }
+      .bottom-nav {
+        max-width: 460px;
+        margin: 8px auto 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .nav-btn {
+        height: 48px;
+        min-height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: #1f6f76;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .nav-btn.active {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
       }
       @media (max-width: 420px) {
         .title { font-size: 20px; }
@@ -208,6 +230,11 @@
         <button class="btn" id="retrySafetyBtn">失败重试</button>
         <button class="btn" id="backWorkbenchBtn">返回工作台</button>
       </div>
+      <nav class="bottom-nav" aria-label="底部导航">
+        <button class="nav-btn" id="navWorkbenchBtn">工作台</button>
+        <button class="nav-btn" id="navQuickOrderBtn">快速开单</button>
+        <button class="nav-btn active" id="navDeliveryBtn">待配送完单</button>
+      </nav>
     </div>
 
     <script type="module">
@@ -254,6 +281,9 @@
       const retrySafetyBtn = document.getElementById("retrySafetyBtn");
       const backWorkbenchBtn = document.getElementById("backWorkbenchBtn");
       const dockStatus = document.getElementById("dockStatus");
+      const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
+      const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
+      const navDeliveryBtn = document.getElementById("navDeliveryBtn");
       const safetyChecks = [...document.querySelectorAll(".safety-check")];
       const payBtns = [...document.querySelectorAll(".pay-btn")];
 
@@ -518,6 +548,15 @@
       });
       backWorkbenchBtn.addEventListener("click", () => {
         window.location.href = "./workbench.html";
+      });
+      navWorkbenchBtn.addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
+      navQuickOrderBtn.addEventListener("click", () => {
+        window.location.href = "./quick-order.html";
+      });
+      navDeliveryBtn.addEventListener("click", () => {
+        window.location.href = "./delivery-complete.html";
       });
 
       syncPayBtn();

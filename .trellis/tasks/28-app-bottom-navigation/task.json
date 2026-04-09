@@ -1,7 +1,7 @@
 {
   "id": "28-app-bottom-navigation",
   "title": "App 底部导航统一收口",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "16-workbench-experience-polish"
   ],

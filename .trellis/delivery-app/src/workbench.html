@@ -30,7 +30,7 @@
         max-width: 440px;
         margin: 0 auto;
         min-height: 100vh;
-        padding: 18px 14px 24px;
+        padding: 18px 14px calc(86px + env(safe-area-inset-bottom, 0px));
       }
       .header {
         display: block;
@@ -126,6 +126,38 @@
         color: var(--text-secondary);
         font-size: 13px;
       }
+      .bottom-nav-wrap {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        border-top: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.98);
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+      }
+      .bottom-nav {
+        max-width: 440px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .nav-btn {
+        height: 48px;
+        min-height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: #1f6f76;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .nav-btn.active {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+      }
     </style>
   </head>
   <body>
@@ -175,6 +207,13 @@
 
       <p class="tip" id="tip"></p>
     </main>
+    <div class="bottom-nav-wrap">
+      <nav class="bottom-nav" aria-label="底部导航">
+        <button class="nav-btn active" id="navWorkbenchBtn">工作台</button>
+        <button class="nav-btn" id="navQuickOrderBtn">快速开单</button>
+        <button class="nav-btn" id="navDeliveryBtn">待配送完单</button>
+      </nav>
+    </div>
 
     <script type="module">
       import { fetchWorkbenchOverview } from "./workbench-client.js";
@@ -195,6 +234,9 @@
       const syncPendingCount = document.getElementById("syncPendingCount");
       const syncLastAt = document.getElementById("syncLastAt");
       const tip = document.getElementById("tip");
+      const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
+      const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
+      const navDeliveryBtn = document.getElementById("navDeliveryBtn");
 
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
       const fmtTime = (ts) => new Date(ts).toLocaleString("zh-CN", { hour12: false });
@@ -257,6 +299,15 @@
       });
       platformMonitorBtn.addEventListener("click", () => {
         window.location.href = "/platform/src/platform-monitor.html";
+      });
+      navWorkbenchBtn.addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
+      navQuickOrderBtn.addEventListener("click", () => {
+        window.location.href = "./quick-order.html";
+      });
+      navDeliveryBtn.addEventListener("click", () => {
+        window.location.href = "./delivery-complete.html";
       });
 
       window.addEventListener("offline", () => {

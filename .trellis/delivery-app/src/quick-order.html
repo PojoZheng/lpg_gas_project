@@ -22,7 +22,7 @@
         color: var(--text-primary);
         font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
       }
-      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px 26px; }
+      .page { max-width: 460px; margin: 0 auto; padding: 16px 14px calc(86px + env(safe-area-inset-bottom, 0px)); }
       .header { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; margin-bottom: 12px; gap: 8px; }
       .title { margin: 0; font-size: 22px; font-weight: 700; text-align: center; }
       .back-left-btn {
@@ -103,6 +103,38 @@
         padding: 10px;
         font-size: 14px;
         margin-bottom: 8px;
+      }
+      .bottom-nav-wrap {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        border-top: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.98);
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+      }
+      .bottom-nav {
+        max-width: 460px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .nav-btn {
+        height: 48px;
+        min-height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: #1f6f76;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .nav-btn.active {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
       }
     </style>
   </head>
@@ -199,6 +231,13 @@
         </div>
       </div>
     </div>
+    <div class="bottom-nav-wrap">
+      <nav class="bottom-nav" aria-label="底部导航">
+        <button class="nav-btn" id="navWorkbenchBtn">工作台</button>
+        <button class="nav-btn active" id="navQuickOrderBtn">快速开单</button>
+        <button class="nav-btn" id="navDeliveryBtn">待配送完单</button>
+      </nav>
+    </div>
 
     <script type="module">
       import {
@@ -240,6 +279,9 @@
       const receivedAmount = document.getElementById("receivedAmount");
       const cancelConfirmBtn = document.getElementById("cancelConfirmBtn");
       const submitConfirmBtn = document.getElementById("submitConfirmBtn");
+      const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
+      const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
+      const navDeliveryBtn = document.getElementById("navDeliveryBtn");
       const typeBtns = [...document.querySelectorAll(".tab-btn[data-type]")];
       const PREF_KEY = "quick-order-prefs-v1";
 
@@ -390,6 +432,11 @@
       goWorkbenchBtn.addEventListener("click", backToWorkbench);
       traceOrderBtn.addEventListener("click", () => {
         if (!lastCreatedOrderId) return;
+      navWorkbenchBtn.addEventListener("click", backToWorkbench);
+      navQuickOrderBtn.addEventListener("click", () => {
+        window.location.href = "./quick-order.html";
+      });
+      navDeliveryBtn.addEventListener("click", () => {
         window.location.href = "./delivery-complete.html";
       });
       specSelect.addEventListener("change", saveDefaults);
