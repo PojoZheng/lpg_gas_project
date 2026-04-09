@@ -1,0 +1,22 @@
+{
+  "id": "22-workbench-bottom-nav-and-header-polish",
+  "title": "工作台底部导航与头部信息层级优化",
+  "status": "todo",
+  "depends_on": [
+    "16-workbench-experience-polish"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-workbench/overview.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md"
+  ],
+  "acceptance": [
+    "工作台底部导航落地，包含高频入口且点击区域满足 48x48",
+    "工作台页头层级优化，避免过大标题占用首屏关键区",
+    "刷新策略收敛：去除冗余刷新提示与重复入口，反馈一致",
+    "同步状态展示符合 workbench 规范，不常驻干扰主流程",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji",
+    "自动化测试通过"
+  ]
+}

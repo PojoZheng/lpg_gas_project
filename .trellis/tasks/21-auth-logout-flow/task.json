@@ -1,0 +1,22 @@
+{
+  "id": "21-auth-logout-flow",
+  "title": "退出登录流程与会话收口",
+  "status": "todo",
+  "depends_on": [
+    "01-auth-session"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-system/overview.md",
+    ".trellis/spec/backend/domain-user/overview.md",
+    ".trellis/spec/delivery-app/ui-manifest.md"
+  ],
+  "acceptance": [
+    "工作台提供明确的退出登录入口，触达路径不超过两步",
+    "退出后本地 AccessToken/RefreshToken 与会话缓存被清理，并跳转登录页",
+    "退出后再次进入受保护页面会被拦截并要求重新登录",
+    "设备会话失效与主动退出流程保持状态一致，不出现“假登录”",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji",
+    "自动化测试通过"
+  ]
+}

@@ -17,6 +17,8 @@
 14. 客户账户持久化与催收历史
 15. 快速开单导航与确认开单契约补齐
 16. 完单安检移动端布局优化
+17. 退出登录流程与会话收口
+18. 工作台底部导航与头部信息层级优化
 
 ```mermaid
 flowchart TD
@@ -42,4 +44,6 @@ t03 --> t17[task-17-quick-order-ux-alignment]
 t06 --> t18[task-18-account-persistence-history]
 t17 --> t19[task-19-quick-order-nav-submit]
 t07 --> t20[task-20-safety-mobile-layout]
+t01 --> t21[task-21-auth-logout]
+t16 --> t22[task-22-workbench-nav-header]
 ```
