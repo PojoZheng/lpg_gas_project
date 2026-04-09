@@ -1,7 +1,7 @@
 {
   "id": "15-login-e2e-regression",
   "title": "登录流程自动化回归",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "01-auth-session",
     "14-auth-api-contract-alignment"
