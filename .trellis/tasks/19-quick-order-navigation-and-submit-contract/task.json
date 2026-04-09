@@ -1,0 +1,23 @@
+{
+  "id": "19-quick-order-navigation-and-submit-contract",
+  "title": "快速开单导航与确认开单契约补齐",
+  "status": "todo",
+  "depends_on": [
+    "03-quick-order"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md"
+  ],
+  "acceptance": [
+    "快速开单页提供符合移动端习惯的返回路径（左上返回或等效手势返回，不仅依赖右上角）",
+    "确认开单动作使用真实后端接口契约，不再停留在预留或纯前端模拟",
+    "确认开单成功/失败具备可感知反馈并可返回工作台",
+    "工作台页头信息层级优化（减少过大标题视觉占比，保留必要信息）",
+    "首页刷新入口与策略优化（去除冗余刷新提示，保留必要的下拉刷新或自动刷新策略）",
+    "界面视觉需对齐参考风格并遵循主色 #4799a0",
+    "界面文案必须为中文且严禁 emoji",
+    "自动化测试通过"
+  ]
+}
