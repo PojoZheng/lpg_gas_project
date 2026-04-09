@@ -1,0 +1,23 @@
+{
+  "id": "23-react-best-practices-audit",
+  "title": "基于 vercel-react-best-practices 的现有代码审查与修复",
+  "status": "todo",
+  "depends_on": [
+    "03-quick-order",
+    "16-workbench-experience-polish"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/ui-copy-policy.md",
+    ".trellis/delivery-app/src/workbench.html",
+    ".trellis/delivery-app/src/quick-order.html",
+    ".trellis/delivery-app/src/delivery-complete.html"
+  ],
+  "acceptance": [
+    "按 vercel-react-best-practices 输出现状审查清单（性能、状态管理、可维护性、可访问性）",
+    "完成 P0/P1 级问题修复并保留变更说明",
+    "关键页面交互无回归，提交前通过 auto_test_runner 与语法检查",
+    "产出 review.md，记录“问题-修复-收益”映射",
+    "界面文案必须为中文且严禁 emoji"
+  ]
+}

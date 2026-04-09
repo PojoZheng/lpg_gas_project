@@ -40,6 +40,8 @@
 - `20-safety-complete-mobile-layout`
 - `21-auth-logout-flow`
 - `22-workbench-bottom-nav-and-header-polish`
+- `23-react-best-practices-audit`
+- `24-ui-ux-pro-max-redesign`
 
 ## 依赖图
 见 [feature-task-map.md](./feature-task-map.md)

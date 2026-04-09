@@ -19,6 +19,8 @@
 16. 完单安检移动端布局优化
 17. 退出登录流程与会话收口
 18. 工作台底部导航与头部信息层级优化
+19. React 最佳实践审查与修复
+20. UI-UX-PRO-MAX 页面重构
 
 ```mermaid
 flowchart TD
@@ -46,4 +48,8 @@ t17 --> t19[task-19-quick-order-nav-submit]
 t07 --> t20[task-20-safety-mobile-layout]
 t01 --> t21[task-21-auth-logout]
 t16 --> t22[task-22-workbench-nav-header]
+t16 --> t23[task-23-react-best-practices]
+t19 --> t24[task-24-uiux-pro-max]
+t20 --> t24
+t22 --> t24
 ```
