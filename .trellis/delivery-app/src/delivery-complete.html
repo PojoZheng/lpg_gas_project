@@ -45,6 +45,26 @@
         color: var(--text-secondary);
       }
       .inventory-item strong { color: var(--text-primary); }
+      .safety-status {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        background: #fff7ed;
+        color: #b45309;
+      }
+      .check-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+      .check-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        background: #fff;
+      }
+      .photo-tip { margin: 0 0 10px; color: var(--text-secondary); font-size: 12px; }
+      .safety-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     </style>
   </head>
   <body>
@@ -85,6 +105,26 @@
         </div>
         <p class="tip" id="tip"></p>
       </section>
+
+      <section class="card" id="safetyCard">
+        <h2 class="card-title">完单安检与上报</h2>
+        <span class="safety-status" id="safetyStatus">待触发</span>
+        <div class="check-list">
+          <label class="check-item"><input type="checkbox" value="阀门密封检查" class="safety-check" /> 阀门密封检查</label>
+          <label class="check-item"><input type="checkbox" value="减压阀连接检查" class="safety-check" /> 减压阀连接检查</label>
+          <label class="check-item"><input type="checkbox" value="软管老化检查" class="safety-check" /> 软管老化检查</label>
+          <label class="check-item"><input type="checkbox" value="通风环境检查" class="safety-check" /> 通风环境检查</label>
+        </div>
+        <div class="row"><label>安检照片</label><input id="photoInput" placeholder="输入照片编号，逗号分隔" /></div>
+        <p class="photo-tip">示例：img-001,img-002。当前原型以照片编号代替上传。</p>
+        <div class="row"><label>异常安检</label><input id="abnormalInput" placeholder="输入 是 或 否" value="否" /></div>
+        <div class="row"><label>隐患说明</label><input id="hazardInput" placeholder="异常时必须填写隐患说明" /></div>
+        <div class="safety-actions">
+          <button class="btn primary" id="submitSafetyBtn">提交安检并上报</button>
+          <button class="btn" id="retrySafetyBtn">失败重试</button>
+        </div>
+        <p class="tip" id="safetyTip"></p>
+      </section>
     </main>
 
     <script type="module">
@@ -95,6 +135,9 @@
         updateOrder,
         undoOrderAction,
         fetchInventorySnapshot,
+        fetchSafetyByOrder,
+        submitSafetyByOrder,
+        retrySafetyReport,
       } from "./delivery-complete-client.js";
 
       const orderList = document.getElementById("orderList");
@@ -111,10 +154,19 @@
       const undoBtn = document.getElementById("undoBtn");
       const tip = document.getElementById("tip");
       const inventoryList = document.getElementById("inventoryList");
+      const safetyStatus = document.getElementById("safetyStatus");
+      const safetyTip = document.getElementById("safetyTip");
+      const photoInput = document.getElementById("photoInput");
+      const abnormalInput = document.getElementById("abnormalInput");
+      const hazardInput = document.getElementById("hazardInput");
+      const submitSafetyBtn = document.getElementById("submitSafetyBtn");
+      const retrySafetyBtn = document.getElementById("retrySafetyBtn");
+      const safetyChecks = [...document.querySelectorAll(".safety-check")];
       const payBtns = [...document.querySelectorAll(".pay-btn")];
 
       let selectedOrder = null;
       let paymentMethod = "wechat";
+      let currentSafety = null;
 
       function setTip(text, isError = false) {
         tip.textContent = text;
@@ -123,6 +175,21 @@
 
       function syncPayBtn() {
         payBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.method === paymentMethod));
+      }
+
+      function setSafetyTip(text, isError = false) {
+        safetyTip.textContent = text;
+        safetyTip.className = isError ? "tip err" : "tip";
+      }
+
+      function setSafetyStatus(status) {
+        const map = {
+          pending: "待上报",
+          completed: "已上报",
+          failed: "上报失败",
+          idle: "待触发",
+        };
+        safetyStatus.textContent = map[status] || map.idle;
       }
 
       function syncForm(order) {
@@ -144,6 +211,7 @@
           btn.addEventListener("click", () => {
             selectedOrder = item;
             syncForm(item);
+            loadSafety();
             [...orderList.children].forEach((x) => x.classList.remove("active"));
             btn.classList.add("active");
             setTip("已选择订单，可完单、取消或修改");
@@ -157,6 +225,7 @@
         selectedOrder = list[0];
         syncForm(list[0]);
         orderList.firstChild.classList.add("active");
+        loadSafety();
       }
 
       async function loadOrders() {
@@ -182,6 +251,37 @@
         });
       }
 
+      async function loadSafety() {
+        if (!selectedOrder) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          setSafetyTip("请先选择订单");
+          return;
+        }
+        const res = await fetchSafetyByOrder(selectedOrder.orderId);
+        if (!res.success) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          setSafetyTip(res.error || "安检记录加载失败", true);
+          return;
+        }
+        if (!res.data) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          setSafetyTip("完单后将自动触发安检流程");
+          return;
+        }
+        currentSafety = res.data;
+        setSafetyStatus(res.data.status || "pending");
+        if (res.data.status === "failed") {
+          setSafetyTip(`${res.data.lastError || "上报失败"}，可点击失败重试`, true);
+        } else if (res.data.status === "completed") {
+          setSafetyTip("安检上报已完成");
+        } else {
+          setSafetyTip("安检已触发，请补充检查项与照片后提交");
+        }
+      }
+
       payBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
           paymentMethod = btn.dataset.method;
@@ -203,6 +303,7 @@
         setTip("完单成功，5 秒内可点击“5 秒撤销”恢复");
         await loadOrders();
         await loadInventory();
+        await loadSafety();
       });
 
       cancelBtn.addEventListener("click", async () => {
@@ -214,6 +315,7 @@
         setTip("订单已取消，库存已回滚，5 秒内可撤销");
         await loadOrders();
         await loadInventory();
+        await loadSafety();
       });
 
       updateBtn.addEventListener("click", async () => {
@@ -227,6 +329,7 @@
         setTip("订单基础信息已更新");
         await loadOrders();
         await loadInventory();
+        await loadSafety();
       });
 
       undoBtn.addEventListener("click", async () => {
@@ -237,6 +340,34 @@
         setTip("已撤销最近关键操作");
         await loadOrders();
         await loadInventory();
+        await loadSafety();
+      });
+
+      submitSafetyBtn.addEventListener("click", async () => {
+        if (!selectedOrder) return setSafetyTip("请先选择订单并完成完单", true);
+        const checkItems = safetyChecks.filter((x) => x.checked).map((x) => x.value);
+        const photoUrls = String(photoInput.value || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const hasAbnormal = ["是", "y", "yes", "true", "1"].includes(String(abnormalInput.value || "").trim().toLowerCase());
+        setSafetyTip("正在提交安检并执行上报...");
+        const res = await submitSafetyByOrder(selectedOrder.orderId, {
+          checkItems,
+          photoUrls,
+          hasAbnormal,
+          hazardNote: hazardInput.value,
+        });
+        if (!res.success) return setSafetyTip(`${res.error || "安检提交失败"}，请修改后重试`, true);
+        await loadSafety();
+      });
+
+      retrySafetyBtn.addEventListener("click", async () => {
+        if (!currentSafety?.safetyId) return setSafetyTip("当前无可重试的安检记录", true);
+        setSafetyTip("正在重试上报...");
+        const res = await retrySafetyReport(currentSafety.safetyId);
+        if (!res.success) return setSafetyTip(`${res.error || "重试失败"}，请稍后再试`, true);
+        await loadSafety();
       });
 
       backBtn.addEventListener("click", () => {
@@ -246,6 +377,7 @@
       syncPayBtn();
       loadOrders();
       loadInventory();
+      loadSafety();
     </script>
   </body>
 </html>

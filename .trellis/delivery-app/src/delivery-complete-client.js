@@ -57,3 +57,24 @@ export async function fetchInventorySnapshot() {
     headers: authHeaders(),
   });
 }
+
+export async function fetchSafetyByOrder(orderId) {
+  return requestJson(`${API_BASE_URL}/safety/by-order/${encodeURIComponent(orderId)}`, {
+    headers: authHeaders(),
+  });
+}
+
+export async function submitSafetyByOrder(orderId, payload) {
+  return requestJson(`${API_BASE_URL}/safety/by-order/${encodeURIComponent(orderId)}`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function retrySafetyReport(safetyId) {
+  return requestJson(`${API_BASE_URL}/safety/${encodeURIComponent(safetyId)}/retry`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
