@@ -15,8 +15,17 @@ async function requestJson(url, options = {}) {
   return res.json();
 }
 
-export async function fetchSyncQueue() {
-  return requestJson(`${API_BASE_URL}/sync/queue`, { headers: authHeaders() });
+export async function fetchSyncQueue(params = {}) {
+  const query = new URLSearchParams();
+  const entries = Object.entries(params);
+  entries.forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    const text = String(value).trim();
+    if (!text) return;
+    query.set(key, text);
+  });
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return requestJson(`${API_BASE_URL}/sync/queue${suffix}`, { headers: authHeaders() });
 }
 
 export async function enqueueSyncItem(payload) {

@@ -668,6 +668,52 @@ function markOfflineManual(offlineId) {
   };
 }
 
+function getOfflineQueueStats(items) {
+  const list = Array.isArray(items) ? items : [];
+  return {
+    pending: list.filter((x) => x.syncStatus === "pending").length,
+    syncing: list.filter((x) => x.syncStatus === "syncing").length,
+    failed: list.filter((x) => x.syncStatus === "failed").length,
+    completed: list.filter((x) => x.syncStatus === "completed").length,
+    manualRequired: list.filter((x) => x.manualRequired).length,
+    conflict: list.filter((x) => Boolean(x.conflictType)).length,
+  };
+}
+
+function listOfflineQueue(filters) {
+  const status = String(filters.status || "all").trim();
+  const entityType = String(filters.entityType || "all").trim();
+  const keyword = String(filters.keyword || "").trim().toLowerCase();
+  const manualOnly = String(filters.manualOnly || "0").trim() === "1";
+  const conflictOnly = String(filters.conflictOnly || "0").trim() === "1";
+  const items = offlineQueue.filter((x) => {
+    if (status !== "all" && x.syncStatus !== status) return false;
+    if (entityType !== "all" && x.entityType !== entityType) return false;
+    if (manualOnly && !x.manualRequired) return false;
+    if (conflictOnly && !x.conflictType) return false;
+    if (keyword) {
+      const haystack = [
+        x.offlineId,
+        x.entityType,
+        x.action,
+        x.conflictType,
+        x.lastError,
+        x.resultSummary,
+        JSON.stringify(x.payload || {}),
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(keyword)) return false;
+    }
+    return true;
+  });
+  return {
+    items: items.slice(0, 100),
+    stats: getOfflineQueueStats(offlineQueue),
+    filteredStats: getOfflineQueueStats(items),
+  };
+}
+
 function completeDeliveryOrder(order, payload) {
   if (order.orderStatus !== "pending_delivery") {
     throw new Error("仅待配送订单可执行完单");
@@ -1154,17 +1200,21 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/sync/queue") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
+      const filters = {
+        status: reqUrl.searchParams.get("status") || "all",
+        entityType: reqUrl.searchParams.get("entityType") || "all",
+        keyword: reqUrl.searchParams.get("keyword") || "",
+        manualOnly: reqUrl.searchParams.get("manualOnly") || "0",
+        conflictOnly: reqUrl.searchParams.get("conflictOnly") || "0",
+      };
+      const queueView = listOfflineQueue(filters);
       return sendJson(res, 200, {
         success: true,
         data: {
-          stats: {
-            pending: offlineQueue.filter((x) => x.syncStatus === "pending").length,
-            syncing: offlineQueue.filter((x) => x.syncStatus === "syncing").length,
-            failed: offlineQueue.filter((x) => x.syncStatus === "failed").length,
-            completed: offlineQueue.filter((x) => x.syncStatus === "completed").length,
-            manualRequired: offlineQueue.filter((x) => x.manualRequired).length,
-          },
-          items: offlineQueue.slice(0, 100),
+          stats: queueView.stats,
+          filteredStats: queueView.filteredStats,
+          items: queueView.items,
+          filters,
         },
       });
     }

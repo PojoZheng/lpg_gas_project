@@ -16,11 +16,15 @@
     - `POST /sync/queue/batch-submit`
     - `POST /sync/queue/:offlineId/retry`
     - `POST /sync/queue/:offlineId/manual`
+  - 队列查询支持筛选参数：`status/entityType/keyword/manualOnly/conflictOnly`
+  - 增加 `filteredStats` 用于前端展示筛选命中统计
   - 工作台同步概览改为基于离线队列统计
 - 前端：`/.trellis/delivery-app/src/sync-queue-client.js`
   - 新增同步队列 API 调用封装
+  - `fetchSyncQueue` 支持查询参数拼装
 - 前端：`/.trellis/delivery-app/src/sync-queue.html`
   - 新增同步队列页面，支持入队、批量同步、冲突回显、失败重试与转人工
+  - 新增状态/实体/关键词筛选，以及“仅冲突/仅人工处理”快捷视图
 - 前端：`/.trellis/delivery-app/src/workbench.html`
   - 新增“同步队列”入口
 
