@@ -23,15 +23,15 @@
   "16-workbench-experience-polish": [
     "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ],
+  "24-ui-ux-pro-max-redesign": [
+    "python3 \".trellis/scripts/task24_ui_refactor_smoke.py\""
+  ],
   "27-quick-order-submit-integration-fix": [
     "node --check \".trellis/backend/src/server.js\"",
     "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
     "python3 \".trellis/scripts/task27_quick_order_integration.py\""
   ],
-  "24-ui-ux-pro-max-redesign": [
-    "python3 \".trellis/scripts/task24_ui_refactor_smoke.py\""
-  ],
-  "16-workbench-experience-polish": [
-    "python3 \".trellis/scripts/task16_workbench_smoke.py\""
+  "31-app-design-md-refactor": [
+    "python3 \".trellis/scripts/task31_app_design_md_refactor.py\""
   ]
 }

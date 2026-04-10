@@ -65,6 +65,7 @@ body {
   margin: 0 0 10px;
   font-size: 16px;
   font-weight: 600;
+  font-family: var(--font-title);
 }
 
 .app-tip {
@@ -85,6 +86,7 @@ body {
   padding: 0 12px;
   cursor: pointer;
   color: var(--text-primary);
+  font-family: var(--font-body);
 }
 
 .app-btn.primary {
@@ -112,10 +114,11 @@ body {
 
 .hero-main {
   margin: 8px 0 12px;
-  font-size: 56px;
+  font-size: 48px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: -1px;
+  font-family: var(--font-title);
 }
 
 .hero-split {
@@ -141,9 +144,10 @@ body {
 
 .hero-value {
   margin-top: 4px;
-  font-size: 38px;
+  font-size: 32px;
   line-height: 1;
   font-weight: 700;
+  font-family: var(--font-title);
 }
 
 .action-grid {
@@ -153,12 +157,12 @@ body {
 }
 
 .action-tile {
-  min-height: 156px;
-  border-radius: 28px;
+  min-height: 128px;
+  border-radius: var(--radius-card);
   border: 1px solid var(--border);
   background: #fff;
   box-shadow: var(--shadow-soft);
-  padding: 18px 14px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -168,15 +172,15 @@ body {
 }
 
 .action-tile.primary {
-  background: linear-gradient(160deg, #58aab1, #3f8e95);
-  border-color: #4c9ca3;
+  background: var(--brand);
+  border-color: var(--brand);
   color: #fff;
 }
 
 .action-icon-box {
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-button);
   background: #eef5f6;
   display: flex;
   align-items: center;
@@ -188,9 +192,10 @@ body {
 }
 
 .action-title {
-  font-size: 36px;
+  font-size: 22px;
   line-height: 1;
   font-weight: 600;
+  font-family: var(--font-title);
 }
 
 .icon-svg {
@@ -239,6 +244,7 @@ body {
   justify-content: center;
   gap: 4px;
   font-size: 12px;
+  font-family: var(--font-body);
 }
 
 .nav-icon {

@@ -19,7 +19,7 @@
 - `Neutral.Background`: `#f7f8fa`
 - `Neutral.Surface`: `#ffffff`
 - `Neutral.Border`: `#eceff3`
-- `Neutral.TextPrimary`: `#111111`
+- `Neutral.TextPrimary`: `#424949`
 - `Neutral.TextSecondary`: `#8b9098`
 - `System.Success`: `#16a34a`
 - `System.Warning`: `#f59e0b`
@@ -51,3 +51,10 @@
 - 统一使用 SVG symbol sprite，禁止页面散落内联 SVG 路径。
 - 图标命名使用语义前缀：`i-home`、`i-customer`、`i-my`、`i-arrow-right`。
 - 图标容器统一圆角与浅底色，不使用 emoji 代替图标。
+
+## 6. App 页面约束
+- 适用页面：`workbench / quick-order / delivery-complete / my`
+- 底部导航固定三项：`首页 / 客户 / 我的`
+- 可触达区域不低于 `48x48`
+- 仅允许 UI/交互优化，不改接口契约与业务语义
+- 加载/失败/空状态文案统一中文且可感知
