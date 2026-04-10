@@ -39,9 +39,11 @@ def main() -> int:
 
     context_cmd = [sys.executable, str(SCRIPT_DIR / "get_context.py")]
     check_cmd = [sys.executable, str(SCRIPT_DIR / "task_conflict_check.py")]
+    flow_guard_cmd = [sys.executable, str(SCRIPT_DIR / "task_flow_guard.py")]
 
     c_code, c_out, c_err = run_cmd(context_cmd)
     k_code, k_out, k_err = run_cmd(check_cmd)
+    f_code, f_out, f_err = run_cmd(flow_guard_cmd)
 
     payload = {
         "context_ok": c_code == 0,
@@ -50,11 +52,14 @@ def main() -> int:
         "context_error": c_err,
         "conflict_check_output": k_out,
         "conflict_check_error": k_err,
+        "flow_guard_ok": f_code == 0,
+        "flow_guard_output": f_out,
+        "flow_guard_error": f_err,
     }
 
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
-        return 0 if c_code == 0 and k_code == 0 else 1
+        return 0 if c_code == 0 and k_code == 0 and f_code == 0 else 1
 
     print("=== Session Bootstrap ===")
     print()
@@ -63,13 +68,18 @@ def main() -> int:
     if c_err:
         print(f"[warn] get_context stderr: {c_err}")
     print()
-    print("[2/2] 任务冲突检查")
+    print("[2/3] 任务冲突检查")
     print(k_out if k_out else "(无输出)")
     if k_err:
         print(f"[warn] task_conflict_check stderr: {k_err}")
     print()
+    print("[3/3] 任务流一致性检查")
+    print(f_out if f_out else "(无输出)")
+    if f_err:
+        print(f"[warn] task_flow_guard stderr: {f_err}")
+    print()
 
-    if c_code == 0 and k_code == 0:
+    if c_code == 0 and k_code == 0 and f_code == 0:
         print("Session bootstrap completed.")
         return 0
 

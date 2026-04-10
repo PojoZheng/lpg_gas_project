@@ -165,6 +165,9 @@ Use the unified context script:
 # Recommended: context + task conflict check in one command
 python3 ./.trellis/scripts/session_bootstrap.py
 
+# Optional: task flow guard only (status/dependency/completion consistency)
+python3 ./.trellis/scripts/task_flow_guard.py
+
 # Optional: generate next-session handoff package
 python3 ./.trellis/scripts/session_finalize.py
 
@@ -315,7 +318,8 @@ They do **not** run automatically on every file save; no extra conflict beyond n
 |--------|------|-----|
 | `task_conflict_check.py` | Low | Reads task JSON; no writes. |
 | `pm_review_check.py` | Low | Reads files; optional `--task` overrides `.current-task`. |
-| `session_bootstrap.py` | Low | Runs read-only checks + conflict check. |
+| `session_bootstrap.py` | Low | Runs read-only checks + conflict check + task flow guard. |
+| `task_flow_guard.py` | Low | Checks task status/dependency/completion consistency; no writes. |
 | `auto_test_runner.py` | Low | Uses local `.current-task`; each worktree should set its own. |
 | `get_context.py` | Low | Reads git + journal paths; no writes. |
 | `add_session.py` | **High** | Appends journal and rewrites `workspace/<dev>/index.md` — **serialize** (one agent at a time) or **integrator-only** after merge. |
