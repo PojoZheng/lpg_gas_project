@@ -23,18 +23,37 @@
 - 颜色：`Brand.Primary`
 - 圆角：`Radius.Button`
 - 用于提交、确认、推进流程
+- 实现类：`.ds-btn.ds-btn-primary`
 
 ### 卡片容器 `AppCard`
 - 背景：`Neutral.Surface`
 - 边框：`Neutral.Border`
 - 圆角：`Radius.Card`
+- 实现类：`.ds-card` / `.ds-card-title`
+
+### 底部导航 `BottomNav`
+- 三栏固定：`首页 / 客户 / 我的`
+- 激活态：`Brand.Primary` 背景 + 白色文字
+- 实现类：`.ds-nav` / `.ds-nav-btn.active`
+
+### 表单基线 `FormField`
+- 输入与下拉高度不低于 `48`
+- 标签与输入间距遵循 `Space.2XS` + `Space.XS`
+- 实现类：`.ds-field` / `.ds-label` / `.ds-input` / `.ds-select`
 
 ### 状态提示 `StatusBadge`
 - 用于同步状态、订单状态、债务风险
 - 需提供颜色和文案映射，不允许自由拼接词
+- 实现类：`.ds-status-badge` + `info|success|warning|error`
+
+### 图标 `IconSprite`
+- 统一从 `/.trellis/ui-kit/icons/sprite.svg` 引用
+- 命名遵循语义：`i-home` / `i-customer` / `i-my` / `i-arrow-right`
+- 推荐容器类：`.ds-icon`
 
 ## 4. 组件验收
 - 视觉风格与参考图一致（浅底、弱边框、卡片化）
 - 文案中文化合规
 - 无 emoji，图标统一使用矢量图标库
 - 新增页面需给出 UI Kit 接入路径与最小示例链接。
+- 与 `DESIGN.md` 的 token/字体/间距映射一致，不允许私有偏移实现。

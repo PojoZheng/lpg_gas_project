@@ -1,7 +1,7 @@
 /* Foundation */
 body.ds-root {
   margin: 0;
-  font-family: var(--ds-font-family);
+  font-family: var(--ds-font-body);
   background: var(--ds-color-bg);
   color: var(--ds-color-text-primary);
 }
@@ -24,6 +24,7 @@ body.ds-root {
   margin: 0 0 var(--ds-space-xs);
   font-size: var(--ds-font-size-title);
   font-weight: 600;
+  font-family: var(--ds-font-display);
 }
 
 /* Buttons */
@@ -112,4 +113,42 @@ body.ds-root {
 
 .ds-tip.error {
   color: var(--ds-color-error);
+}
+
+/* Status badge */
+.ds-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--ds-radius-pill);
+  padding: 2px var(--ds-space-xs);
+  font-size: var(--ds-font-size-caption);
+  border: 1px solid transparent;
+}
+
+.ds-status-badge.info {
+  color: var(--ds-color-brand);
+  background: var(--ds-color-brand-soft);
+}
+
+.ds-status-badge.success {
+  color: var(--ds-color-success);
+  background: #ecfdf3;
+}
+
+.ds-status-badge.warning {
+  color: #b45309;
+  background: #fff7ed;
+}
+
+.ds-status-badge.error {
+  color: var(--ds-color-error);
+  background: #fef2f2;
+}
+
+/* Icon */
+.ds-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  color: currentColor;
 }

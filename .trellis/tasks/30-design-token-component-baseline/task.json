@@ -1,7 +1,7 @@
 {
   "id": "30-design-token-component-baseline",
   "title": "DESIGN.md 设计令牌与组件基线对齐",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "24-ui-ux-pro-max-redesign",
     "29-platform-top-menu"

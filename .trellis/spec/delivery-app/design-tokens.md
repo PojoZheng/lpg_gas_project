@@ -1,6 +1,6 @@
 # 配送员端 Design Tokens
 
-本规范用于统一配送员端视觉风格，主色为 `#4799a0`，整体风格参照你提供的参考图：浅色底、卡片化、弱分割、突出核心数字。
+本规范用于统一配送员端视觉风格，主色为 `#4799a0`。本文件由 `DESIGN.md` 映射生成，并与 `/.trellis/ui-kit/styles/tokens.css` 保持一致。
 
 ## 1. 颜色系统
 | Token | 值 | 语义 |
@@ -38,14 +38,27 @@
 - `Space.XL`: `32`
 
 ## 5. 排版系统
-| Token | 字重 | 场景 |
-|---|---|---|
-| `Text.Display` | 700 | 金额、核心数据 |
-| `Text.Title` | 600 | 页面标题、卡片标题 |
-| `Text.Body` | 400 | 正文、说明 |
-| `Text.Caption` | 400 | 次要信息、时间、辅助提示 |
+| Token | 字重 | 场景 | 字体 |
+|---|---|---|---|
+| `Text.Display` | 700 | 金额、核心数据 | `Space Grotesk` |
+| `Text.Title` | 600 | 页面标题、卡片标题 | `Space Grotesk` |
+| `Text.Body` | 400 | 正文、说明 | `Inter` |
+| `Text.Caption` | 400 | 次要信息、时间、辅助提示 | `Inter` |
 
-## 6. 强制约束
+### 字体回退栈
+- `Font.Display`: `"Space Grotesk", "Inter", "PingFang SC", "Noto Sans SC", sans-serif`
+- `Font.Body`: `"Inter", "Space Grotesk", "PingFang SC", "Noto Sans SC", sans-serif`
+
+## 6. Token 到实现映射（ui-kit）
+| 规范 Token | CSS 变量 | 文件 |
+|---|---|---|
+| `Brand.Primary` | `--ds-color-brand` | `/.trellis/ui-kit/styles/tokens.css` |
+| `Neutral.Surface` | `--ds-color-surface` | `/.trellis/ui-kit/styles/tokens.css` |
+| `Radius.Button` | `--ds-radius-btn` | `/.trellis/ui-kit/styles/tokens.css` |
+| `Space.M` | `--ds-space-m` | `/.trellis/ui-kit/styles/tokens.css` |
+| `Text.Body` | `--ds-font-size-body` | `/.trellis/ui-kit/styles/tokens.css` |
+
+## 7. 强制约束
 - 禁止硬编码视觉常量，必须引用 token。
 - 界面文案必须使用中文。
 - 禁止在界面中使用 emoji。

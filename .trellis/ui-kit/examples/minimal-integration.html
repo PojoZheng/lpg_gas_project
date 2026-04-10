@@ -8,8 +8,13 @@
     <link rel="stylesheet" href="../styles/components.css" />
   </head>
   <body class="ds-root">
+    <div aria-hidden="true" style="display:none">
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <use href="../icons/sprite.svg#i-home"></use>
+      </svg>
+    </div>
     <main class="ds-page">
-      <h1 style="font-size: var(--ds-font-size-page-title)">最小接入示例（app/web 共用）</h1>
+      <h1 style="font-size: var(--ds-font-size-page-title); font-family: var(--ds-font-display);">最小接入示例（app/web 共用）</h1>
 
       <section class="ds-card">
         <h2 class="ds-card-title">按钮 / 卡片</h2>
@@ -32,6 +37,23 @@
           <button class="ds-nav-btn active">首页</button>
           <button class="ds-nav-btn">客户</button>
           <button class="ds-nav-btn">我的</button>
+        </div>
+      </section>
+
+      <section class="ds-card">
+        <h2 class="ds-card-title">状态与图标</h2>
+        <span class="ds-status-badge success">同步成功</span>
+        <span class="ds-status-badge warning" style="margin-left:8px;">待处理</span>
+        <div style="margin-top: 8px;">
+          <svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <use href="../icons/sprite.svg#i-home"></use>
+          </svg>
+          <svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true" style="margin-left:8px;">
+            <use href="../icons/sprite.svg#i-customer"></use>
+          </svg>
+          <svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true" style="margin-left:8px;">
+            <use href="../icons/sprite.svg#i-my"></use>
+          </svg>
         </div>
       </section>
     </main>

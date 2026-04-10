@@ -30,7 +30,9 @@
   --ds-space-xl: 32px;
 
   /* Font tokens */
-  --ds-font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  --ds-font-display: "Space Grotesk", "Inter", "PingFang SC", "Noto Sans SC", sans-serif;
+  --ds-font-body: "Inter", "Space Grotesk", "PingFang SC", "Noto Sans SC", sans-serif;
+  --ds-font-family: var(--ds-font-body);
   --ds-font-size-caption: 12px;
   --ds-font-size-body: 14px;
   --ds-font-size-title: 16px;
