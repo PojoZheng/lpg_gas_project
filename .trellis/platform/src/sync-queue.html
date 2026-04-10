@@ -19,12 +19,19 @@
       </aside>
       <div class="content-wrap">
         <header class="top-bar">
-          <h1 class="top-title">同步队列</h1>
+          <div>
+            <div class="breadcrumb"><span>平台端</span><span>/</span><span>同步队列</span></div>
+            <h1 class="top-title">同步队列</h1>
+          </div>
           <div class="top-actions">
-            <button class="btn" id="backBtn">返回平台入口</button>
+            <button class="btn secondary" id="backBtn">返回平台入口</button>
           </div>
         </header>
         <main class="page-content">
+      <section class="page-hero">
+        <h2 class="page-title">离线同步与冲突处理</h2>
+        <p class="page-subtitle">按筛选条件快速定位异常记录并执行重试或人工处理。</p>
+      </section>
 
       <section class="card">
         <h2 class="card-title">新增离线变更</h2>
@@ -40,53 +47,67 @@
         <div class="field"><label>关联ID</label><input id="refIdInput" placeholder="如：ORD-xxxx 或 CUST-xxx" /></div>
         <div class="field"><label>本地状态</label><input id="localStatusInput" placeholder="如：pending_delivery/completed" /></div>
         <div class="field"><label>库存基线</label><input id="baseOnHandInput" type="number" placeholder="库存同步时填写" /></div>
-        <button class="btn primary" id="enqueueBtn">加入离线队列</button>
+        <div class="btn-row">
+          <button class="btn primary" id="enqueueBtn">加入离线队列</button>
+          <button class="btn disabled" type="button" disabled>导入模板（预留）</button>
+        </div>
         <p class="tip" id="enqueueTip"></p>
       </section>
 
       <section class="card">
         <h2 class="card-title">队列统计</h2>
-        <div class="grid-2" id="stats"></div>
-        <button class="btn primary" id="batchBtn">批量同步</button>
+        <div class="kpi-grid" id="stats"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="batchBtn">批量同步</button>
+          <button class="btn ghost" id="applyFilterBtn">刷新筛选结果</button>
+        </div>
         <p class="tip" id="batchTip"></p>
       </section>
 
       <section class="card">
         <h2 class="card-title">冲突与处理结果</h2>
-        <div class="grid-2" style="margin-bottom: 10px">
-          <div class="field">
-            <label>状态筛选</label>
-            <select id="statusFilter">
-              <option value="all">全部状态</option>
-              <option value="pending">待同步</option>
-              <option value="syncing">同步中</option>
-              <option value="failed">同步失败</option>
-              <option value="completed">已完成</option>
-            </select>
+        <div class="filter-panel">
+          <div class="filter-grid">
+            <div class="field">
+              <label>状态筛选</label>
+              <select id="statusFilter">
+                <option value="all">全部状态</option>
+                <option value="pending">待同步</option>
+                <option value="syncing">同步中</option>
+                <option value="failed">同步失败</option>
+                <option value="completed">已完成</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>实体筛选</label>
+              <select id="entityFilter">
+                <option value="all">全部实体</option>
+                <option value="order">订单</option>
+                <option value="inventory">库存</option>
+                <option value="customer">客户</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>关键字</label>
+              <input id="keywordFilter" placeholder="按离线ID/错误关键字筛选" />
+            </div>
+            <div class="field">
+              <label>筛选操作</label>
+              <button class="btn secondary" id="filterBtn">应用筛选</button>
+            </div>
           </div>
-          <div class="field">
-            <label>实体筛选</label>
-            <select id="entityFilter">
-              <option value="all">全部实体</option>
-              <option value="order">订单</option>
-              <option value="inventory">库存</option>
-              <option value="customer">客户</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>关键字</label>
-            <input id="keywordFilter" placeholder="按离线ID/错误关键字筛选" />
-          </div>
-          <div class="field">
-            <label>操作</label>
-            <button class="btn" id="applyFilterBtn">应用筛选</button>
+          <div class="switch-line">
+            <label><input type="checkbox" id="manualOnlyFilter" /> 仅看人工处理</label>
+            <label><input type="checkbox" id="conflictOnlyFilter" /> 仅看冲突</label>
           </div>
         </div>
-        <div class="btn-row" style="margin-bottom: 10px">
-          <label><input type="checkbox" id="manualOnlyFilter" /> 仅看人工处理</label>
-          <label><input type="checkbox" id="conflictOnlyFilter" /> 仅看冲突</label>
+        <div class="table-card">
+          <div class="table-head">
+            <strong>队列记录</strong>
+            <span class="tip">列表支持失败重试与转人工处理</span>
+          </div>
+          <div id="queueList"></div>
         </div>
-        <div id="queueList"></div>
       </section>
         </main>
       </div>
@@ -118,6 +139,7 @@
       const keywordFilter = document.getElementById("keywordFilter");
       const manualOnlyFilter = document.getElementById("manualOnlyFilter");
       const conflictOnlyFilter = document.getElementById("conflictOnlyFilter");
+      const filterBtn = document.getElementById("filterBtn");
       const applyFilterBtn = document.getElementById("applyFilterBtn");
 
       function setTip(el, text, isError = false) {
@@ -137,13 +159,13 @@
         ];
         rows.forEach(([label, value]) => {
           const el = document.createElement("div");
-          el.className = "metric";
+          el.className = "kpi-card";
           el.innerHTML = `<div>${label}</div><strong>${value}</strong>`;
           stats.appendChild(el);
         });
         if (filteredStats) {
           const summary = document.createElement("div");
-          summary.className = "metric";
+          summary.className = "kpi-card";
           summary.innerHTML = `<div>筛选命中</div><strong>${filteredStats.pending + filteredStats.syncing + filteredStats.failed + filteredStats.completed}</strong>`;
           stats.appendChild(summary);
         }
@@ -243,6 +265,9 @@
 
       backBtn.addEventListener("click", () => {
         window.location.href = "./index.html";
+      });
+      filterBtn.addEventListener("click", () => {
+        loadQueue();
       });
       applyFilterBtn.addEventListener("click", () => {
         loadQueue();

@@ -1,0 +1,20 @@
+{
+  "id": "34-platform-layout-overhaul",
+  "title": "平台端结构级布局重构",
+  "status": "completed",
+  "depends_on": [
+    "32-web-design-md-refactor"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/platform/index.md",
+    ".trellis/spec/platform/domain-data-monitoring/overview.md"
+  ],
+  "acceptance": [
+    "统一侧栏、顶部栏、面包屑与标题区结构",
+    "重做卡片栅格与关键指标区层级，避免静态表单化",
+    "统一按钮体系（主次/危险/禁用）与筛选区组件化样式",
+    "返回入口与快速入口路径清晰可达",
+    "仅重构 UI/交互层，不改变业务接口契约"
+  ]
+}

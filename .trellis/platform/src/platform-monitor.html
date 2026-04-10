@@ -20,13 +20,20 @@
 
       <div class="content-wrap">
         <header class="top-bar">
-          <h1 class="top-title">平台监控看板</h1>
+          <div>
+            <div class="breadcrumb"><span>平台端</span><span>/</span><span>监控看板</span></div>
+            <h1 class="top-title">平台监控看板</h1>
+          </div>
           <div class="top-actions">
-            <button class="btn" id="backBtn">返回平台入口</button>
+            <button class="btn secondary" id="backBtn">返回平台入口</button>
           </div>
         </header>
 
         <main class="page-content">
+          <section class="page-hero">
+            <h2 class="page-title">经营与合规总览</h2>
+            <p class="page-subtitle">聚合关键指标并提供异常重试入口，支持快速定位问题。</p>
+          </section>
           <section class="card">
             <h2 class="card-title">核心经营指标</h2>
             <div class="grid-2" id="bizMetrics"></div>
@@ -39,7 +46,13 @@
 
           <section class="card">
             <h2 class="card-title">异常下钻与处置</h2>
-            <div id="failedList"></div>
+            <div class="table-card">
+              <div class="table-head">
+                <strong>失败记录列表</strong>
+                <button class="btn ghost" type="button">按更新时间排序</button>
+              </div>
+              <div id="failedList"></div>
+            </div>
           </section>
 
           <p class="tip" id="tip"></p>
@@ -120,7 +133,7 @@
             <div class="item-line">订单：${x.orderId} / 客户：${x.customerName}</div>
             <div class="item-line">失败原因：${x.lastError || "未知"}</div>
             <div class="item-line">重试次数：${x.reportAttempts} / 更新时间：${fmtTime(x.updatedAt)}</div>
-            <button class="btn primary retry-btn" data-id="${x.safetyId}">立即重试上报</button>
+            <button class="btn danger retry-btn" data-id="${x.safetyId}">立即重试上报</button>
           `;
           failedList.appendChild(row);
         });
