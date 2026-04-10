@@ -1,7 +1,7 @@
 {
   "id": "22-workbench-bottom-nav-and-header-polish",
   "title": "工作台底部导航与头部信息层级优化",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "16-workbench-experience-polish"
   ],
