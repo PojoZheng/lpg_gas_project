@@ -3,9 +3,7 @@
   "title": "基于 impeccable 的前端样式与布局重构",
   "status": "completed",
   "depends_on": [
-    "19-quick-order-navigation-and-submit-contract",
-    "20-safety-complete-mobile-layout",
-    "22-workbench-bottom-nav-and-header-polish"
+    "19-quick-order-navigation-and-submit-contract"
   ],
   "input_spec": [
     ".trellis/spec/delivery-app/ui-manifest.md",
