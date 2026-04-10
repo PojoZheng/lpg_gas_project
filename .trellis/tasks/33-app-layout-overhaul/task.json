@@ -1,0 +1,20 @@
+{
+  "id": "33-app-layout-overhaul",
+  "title": "App 四页结构级 UI 大调整",
+  "status": "completed",
+  "depends_on": [
+    "31-app-design-md-refactor"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/delivery-app/interaction-spec.md"
+  ],
+  "acceptance": [
+    "workbench、quick-order、delivery-complete、my 四页完成结构级信息层级重排",
+    "底部导航视觉与激活态统一，且登录入口在四页可见",
+    "空状态、加载状态、错误状态样式与中文文案统一",
+    "按钮/卡片/导航/表单通过统一 token 与组件层落地",
+    "仅改 UI/交互层，不改接口契约",
+    "自动化测试通过"
+  ]
+}

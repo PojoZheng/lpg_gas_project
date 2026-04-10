@@ -32,6 +32,7 @@
       .todo-strong { font-size: 14px; color: var(--text-primary); font-weight: 600; }
       .next-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
       .next-actions .app-btn { font-size: 14px; }
+      .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
       .sync-overlay {
         position: fixed;
         inset: 0;
@@ -123,8 +124,14 @@
         </div>
         <p class="line todo-strong">低频能力请前往“我的”统一处理。</p>
       </section>
-
-      <p class="app-tip" id="tip"></p>
+      <section class="app-card">
+        <h2 class="app-card-title">系统状态</h2>
+        <div class="state-block info" id="tip">正在准备数据...</div>
+        <div class="status-row">
+          <button class="app-btn ghost" id="syncQueueEntryBtn">查看同步队列</button>
+          <button class="app-btn ghost" id="loginEntryBtn">账号与登录</button>
+        </div>
+      </section>
     </main>
 
     <div class="sync-overlay" id="syncOverlay">
@@ -179,6 +186,8 @@
       const navWorkbenchBtn = document.getElementById("navWorkbenchBtn");
       const navQuickOrderBtn = document.getElementById("navQuickOrderBtn");
       const navMyBtn = document.getElementById("navMyBtn");
+      const syncQueueEntryBtn = document.getElementById("syncQueueEntryBtn");
+      const loginEntryBtn = document.getElementById("loginEntryBtn");
       const syncOverlay = document.getElementById("syncOverlay");
       const syncDesc = document.getElementById("syncDesc");
       const syncStats = document.getElementById("syncStats");
@@ -267,9 +276,11 @@
 
       async function loadData(fromPull = false) {
         tip.textContent = fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...";
+        tip.className = "state-block loading";
         const res = await fetchWorkbenchOverview();
         if (!res.success) {
           tip.textContent = res.error || "加载失败，请稍后重试";
+          tip.className = "state-block error";
           return;
         }
         const { finance, nextDelivery } = res.data;
@@ -280,19 +291,23 @@
         pendingToday.textContent = fmtCurrency(pending);
         if (received <= 0 && pending <= 0) {
           tip.textContent = "今日暂无收款数据，可先去快速开单。";
+          tip.className = "state-block info";
         }
         renderNextDelivery(nextDelivery);
 
         if (!navigator.onLine) {
           tip.textContent = "当前网络不可用，已展示缓存信息";
+          tip.className = "state-block info";
           return;
         }
         if (res.fromMock) {
           tip.textContent = "当前使用模拟数据，后端接口预留中";
+          tip.className = "state-block info";
           return;
         }
         await maybeShowSyncModal(res.data.sync || {});
         tip.textContent = "数据已更新";
+        tip.className = "state-block success";
       }
 
       quickOrderBtn.addEventListener("click", () => {
@@ -312,6 +327,12 @@
         goDeliveryPage();
       });
       loginBtn.addEventListener("click", () => {
+        window.location.href = "./login.html";
+      });
+      syncQueueEntryBtn.addEventListener("click", () => {
+        window.location.href = "/platform/src/sync-queue.html";
+      });
+      loginEntryBtn.addEventListener("click", () => {
         window.location.href = "./login.html";
       });
       refreshBtn.addEventListener("click", async () => {
@@ -366,11 +387,13 @@
       window.addEventListener("offline", () => {
         renderNetworkBadge();
         tip.textContent = "当前网络不可用，已切换离线提示";
+        tip.className = "state-block info";
         hideSyncOverlay();
       });
       window.addEventListener("online", () => {
         renderNetworkBadge();
         tip.textContent = "网络已恢复，可下拉刷新";
+        tip.className = "state-block info";
       });
 
       let startY = 0;

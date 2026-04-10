@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="./delivery-shell.css" />
     <style>
       .page { max-width: 460px; margin: 0 auto; padding: 16px 14px calc(86px + env(safe-area-inset-bottom, 0px)); }
-      .header { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; margin-bottom: 12px; gap: 8px; }
+      .header { display: grid; grid-template-columns: 38px 1fr auto auto; align-items: center; margin-bottom: 12px; gap: 8px; }
       .title { margin: 0; font-size: 22px; font-weight: 700; text-align: center; font-family: var(--font-title); }
       .back-left-btn {
         border: none; background: var(--brand-soft); color: var(--neutral); border-radius: var(--radius-button);
@@ -16,6 +16,15 @@
       .back-btn {
         border: none; background: var(--brand-soft); color: var(--neutral); border-radius: var(--radius-button);
         height: 38px; padding: 0 12px; cursor: pointer;
+      }
+      .login-mini-btn {
+        border: 1px solid #d6e8ea;
+        background: #fff;
+        color: var(--brand);
+        border-radius: var(--radius-button);
+        height: 38px;
+        padding: 0 10px;
+        cursor: pointer;
       }
       .card {
         background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-3); margin-bottom: var(--space-3);
@@ -41,9 +50,7 @@
       .submit-btn { width: 100%; }
       .ghost-btn { width: 100%; display: none; }
       .ghost-btn.show { display: block; margin-top: 8px; }
-      .tip { min-height: 20px; color: var(--text-secondary); font-size: 13px; margin-top: 6px; }
-      .err { color: var(--error); }
-      .warn { color: #b45309; }
+      .tip { margin-top: 6px; }
       .text-btn { width: 100%; border: 1px dashed var(--border); background: #fff; border-radius: var(--radius-button); height: 48px; cursor: pointer; color: var(--neutral); margin-bottom: 8px; }
       .switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 10px; }
       .switch-row input { width: auto; height: auto; }
@@ -82,6 +89,7 @@
         <button class="back-left-btn" id="backLeftBtn" aria-label="返回上一页">←</button>
         <h1 class="title">快速开单</h1>
         <button class="back-btn" id="backBtn">返回首页</button>
+        <button class="login-mini-btn" id="loginBtn">登录</button>
       </header>
 
       <section class="app-card card">
@@ -128,10 +136,13 @@
           <input id="rememberDefaults" type="checkbox" checked />
         </div>
         <button class="text-btn" id="moreFieldsBtn">展开确认面板（更多字段）</button>
+      </section>
+      <section class="app-card card">
+        <h2 class="card-title">提交与反馈</h2>
         <button class="app-btn primary submit-btn" id="createBtn">一键开单（确认开单）</button>
         <button class="app-btn ghost-btn" id="goWorkbenchBtn">返回工作台查看结果</button>
         <button class="app-btn ghost-btn" id="traceOrderBtn">前往待配送/完单链路追踪订单</button>
-        <p class="tip" id="tip" aria-live="polite"></p>
+        <div class="state-block info tip" id="tip" aria-live="polite">请先选择客户并确认订单信息。</div>
       </section>
     </main>
     <div class="overlay" id="addCustomerOverlay">
@@ -204,6 +215,7 @@
       const createBtn = document.getElementById("createBtn");
       const backBtn = document.getElementById("backBtn");
       const backLeftBtn = document.getElementById("backLeftBtn");
+      const loginBtn = document.getElementById("loginBtn");
       const goWorkbenchBtn = document.getElementById("goWorkbenchBtn");
       const traceOrderBtn = document.getElementById("traceOrderBtn");
       const minusBtn = document.getElementById("minusBtn");
@@ -249,7 +261,7 @@
 
       function setTip(text, isError = false) {
         tip.textContent = text;
-        tip.className = isError ? "tip err" : "tip";
+        tip.className = isError ? "state-block error tip" : "state-block info tip";
       }
       function setConfirmTip(text, level = "normal") {
         confirmTip.textContent = text;
@@ -369,6 +381,9 @@
         window.location.href = "./workbench.html";
       }
       backBtn.addEventListener("click", backToWorkbench);
+      loginBtn.addEventListener("click", () => {
+        window.location.href = "./login.html";
+      });
       backLeftBtn.addEventListener("click", () => {
         if (window.history.length > 1) {
           window.history.back();
@@ -491,6 +506,7 @@
         const typeText = payload.orderType === "immediate_complete" ? "当场完成" : "稍后配送";
         lastCreatedOrderId = result.data.orderId;
         setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}，可在待配送/完单链路继续追踪。`);
+        tip.className = "state-block success tip";
         goWorkbenchBtn.classList.add("show");
         traceOrderBtn.classList.add("show");
         confirmOverlay.classList.remove("show");

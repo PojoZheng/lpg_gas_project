@@ -11,9 +11,10 @@
         margin: 0 auto;
         padding: 16px 14px calc(206px + env(safe-area-inset-bottom, 0px));
       }
-      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .header { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; margin-bottom: 12px; }
       .title { margin: 0; font-size: 22px; font-weight: 700; font-family: var(--font-title); }
       .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 48px; min-height: 48px; padding: 0 12px; cursor: pointer; }
+      .login-btn { border-color: #d6e8ea; color: var(--brand); }
       .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-3); margin-bottom: var(--space-3); }
       .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; font-family: var(--font-title); }
       .order-btn { width: 100%; text-align: left; border: 1px solid var(--border); background: #fff; border-radius: var(--radius-button); padding: 10px; margin-bottom: 8px; cursor: pointer; }
@@ -28,8 +29,7 @@
       .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .primary { background: var(--brand); color: #fff; border-color: var(--brand); }
       .warn { color: #b45309; border-color: #f5d9a5; background: #fff7ed; }
-      .tip { min-height: 20px; margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
-      .err { color: var(--error); }
+      .tip { margin-top: 8px; }
       .inventory-list { display: grid; gap: 8px; }
       .inventory-item {
         border: 1px solid var(--border);
@@ -121,6 +121,7 @@
       <header class="header">
         <h1 class="title">待配送完单</h1>
         <button class="btn" id="backBtn">返回首页</button>
+        <button class="btn login-btn" id="loginBtn">登录</button>
       </header>
 
       <section class="app-card card">
@@ -152,7 +153,7 @@
           <button class="btn warn" id="cancelBtn">取消订单</button>
           <button class="btn" id="undoBtn">5 秒撤销</button>
         </div>
-        <p class="tip" id="tip" aria-live="polite"></p>
+        <div class="state-block info tip" id="tip" aria-live="polite">请选择订单后执行完单流程。</div>
       </section>
 
       <section class="app-card card">
@@ -173,7 +174,7 @@
           <button class="btn primary" id="saveCollectionBtn">保存催收状态</button>
           <button class="btn" id="refreshAccountBtn">刷新账户摘要</button>
         </div>
-        <p class="tip muted" id="accountTip"></p>
+        <div class="state-block info tip muted" id="accountTip">客户账户信息将显示在这里。</div>
       </section>
 
       <section class="app-card card" id="safetyCard">
@@ -189,7 +190,7 @@
         <p class="photo-tip">示例：img-001,img-002。当前原型以照片编号代替上传。</p>
         <div class="row"><label>异常安检</label><input class="app-input" id="abnormalInput" placeholder="输入 是 或 否" value="否" /></div>
         <div class="row"><label>隐患说明</label><input class="app-input" id="hazardInput" placeholder="异常时必须填写隐患说明" /></div>
-        <p class="tip" id="safetyTip"></p>
+        <div class="state-block info tip" id="safetyTip">请按流程补充安检信息并上报。</div>
       </section>
     </main>
     <div class="dock-wrap">
@@ -232,6 +233,7 @@
 
       const orderList = document.getElementById("orderList");
       const backBtn = document.getElementById("backBtn");
+      const loginBtn = document.getElementById("loginBtn");
       const amountInput = document.getElementById("amountInput");
       const receivedInput = document.getElementById("receivedInput");
       const recycleInput = document.getElementById("recycleInput");
@@ -271,11 +273,11 @@
 
       function setTip(text, isError = false) {
         tip.textContent = text;
-        tip.className = isError ? "tip err" : "tip";
+        tip.className = isError ? "state-block error tip" : "state-block info tip";
       }
       function setAccountTip(text, isError = false) {
         accountTip.textContent = text;
-        accountTip.className = isError ? "tip err" : "tip muted";
+        accountTip.className = isError ? "state-block error tip" : "state-block info tip muted";
       }
 
       function syncPayBtn() {
@@ -284,7 +286,7 @@
 
       function setSafetyTip(text, isError = false) {
         safetyTip.textContent = text;
-        safetyTip.className = isError ? "tip err" : "tip";
+        safetyTip.className = isError ? "state-block error tip" : "state-block info tip";
         dockStatus.textContent = text || "底部操作区：安检提交与失败重试";
       }
 
@@ -523,6 +525,9 @@
 
       backBtn.addEventListener("click", () => {
         window.location.href = "./workbench.html";
+      });
+      loginBtn.addEventListener("click", () => {
+        window.location.href = "./login.html";
       });
       backWorkbenchBtn.addEventListener("click", () => {
         window.location.href = "./my.html";

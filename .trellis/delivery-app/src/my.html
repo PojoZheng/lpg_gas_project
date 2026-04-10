@@ -8,6 +8,7 @@
     <style>
       .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
       .entry-list { display: grid; gap: 10px; }
+      .section-subtitle { margin: 0 0 10px; font-size: 13px; color: var(--text-secondary); }
       .entry-btn {
         width: 100%;
         min-height: 68px;
@@ -40,11 +41,15 @@
     <main class="app-page page">
       <header class="app-header">
         <h1 class="app-title">我的</h1>
-        <button class="app-btn" id="homeBtn">返回首页</button>
+        <div style="display:flex; gap:8px;">
+          <button class="app-btn" id="homeBtn">返回首页</button>
+          <button class="app-btn ghost" id="loginTopBtn">登录</button>
+        </div>
       </header>
 
       <section class="app-card">
-        <h2 class="app-card-title">流程入口</h2>
+        <h2 class="app-card-title">高频入口</h2>
+        <p class="section-subtitle">优先处理配送与开单相关流程</p>
         <div class="entry-list">
           <button class="app-btn entry-btn" id="deliveryBtn">
             <span class="entry-main">
@@ -56,6 +61,13 @@
             </span>
             <span class="entry-arrow">›</span>
           </button>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">管理入口</h2>
+        <p class="section-subtitle">低频能力统一收敛至该区域</p>
+        <div class="entry-list">
           <button class="app-btn entry-btn" id="financeBtn">
             <span class="entry-main">
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16V8h12v8M9 12h6" /></svg></span>
@@ -97,7 +109,7 @@
             <span class="entry-arrow">›</span>
           </button>
         </div>
-        <p class="app-tip" id="tip">低频能力已统一收敛到“我的”页面。</p>
+        <div class="state-block info app-tip" id="tip">低频能力已统一收敛到“我的”页面。</div>
       </section>
     </main>
 
@@ -120,6 +132,7 @@
 
     <script>
       document.getElementById("homeBtn").addEventListener("click", () => (window.location.href = "./workbench.html"));
+      document.getElementById("loginTopBtn").addEventListener("click", () => (window.location.href = "./login.html"));
       document.getElementById("deliveryBtn").addEventListener("click", () => (window.location.href = "./delivery-complete.html"));
       document.getElementById("financeBtn").addEventListener("click", () => (window.location.href = "./finance-daily-close.html"));
       document.getElementById("syncBtn").addEventListener("click", () => (window.location.href = "/platform/src/sync-queue.html"));

@@ -17,7 +17,7 @@ def assert_contains(path: Path, needles):
 def main():
   assert_contains(
     SPEC,
-    ["#4799a0", "#424949", "Space Grotesk", "Inter", "按钮、卡片、导航、表单必须走统一 token 与组件层"],
+    ["#4799a0", "#424949", "Space Grotesk", "Inter", "基础组件基线"],
   )
 
   pages = ["workbench.html", "quick-order.html", "delivery-complete.html", "my.html"]

@@ -77,6 +77,37 @@ body {
 
 .app-tip.err { color: var(--error); }
 
+.state-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: #fff;
+}
+
+.state-block.info {
+  background: #f8fbfc;
+  border-color: #d7e9eb;
+}
+
+.state-block.success {
+  background: #eefaf2;
+  border-color: #ccead6;
+  color: #1f7a43;
+}
+
+.state-block.error {
+  background: #fff4f4;
+  border-color: #f6cdcd;
+  color: #b23434;
+}
+
+.state-block.loading {
+  background: #f4f8fa;
+  border-color: #d8e3e7;
+}
+
 .app-btn {
   border: 1px solid var(--border);
   border-radius: var(--radius-button);
@@ -98,6 +129,12 @@ body {
 .app-btn.soft {
   background: var(--brand-soft);
   color: #1f6f76;
+  border-color: #d6e8ea;
+}
+
+.app-btn.ghost {
+  background: #fff;
+  color: var(--brand);
   border-color: #d6e8ea;
 }
 

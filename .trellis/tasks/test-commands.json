@@ -33,5 +33,8 @@
   ],
   "31-app-design-md-refactor": [
     "python3 \".trellis/scripts/task31_app_design_md_refactor.py\""
+  ],
+  "33-app-layout-overhaul": [
+    "python3 \".trellis/scripts/task33_app_layout_overhaul.py\""
   ]
 }
