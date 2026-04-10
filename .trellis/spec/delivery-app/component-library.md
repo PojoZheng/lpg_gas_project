@@ -51,9 +51,30 @@
 - 命名遵循语义：`i-home` / `i-customer` / `i-my` / `i-arrow-right`
 - 推荐容器类：`.ds-icon`
 
+### 页面头 `PageHeader`
+- 结构：标题 + 右侧操作（可选返回/刷新）
+- 实现类：`.ds-page-header` / `.ds-page-header-title`
+
+### 统计卡 `StatCard`
+- 用于收入、数量、状态汇总展示
+- 实现类：`.ds-stat-card` / `.ds-stat-label` / `.ds-stat-value`
+
+### 表单分组 `FormSection`
+- 用于订单输入、筛选区块化
+- 实现类：`.ds-form-section` / `.ds-form-section-title`
+
+### 空状态 `EmptyState`
+- 空列表/无数据时统一展示结构与文案层级
+- 实现类：`.ds-empty-state` / `.ds-empty-title` / `.ds-empty-desc`
+
+### 反馈横幅 `FeedbackBanner`
+- 用于跨组件状态反馈（非弹窗）
+- 实现类：`.ds-feedback-banner` + `info|success|warning|error`
+
 ## 4. 组件验收
 - 视觉风格与参考图一致（浅底、弱边框、卡片化）
 - 文案中文化合规
 - 无 emoji，图标统一使用矢量图标库
 - 新增页面需给出 UI Kit 接入路径与最小示例链接。
 - 与 `DESIGN.md` 的 token/字体/间距映射一致，不允许私有偏移实现。
+- 页面重构（task-33/34）必须复用上述 5 个强化组件中的至少 2 个。

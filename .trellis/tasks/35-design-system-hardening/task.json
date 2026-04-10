@@ -1,0 +1,19 @@
+{
+  "id": "35-design-system-hardening",
+  "title": "Design System 加固与复用验收基线",
+  "status": "completed",
+  "depends_on": [
+    "30-design-token-component-baseline"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/delivery-app/design-tokens.md",
+    ".trellis/spec/delivery-app/component-library.md"
+  ],
+  "acceptance": [
+    "token 语义分层包含 color/typography/radius/spacing/state",
+    "组件层补齐 page-header/stat-card/form-section/empty-state/feedback-banner",
+    "DESIGN.md、design-tokens.md、component-library.md 映射与示例一致",
+    "提供轻量校验脚本，检查关键页面是否仍引用统一 token/css"
+  ]
+}

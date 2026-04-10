@@ -40,12 +40,28 @@
 - `Space.L`: `24`
 - `Space.XL`: `32`
 
+### 状态语义（State）
+- `State.Info.Bg`: `Brand.PrimarySoft`
+- `State.Info.Text`: `Brand.Primary`
+- `State.Success.Bg`: `#ecfdf3`
+- `State.Success.Text`: `System.Success`
+- `State.Warning.Bg`: `#fff7ed`
+- `State.Warning.Text`: `#b45309`
+- `State.Error.Bg`: `#fef2f2`
+- `State.Error.Text`: `System.Error`
+
 ## 4. 基础组件基线
 - 按钮：`Primary / Secondary / Ghost / Disabled`
 - 卡片：`Card + CardTitle + CardSubText`
 - 导航：底部三栏导航，激活态统一主色
 - 表单：标签 + 输入/下拉，最小触达 `48x48`
 - 状态提示：`Info / Success / Warning / Error`（文案必须中文）
+- 强化组件（task-35）：
+  - `PageHeader`
+  - `StatCard`
+  - `FormSection`
+  - `EmptyState`
+  - `FeedbackBanner`
 
 ## 5. 图标体系
 - 统一使用 SVG symbol sprite，禁止页面散落内联 SVG 路径。

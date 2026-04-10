@@ -16,6 +16,12 @@
 | `System.Warning` | `#F59E0B` | 警告状态 |
 | `System.Error` | `#EF4444` | 错误状态 |
 
+### 状态语义
+- `State.Info.Bg` / `State.Info.Text`
+- `State.Success.Bg` / `State.Success.Text`
+- `State.Warning.Bg` / `State.Warning.Text`
+- `State.Error.Bg` / `State.Error.Text`
+
 ## 2. 圆角与边框
 - `Radius.PageCard`: `24`
 - `Radius.Card`: `20`
@@ -57,9 +63,12 @@
 | `Radius.Button` | `--ds-radius-btn` | `/.trellis/ui-kit/styles/tokens.css` |
 | `Space.M` | `--ds-space-m` | `/.trellis/ui-kit/styles/tokens.css` |
 | `Text.Body` | `--ds-font-size-body` | `/.trellis/ui-kit/styles/tokens.css` |
+| `State.Info.Bg` | `--ds-state-info-bg` | `/.trellis/ui-kit/styles/tokens.css` |
+| `State.Error.Text` | `--ds-state-error-text` | `/.trellis/ui-kit/styles/tokens.css` |
 
 ## 7. 强制约束
 - 禁止硬编码视觉常量，必须引用 token。
 - 界面文案必须使用中文。
 - 禁止在界面中使用 emoji。
 - 图标统一使用矢量图标库（如 `MaterialCommunityIcons`）。
+- 引入样式时必须优先使用 `/.trellis/ui-kit/styles/tokens.css`，禁止绕过 token 直接写状态色常量。
