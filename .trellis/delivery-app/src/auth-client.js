@@ -6,7 +6,14 @@ const storage = {
   },
   getSession() {
     const raw = localStorage.getItem("auth_session");
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (_err) {
+      // Corrupted session payload should not crash page bootstrap.
+      localStorage.removeItem("auth_session");
+      return null;
+    }
   },
 };
 

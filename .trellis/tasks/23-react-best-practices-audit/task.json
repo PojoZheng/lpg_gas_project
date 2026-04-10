@@ -1,7 +1,7 @@
 {
   "id": "23-react-best-practices-audit",
   "title": "基于 vercel-react-best-practices 的现有代码审查与修复",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "03-quick-order",
     "16-workbench-experience-polish"
