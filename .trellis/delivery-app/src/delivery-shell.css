@@ -3,17 +3,23 @@
   --brand-soft: #e7f3f4;
   --bg: #f7f8fa;
   --surface: #ffffff;
-  --border: #eceff3;
-  --text-primary: #111111;
-  --text-secondary: #8b9098;
+  --border: #e3e6e8;
+  --neutral: #424949;
+  --text-primary: #424949;
+  --text-secondary: #6a7272;
   --success: #16a34a;
   --warning: #f59e0b;
   --error: #ef4444;
-  --radius-page-card: 24px;
-  --radius-card: 20px;
-  --radius-button: 16px;
-  --radius-input: 14px;
+  --radius-page-card: 16px;
+  --radius-card: 14px;
+  --radius-button: 12px;
+  --radius-input: 10px;
   --shadow-soft: 0 4px 16px rgba(17, 17, 17, 0.05);
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --font-title: "Space Grotesk", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -22,7 +28,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-family: var(--font-body);
 }
 
 .app-page {
@@ -43,14 +49,16 @@ body {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
+  font-family: var(--font-title);
+  letter-spacing: 0.2px;
 }
 
 .app-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: 14px;
-  margin-bottom: 12px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .app-card-title {
@@ -215,7 +223,7 @@ body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .nav-btn {
@@ -247,4 +255,18 @@ body {
   background: var(--brand-soft);
   border-color: #d6e8ea;
   color: var(--brand);
+}
+
+.app-input,
+.app-select {
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: #fff;
+  color: var(--text-primary);
+  padding: 0 10px;
+  font-size: 14px;
+  font-family: var(--font-body);
 }

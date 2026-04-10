@@ -6,40 +6,23 @@
     <title>快速开单</title>
     <link rel="stylesheet" href="./delivery-shell.css" />
     <style>
-      :root {
-        --brand: #4799a0;
-        --brand-soft: #e7f3f4;
-        --bg: #f7f8fa;
-        --surface: #ffffff;
-        --border: #eceff3;
-        --text-primary: #111111;
-        --text-secondary: #8b9098;
-        --error: #ef4444;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text-primary);
-        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
-      }
       .page { max-width: 460px; margin: 0 auto; padding: 16px 14px calc(86px + env(safe-area-inset-bottom, 0px)); }
       .header { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; margin-bottom: 12px; gap: 8px; }
-      .title { margin: 0; font-size: 22px; font-weight: 700; text-align: center; }
+      .title { margin: 0; font-size: 22px; font-weight: 700; text-align: center; font-family: var(--font-title); }
       .back-left-btn {
-        border: none; background: var(--brand-soft); color: #1f6f76; border-radius: 12px;
+        border: none; background: var(--brand-soft); color: var(--neutral); border-radius: var(--radius-button);
         width: 38px; height: 38px; cursor: pointer; font-size: 18px;
       }
       .back-btn {
-        border: none; background: var(--brand-soft); color: #1f6f76; border-radius: 14px;
+        border: none; background: var(--brand-soft); color: var(--neutral); border-radius: var(--radius-button);
         height: 38px; padding: 0 12px; cursor: pointer;
       }
       .card {
-        background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 14px; margin-bottom: 12px;
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-3); margin-bottom: var(--space-3);
       }
       .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
       .list-btn, .tab-btn, .step-btn, .submit-btn {
-        border: 1px solid var(--border); border-radius: 14px; background: #fff; cursor: pointer;
+        border: 1px solid var(--border); border-radius: var(--radius-button); background: #fff; cursor: pointer;
       }
       .search {
         width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 12px;
@@ -51,32 +34,21 @@
       .list-btn.active { border-color: var(--brand); background: #f0f9fa; }
       .line2 { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
       .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-      .tab-btn { flex: 1; height: 42px; }
+      .tab-btn { flex: 1; height: 48px; min-height: 48px; }
       .tab-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
-      .step-btn { width: 40px; height: 40px; font-size: 18px; }
+      .step-btn { width: 48px; height: 48px; font-size: 18px; }
       .qty { min-width: 52px; text-align: center; font-size: 20px; font-weight: 700; color: var(--brand); }
       select, input {
-        width: 100%; height: 42px; border: 1px solid var(--border); border-radius: 12px; padding: 0 10px; font-size: 15px;
+        width: 100%; height: 48px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; font-size: 14px;
       }
-      .submit-btn {
-        width: 100%; height: 46px; background: var(--brand); border-color: var(--brand); color: #fff; font-size: 16px;
-      }
-      .ghost-btn {
-        width: 100%; height: 42px; border-radius: 12px; border: 1px solid var(--border); background: #fff;
-        color: #1f6f76; display: none; cursor: pointer;
-      }
+      .submit-btn { width: 100%; }
+      .ghost-btn { width: 100%; display: none; }
       .ghost-btn.show { display: block; margin-top: 8px; }
       .tip { min-height: 20px; color: var(--text-secondary); font-size: 13px; margin-top: 6px; }
       .err { color: var(--error); }
       .warn { color: #b45309; }
-      .text-btn {
-        width: 100%; border: 1px dashed var(--border); background: #fff; border-radius: 12px; height: 40px; cursor: pointer;
-        color: #1f6f76; margin-bottom: 8px;
-      }
-      .switch-row {
-        display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
-        border: 1px solid var(--border); border-radius: 12px; padding: 9px 10px;
-      }
+      .text-btn { width: 100%; border: 1px dashed var(--border); background: #fff; border-radius: var(--radius-button); height: 48px; cursor: pointer; color: var(--neutral); margin-bottom: 8px; }
+      .switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 10px; }
       .switch-row input { width: auto; height: auto; }
       .switch-label { font-size: 14px; color: var(--text-primary); }
       .switch-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
@@ -108,22 +80,22 @@
     </style>
   </head>
   <body>
-    <main class="page">
+    <main class="app-page page">
       <header class="header">
         <button class="back-left-btn" id="backLeftBtn" aria-label="返回上一页">←</button>
         <h1 class="title">快速开单</h1>
         <button class="back-btn" id="backBtn">返回首页</button>
       </header>
 
-      <section class="card">
+      <section class="app-card card">
         <h2 class="card-title">选择客户</h2>
-        <input id="searchInput" class="search" placeholder="搜索客户姓名、手机号或地址" />
+        <input id="searchInput" class="search app-input" placeholder="搜索客户姓名、手机号或地址" />
         <div id="customerList"></div>
         <button class="text-btn" id="addCustomerBtn">+ 添加新客户</button>
         <button class="text-btn" id="viewAllBtn">查看全部客户</button>
       </section>
 
-      <section class="card">
+      <section class="app-card card">
         <h2 class="card-title">订单信息</h2>
         <div class="row">
           <button class="tab-btn active" data-type="later_delivery">稍后配送</button>
@@ -135,14 +107,14 @@
           <button class="step-btn" id="plusBtn">+</button>
         </div>
         <div class="row">
-          <select id="specSelect">
+          <select class="app-select" id="specSelect">
             <option value="10kg">10kg</option>
             <option value="15kg" selected>15kg</option>
             <option value="50kg">50kg</option>
           </select>
         </div>
         <div class="row">
-          <input id="priceInput" type="number" min="0" value="120" placeholder="请输入单价（元）" />
+          <input class="app-input" id="priceInput" type="number" min="0" value="120" placeholder="请输入单价（元）" />
         </div>
         <div class="switch-row">
           <div>
@@ -159,18 +131,18 @@
           <input id="rememberDefaults" type="checkbox" checked />
         </div>
         <button class="text-btn" id="moreFieldsBtn">展开确认面板（更多字段）</button>
-        <button class="submit-btn" id="createBtn">一键开单（确认开单）</button>
-        <button class="ghost-btn" id="goWorkbenchBtn">返回工作台查看结果</button>
-        <button class="ghost-btn" id="traceOrderBtn">前往待配送/完单链路追踪订单</button>
+        <button class="app-btn primary submit-btn" id="createBtn">一键开单（确认开单）</button>
+        <button class="app-btn ghost-btn" id="goWorkbenchBtn">返回工作台查看结果</button>
+        <button class="app-btn ghost-btn" id="traceOrderBtn">前往待配送/完单链路追踪订单</button>
         <p class="tip" id="tip" aria-live="polite"></p>
       </section>
     </main>
     <div class="overlay" id="addCustomerOverlay">
       <div class="sheet">
         <h3 class="sheet-title">添加新客户</h3>
-        <div class="row"><input id="newName" placeholder="客户姓名" /></div>
-        <div class="row"><input id="newPhone" placeholder="手机号（11位）" /></div>
-        <div class="row"><input id="newAddress" placeholder="配送地址" /></div>
+        <div class="row"><input class="app-input" id="newName" placeholder="客户姓名" /></div>
+        <div class="row"><input class="app-input" id="newPhone" placeholder="手机号（11位）" /></div>
+        <div class="row"><input class="app-input" id="newAddress" placeholder="配送地址" /></div>
         <div class="row">
           <button class="tab-btn" id="cancelAddBtn">取消</button>
           <button class="tab-btn active" id="confirmAddBtn">确认添加</button>
@@ -183,7 +155,7 @@
         <p class="sheet-desc">确认订单信息后提交，若为当场完成需填写收款信息。</p>
         <div class="sheet-summary" id="confirmSummary"></div>
         <div class="row">
-          <select id="paymentMethod">
+          <select class="app-select" id="paymentMethod">
             <option value="cash">现金</option>
             <option value="wechat">微信收款</option>
             <option value="alipay">支付宝收款</option>
@@ -191,7 +163,7 @@
           </select>
         </div>
         <div class="row">
-          <input id="receivedAmount" type="number" min="0" step="0.01" placeholder="请输入实收金额（元）" />
+          <input class="app-input" id="receivedAmount" type="number" min="0" step="0.01" placeholder="请输入实收金额（元）" />
         </div>
         <p class="tip" id="confirmTip"></p>
         <div class="row">

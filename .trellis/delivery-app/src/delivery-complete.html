@@ -6,24 +6,13 @@
     <title>待配送完单</title>
     <link rel="stylesheet" href="./delivery-shell.css" />
     <style>
-      :root {
-        --brand: #4799a0;
-        --bg: #f7f8fa;
-        --surface: #ffffff;
-        --border: #eceff3;
-        --text-primary: #111111;
-        --text-secondary: #8b9098;
-        --error: #ef4444;
-      }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
       .page {
         max-width: 460px;
         margin: 0 auto;
         padding: 16px 14px calc(206px + env(safe-area-inset-bottom, 0px));
       }
       .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-      .title { margin: 0; font-size: 22px; font-weight: 700; }
+      .title { margin: 0; font-size: 22px; font-weight: 700; font-family: var(--font-title); }
       .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 48px; min-height: 48px; padding: 0 12px; cursor: pointer; }
       .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
       .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
@@ -32,7 +21,7 @@
       .line2 { margin-top: 4px; color: var(--text-secondary); font-size: 13px; }
       .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
       .row label { width: 74px; color: var(--text-secondary); font-size: 14px; }
-      .row input, .row select { flex: 1; height: 48px; min-height: 48px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; min-width: 0; }
+      .row input, .row select { flex: 1; height: 48px; min-height: 48px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; min-width: 0; }
       .pay-methods { display: flex; gap: 8px; margin-bottom: 10px; }
       .pay-btn { flex: 1; height: 48px; min-height: 48px; border: 1px solid var(--border); border-radius: 12px; background: #fff; cursor: pointer; }
       .pay-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
@@ -128,35 +117,35 @@
     </style>
   </head>
   <body>
-    <main class="page">
+    <main class="app-page page">
       <header class="header">
         <h1 class="title">待配送完单</h1>
         <button class="btn" id="backBtn">返回首页</button>
       </header>
 
-      <section class="card">
+      <section class="app-card card">
         <h2 class="card-title">待配送订单</h2>
         <div id="orderList"></div>
       </section>
 
-      <section class="card">
+      <section class="app-card card">
         <h2 class="card-title">库存快照</h2>
         <div class="inventory-list" id="inventoryList"></div>
       </section>
 
-      <section class="card">
+      <section class="app-card card">
         <h2 class="card-title">完单与修改</h2>
-        <div class="row"><label>应收金额</label><input id="amountInput" disabled /></div>
-        <div class="row"><label>实收金额</label><input id="receivedInput" type="number" min="0" step="0.01" /></div>
+        <div class="row"><label>应收金额</label><input class="app-input" id="amountInput" disabled /></div>
+        <div class="row"><label>实收金额</label><input class="app-input" id="receivedInput" type="number" min="0" step="0.01" /></div>
         <div class="pay-methods">
           <button class="pay-btn active" data-method="wechat">微信收款</button>
           <button class="pay-btn" data-method="cash">现金收款</button>
           <button class="pay-btn" data-method="credit">记账</button>
         </div>
-        <div class="row"><label>回收空瓶</label><input id="recycleInput" type="number" min="0" step="1" value="0" /></div>
-        <div class="row"><label>欠瓶数量</label><input id="owedInput" type="number" min="0" step="1" value="0" /></div>
-        <div class="row"><label>配送时间</label><input id="scheduleInput" placeholder="如：今天 18:30" /></div>
-        <div class="row"><label>配送地址</label><input id="addressInput" placeholder="请输入配送地址" /></div>
+        <div class="row"><label>回收空瓶</label><input class="app-input" id="recycleInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>欠瓶数量</label><input class="app-input" id="owedInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>配送时间</label><input class="app-input" id="scheduleInput" placeholder="如：今天 18:30" /></div>
+        <div class="row"><label>配送地址</label><input class="app-input" id="addressInput" placeholder="请输入配送地址" /></div>
         <div class="actions">
           <button class="btn primary" id="completeBtn">确认完单</button>
           <button class="btn" id="updateBtn">保存修改</button>
@@ -166,12 +155,12 @@
         <p class="tip" id="tip" aria-live="polite"></p>
       </section>
 
-      <section class="card">
+      <section class="app-card card">
         <h2 class="card-title">客户详情与账户摘要</h2>
         <div class="summary" id="accountSummary">请选择订单后查看客户账户摘要。</div>
         <div class="row">
           <label>催收状态</label>
-          <select id="collectionStatus">
+          <select class="app-select" id="collectionStatus">
             <option value="none">未开始</option>
             <option value="pending">待催收</option>
             <option value="contacted">已联系</option>
@@ -179,7 +168,7 @@
             <option value="resolved">已结清</option>
           </select>
         </div>
-        <div class="row"><label>备注</label><input id="collectionNote" placeholder="请输入催收备注（可选）" /></div>
+        <div class="row"><label>备注</label><input class="app-input" id="collectionNote" placeholder="请输入催收备注（可选）" /></div>
         <div class="actions">
           <button class="btn primary" id="saveCollectionBtn">保存催收状态</button>
           <button class="btn" id="refreshAccountBtn">刷新账户摘要</button>
@@ -187,7 +176,7 @@
         <p class="tip muted" id="accountTip"></p>
       </section>
 
-      <section class="card" id="safetyCard">
+      <section class="app-card card" id="safetyCard">
         <h2 class="card-title">完单安检与上报</h2>
         <span class="safety-status" id="safetyStatus">待触发</span>
         <div class="check-list">
@@ -196,10 +185,10 @@
           <label class="check-item"><input type="checkbox" value="软管老化检查" class="safety-check" /> 软管老化检查</label>
           <label class="check-item"><input type="checkbox" value="通风环境检查" class="safety-check" /> 通风环境检查</label>
         </div>
-        <div class="row"><label>安检照片</label><input id="photoInput" placeholder="输入照片编号，逗号分隔" /></div>
+        <div class="row"><label>安检照片</label><input class="app-input" id="photoInput" placeholder="输入照片编号，逗号分隔" /></div>
         <p class="photo-tip">示例：img-001,img-002。当前原型以照片编号代替上传。</p>
-        <div class="row"><label>异常安检</label><input id="abnormalInput" placeholder="输入 是 或 否" value="否" /></div>
-        <div class="row"><label>隐患说明</label><input id="hazardInput" placeholder="异常时必须填写隐患说明" /></div>
+        <div class="row"><label>异常安检</label><input class="app-input" id="abnormalInput" placeholder="输入 是 或 否" value="否" /></div>
+        <div class="row"><label>隐患说明</label><input class="app-input" id="hazardInput" placeholder="异常时必须填写隐患说明" /></div>
         <p class="tip" id="safetyTip"></p>
       </section>
     </main>
