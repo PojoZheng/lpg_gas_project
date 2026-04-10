@@ -230,6 +230,11 @@
         submitSafetyByOrder,
         retrySafetyReport,
       } from "./delivery-complete-client.js";
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
 
       const orderList = document.getElementById("orderList");
       const backBtn = document.getElementById("backBtn");

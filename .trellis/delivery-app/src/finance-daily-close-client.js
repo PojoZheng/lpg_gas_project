@@ -1,18 +1,15 @@
-import { getCurrentSession } from "./auth-client.js";
+import { authFetchJson } from "./auth-client.js";
 
 const API_BASE_URL = "http://localhost:3100";
 
 function authHeaders() {
-  const session = getCurrentSession();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${session?.accessToken || ""}`,
   };
 }
 
 async function requestJson(url, options = {}) {
-  const res = await fetch(url, options);
-  return res.json();
+  return authFetchJson(url, options);
 }
 
 export async function fetchTodayFinanceSummary() {

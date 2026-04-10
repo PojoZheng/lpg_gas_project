@@ -205,6 +205,11 @@
         checkInventory,
         quickCreateOrder,
       } from "./quick-order-client.js";
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
 
       const customerList = document.getElementById("customerList");
       const searchInput = document.getElementById("searchInput");

@@ -1,7 +1,7 @@
 {
   "id": "21-auth-logout-flow",
   "title": "退出登录流程与会话收口",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "01-auth-session"
   ],

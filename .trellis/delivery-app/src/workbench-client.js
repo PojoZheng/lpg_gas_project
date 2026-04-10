@@ -1,4 +1,4 @@
-import { getCurrentSession } from "./auth-client.js";
+import { authFetchJson, getCurrentSession } from "./auth-client.js";
 
 const API_BASE_URL = "http://localhost:3100";
 
@@ -32,14 +32,9 @@ export async function fetchWorkbenchOverview() {
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/workbench/overview`, {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    });
-    const data = await res.json();
+    const data = await authFetchJson(`${API_BASE_URL}/workbench/overview`);
     if (data.success) return data;
-    return { success: true, data: buildMockOverview(), fromMock: true };
+    return data;
   } catch (_err) {
     return { success: true, data: buildMockOverview(), fromMock: true };
   }
@@ -51,12 +46,7 @@ export async function fetchSyncQueueOverview() {
     return { success: false, error: "未登录，请先登录" };
   }
   try {
-    const res = await fetch(`${API_BASE_URL}/sync/queue`, {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    });
-    const data = await res.json();
+    const data = await authFetchJson(`${API_BASE_URL}/sync/queue`);
     if (!data.success) {
       return { success: false, error: data.error?.message || "同步队列读取失败" };
     }
@@ -84,15 +74,13 @@ export async function batchSyncNow() {
     return { success: false, error: "未登录，请先登录" };
   }
   try {
-    const res = await fetch(`${API_BASE_URL}/sync/queue/batch-submit`, {
+    const data = await authFetchJson(`${API_BASE_URL}/sync/queue/batch-submit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
       },
       body: JSON.stringify({}),
     });
-    const data = await res.json();
     if (!data.success) {
       return { success: false, error: data.error?.message || "同步执行失败" };
     }

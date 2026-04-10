@@ -24,9 +24,10 @@
         background: #fff7ed;
         border-color: #fed7aa;
       }
-      .header-actions { display: flex; align-items: center; gap: 8px; }
+      .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
       .refresh-btn { min-height: 40px; height: 40px; padding: 0 12px; }
       .login-btn { min-height: 40px; height: 40px; white-space: nowrap; }
+      .logout-btn { min-height: 40px; height: 40px; white-space: nowrap; }
       .line { margin: 6px 0; color: var(--text-secondary); }
       .line strong { color: var(--text-primary); }
       .todo-strong { font-size: 14px; color: var(--text-primary); font-weight: 600; }
@@ -76,6 +77,7 @@
         <div class="header-actions">
           <button class="app-btn soft refresh-btn" id="refreshBtn">刷新</button>
           <button class="app-btn soft login-btn" id="loginBtn">登录 / 切换账号</button>
+          <button class="app-btn ghost logout-btn" id="logoutBtn">退出登录</button>
         </div>
       </header>
 
@@ -167,6 +169,11 @@
 
     <script type="module">
       import * as workbenchClient from "./workbench-client.js";
+      import { ensureAuthenticatedPage, logoutCurrentSession } from "./auth-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
 
       const receivedToday = document.getElementById("receivedToday");
       const pendingToday = document.getElementById("pendingToday");
@@ -180,6 +187,7 @@
       const quickOrderBtn = document.getElementById("quickOrderBtn");
       const deliveryCompleteBtn = document.getElementById("deliveryCompleteBtn");
       const loginBtn = document.getElementById("loginBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
       const refreshBtn = document.getElementById("refreshBtn");
       const tip = document.getElementById("tip");
       const networkBadge = document.getElementById("networkBadge");
@@ -328,6 +336,10 @@
       });
       loginBtn.addEventListener("click", () => {
         window.location.href = "./login.html";
+      });
+      logoutBtn.addEventListener("click", async () => {
+        await logoutCurrentSession();
+        window.location.href = "./login.html?from=您已退出登录";
       });
       syncQueueEntryBtn.addEventListener("click", () => {
         window.location.href = "/platform/src/sync-queue.html";

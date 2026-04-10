@@ -44,6 +44,7 @@
         <div style="display:flex; gap:8px;">
           <button class="app-btn" id="homeBtn">返回首页</button>
           <button class="app-btn ghost" id="loginTopBtn">登录</button>
+          <button class="app-btn ghost" id="logoutTopBtn">退出登录</button>
         </div>
       </header>
 
@@ -108,6 +109,16 @@
             </span>
             <span class="entry-arrow">›</span>
           </button>
+          <button class="app-btn entry-btn" id="logoutBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5h6v14h-6M11 8l-4 4 4 4M7 12h10" /></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">退出登录</div>
+                <div class="sub">清理本地会话并返回登录页</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
         </div>
         <div class="state-block info app-tip" id="tip">低频能力已统一收敛到“我的”页面。</div>
       </section>
@@ -130,17 +141,33 @@
       </nav>
     </div>
 
-    <script>
+    <script type="module">
+      import { ensureAuthenticatedPage, logoutCurrentSession } from "./auth-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const tip = document.getElementById("tip");
+      const doLogout = async () => {
+        await logoutCurrentSession();
+        window.location.href = "./login.html?from=您已安全退出";
+      };
+
       document.getElementById("homeBtn").addEventListener("click", () => (window.location.href = "./workbench.html"));
       document.getElementById("loginTopBtn").addEventListener("click", () => (window.location.href = "./login.html"));
+      document.getElementById("logoutTopBtn").addEventListener("click", doLogout);
       document.getElementById("deliveryBtn").addEventListener("click", () => (window.location.href = "./delivery-complete.html"));
       document.getElementById("financeBtn").addEventListener("click", () => (window.location.href = "./finance-daily-close.html"));
       document.getElementById("syncBtn").addEventListener("click", () => (window.location.href = "/platform/src/sync-queue.html"));
       document.getElementById("platformBtn").addEventListener("click", () => (window.location.href = "/platform/src/index.html"));
       document.getElementById("loginBtn").addEventListener("click", () => (window.location.href = "./login.html"));
+      document.getElementById("logoutBtn").addEventListener("click", doLogout);
       document.getElementById("navWorkbenchBtn").addEventListener("click", () => (window.location.href = "./workbench.html"));
       document.getElementById("navQuickOrderBtn").addEventListener("click", () => (window.location.href = "./quick-order.html"));
-      document.getElementById("navMyBtn").addEventListener("click", () => (window.location.href = "./my.html"));
+      document.getElementById("navMyBtn").addEventListener("click", () => {
+        tip.textContent = "当前已在“我的”页，可执行退出登录或进入管理入口。";
+      });
     </script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { getCurrentSession } from "./auth-client.js";
+import { authFetchJson } from "./auth-client.js";
 
 const API_BASE_URL = "http://localhost:3100";
 
@@ -20,20 +20,18 @@ function getMockInventoryState(spec) {
 }
 
 function authHeaders() {
-  const session = getCurrentSession();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${session?.accessToken || ""}`,
   };
 }
 
 export async function fetchQuickCustomers() {
   try {
-    const res = await fetch(`${API_BASE_URL}/customers/quick-select`, {
+    const data = await authFetchJson(`${API_BASE_URL}/customers/quick-select`, {
       headers: authHeaders(),
     });
-    const data = await res.json();
     if (data.success) return data;
+    if (data.errorType === "auth") return data;
   } catch (_err) {}
   return { success: true, data: mockCustomers, fromMock: true };
 }
@@ -48,13 +46,13 @@ export function filterQuickCustomers(customers, keyword) {
 
 export async function createQuickCustomer(payload) {
   try {
-    const res = await fetch(`${API_BASE_URL}/customers`, {
+    const data = await authFetchJson(`${API_BASE_URL}/customers`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
     if (data.success) return data;
+    if (data.errorType === "auth") return data;
     return data;
   } catch (_err) {
     const name = String(payload.name || "").trim();
@@ -79,13 +77,13 @@ export async function createQuickCustomer(payload) {
 
 export async function checkInventory(spec, quantity) {
   try {
-    const res = await fetch(`${API_BASE_URL}/inventory/check`, {
+    const data = await authFetchJson(`${API_BASE_URL}/inventory/check`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ spec, quantity }),
     });
-    const data = await res.json();
     if (data.success) return data;
+    if (data.errorType === "auth") return data;
   } catch (_err) {}
   const state = getMockInventoryState(spec);
   return {
@@ -104,30 +102,29 @@ export async function checkInventory(spec, quantity) {
 
 export async function quickCreateOrder(payload) {
   try {
-    const res = await fetch(`${API_BASE_URL}/orders/quick-create`, {
+    const data = await authFetchJson(`${API_BASE_URL}/orders/quick-create`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
     if (data.success) return data;
-    const errorCode = data?.error?.code || "";
-    const errorMessage = data?.error?.message || data?.error || "";
-    if (res.status === 401 || errorCode === "AUTH_401") {
+    if (data.errorType === "auth") {
       return {
         success: false,
         error: "鉴权失败：登录态已失效，请重新登录后再提交",
         errorType: "auth",
       };
     }
-    if (res.status === 400 || errorCode === "VALIDATION_400") {
+    const errorCode = data?.error?.code || data?.error_code || "";
+    const errorMessage = data?.error?.message || data?.error || "";
+    if (errorCode === "VALIDATION_400") {
       return {
         success: false,
         error: `参数失败：${errorMessage || "请检查客户、规格、数量与金额"}`,
         errorType: "validation",
       };
     }
-    if (res.status === 409 || errorCode === "INVENTORY_409_STOCK") {
+    if (errorCode === "INVENTORY_409_STOCK") {
       return {
         success: false,
         error: `参数失败：${errorMessage || "库存不足或冲突，请调整后重试"}`,

@@ -114,7 +114,7 @@
     </main>
 
     <script type="module">
-      import { sendCode, loginByCode, listDevices } from "./auth-client.js";
+      import { getCurrentSession, sendCode, loginByCode, listDevices } from "./auth-client.js";
 
       const phone = document.getElementById("phone");
       const code = document.getElementById("code");
@@ -126,6 +126,13 @@
         tip.className = `tip ${type}`;
         tip.textContent = text;
       };
+
+      const fromMsg = new URLSearchParams(window.location.search).get("from");
+      if (fromMsg) {
+        setTip(fromMsg, "ok");
+      } else if (getCurrentSession()?.accessToken) {
+        setTip("当前已登录，可继续登录以切换账号。");
+      }
 
       sendCodeBtn.addEventListener("click", async () => {
         if (!/^1\d{10}$/.test(phone.value || "")) {

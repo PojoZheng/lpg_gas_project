@@ -1,30 +1,15 @@
-import { getCurrentSession } from "./auth-client.js";
+import { authFetchJson } from "./auth-client.js";
 
 const API_BASE_URL = "http://localhost:3100";
 
 function authHeaders() {
-  const session = getCurrentSession();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${session?.accessToken || ""}`,
   };
 }
 
 async function requestJson(url, options = {}) {
-  try {
-    const res = await fetch(url, options);
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (_err) {
-      data = null;
-    }
-    if (data && typeof data === "object") return data;
-    if (!res.ok) return { success: false, error: `请求失败（HTTP ${res.status}）` };
-    return { success: false, error: "服务返回格式异常，请稍后重试" };
-  } catch (_err) {
-    return { success: false, error: "网络异常，请检查连接后重试" };
-  }
+  return authFetchJson(url, options);
 }
 
 export async function fetchPendingDeliveryOrders() {

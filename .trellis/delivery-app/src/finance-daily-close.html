@@ -86,6 +86,11 @@
         fetchTodayFinanceEntries,
         confirmDailyClose,
       } from "./finance-daily-close-client.js";
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
 
       const backBtn = document.getElementById("backBtn");
       const receivedToday = document.getElementById("receivedToday");
