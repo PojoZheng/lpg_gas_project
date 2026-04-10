@@ -16,6 +16,13 @@
   - `delivery-complete.html`：卡片/按钮/支付按钮/标题统一 token 化。
   - `my.html`：入口标题统一标题字体 token。
 
+## 变更页面
+- `.trellis/delivery-app/src/workbench.html`
+- `.trellis/delivery-app/src/quick-order.html`
+- `.trellis/delivery-app/src/delivery-complete.html`
+- `.trellis/delivery-app/src/my.html`
+- `.trellis/delivery-app/src/delivery-shell.css`
+
 ## 验证
 - `python3 ./.trellis/scripts/task31_app_design_md_refactor.py`
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`

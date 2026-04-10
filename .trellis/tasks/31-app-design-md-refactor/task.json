@@ -1,7 +1,7 @@
 {
   "id": "31-app-design-md-refactor",
   "title": "App 端按 DESIGN.md 的页面重构",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "16-workbench-experience-polish",
     "30-design-token-component-baseline"
