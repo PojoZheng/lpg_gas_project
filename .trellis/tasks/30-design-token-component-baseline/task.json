@@ -1,0 +1,21 @@
+{
+  "id": "30-design-token-component-baseline",
+  "title": "DESIGN.md 设计令牌与组件基线对齐",
+  "status": "todo",
+  "depends_on": [
+    "24-ui-ux-pro-max-redesign",
+    "29-platform-top-menu"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/delivery-app/design-tokens.md",
+    ".trellis/spec/delivery-app/component-library.md"
+  ],
+  "acceptance": [
+    "将 DESIGN.md 中颜色、字体、圆角、间距映射到可复用 token（主色 #4799a0、辅助中性色、Space Grotesk/Inter）",
+    "补齐基础组件规范与样式基线（按钮、卡片、导航、表单、状态提示）并可在 app/web 复用",
+    "图标体系与组件命名统一，避免页面内散落 SVG 与重复样式",
+    "更新 design-tokens 与 component-library 文档，确保规范与实现一致",
+    "自动化测试通过"
+  ]
+}

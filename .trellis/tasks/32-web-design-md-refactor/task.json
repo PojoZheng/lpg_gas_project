@@ -1,0 +1,21 @@
+{
+  "id": "32-web-design-md-refactor",
+  "title": "Web 端按 DESIGN.md 的页面重构",
+  "status": "todo",
+  "depends_on": [
+    "29-platform-top-menu",
+    "30-design-token-component-baseline"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/platform/index.md",
+    ".trellis/spec/platform/domain-data-monitoring/overview.md"
+  ],
+  "acceptance": [
+    "platform/index、platform-monitor、policy-release、sync-queue 统一应用 DESIGN.md 视觉体系与组件规范",
+    "侧栏导航、顶部栏、指标卡、内容卡片使用主色 #4799a0 与统一交互状态，避免黑色品牌偏移",
+    "平台页面保留单入口与清晰回退路径，减少多链接人工记忆成本",
+    "仅重构 UI/交互，不改变平台业务接口契约",
+    "自动化测试通过"
+  ]
+}

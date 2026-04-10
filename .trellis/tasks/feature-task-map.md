@@ -26,6 +26,9 @@
 23. 快速开单提交联调修复
 24. App 底部导航统一收口
 25. Platform 顶部菜单统一收口
+26. DESIGN.md 设计令牌与组件基线对齐
+27. App 端按 DESIGN.md 的页面重构
+28. Web 端按 DESIGN.md 的页面重构
 
 ```mermaid
 flowchart TD
@@ -64,4 +67,10 @@ t26 --> t27
 t16 --> t28[task-28-app-bottom-navigation]
 t25 --> t29[task-29-platform-top-menu]
 t26 --> t29
+t24 --> t30[task-30-design-token-component-baseline]
+t29 --> t30
+t16 --> t31[task-31-app-design-md-refactor]
+t30 --> t31
+t29 --> t32[task-32-web-design-md-refactor]
+t30 --> t32
 ```

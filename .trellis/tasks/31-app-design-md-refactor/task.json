@@ -1,0 +1,21 @@
+{
+  "id": "31-app-design-md-refactor",
+  "title": "App 端按 DESIGN.md 的页面重构",
+  "status": "todo",
+  "depends_on": [
+    "16-workbench-experience-polish",
+    "30-design-token-component-baseline"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/delivery-app/domain-workbench/overview.md",
+    ".trellis/spec/delivery-app/interaction-spec.md"
+  ],
+  "acceptance": [
+    "workbench、quick-order、delivery-complete、my 页面统一使用 DESIGN.md 指定的视觉语言与组件层级",
+    "底部导航保持“首页/客户/我的”语义，图标与状态样式统一并满足 48x48 可触达",
+    "首页主操作与待办信息层级清晰，保留已有业务流程与接口契约",
+    "关键交互状态（加载、失败、空状态）文案统一为中文并可感知",
+    "自动化测试通过"
+  ]
+}
