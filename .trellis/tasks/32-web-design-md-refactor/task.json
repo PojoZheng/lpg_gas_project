@@ -1,7 +1,7 @@
 {
   "id": "32-web-design-md-refactor",
   "title": "Web 端按 DESIGN.md 的页面重构",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "29-platform-top-menu",
     "30-design-token-component-baseline"

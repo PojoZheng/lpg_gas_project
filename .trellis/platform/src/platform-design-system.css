@@ -19,7 +19,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-family: Inter, "PingFang SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .platform-app {
@@ -38,6 +38,7 @@ body {
   font-weight: 700;
   font-size: 18px;
   margin-bottom: 12px;
+  font-family: "Space Grotesk", Inter, "PingFang SC", "Noto Sans SC", sans-serif;
 }
 
 .menu-group {
@@ -67,6 +68,11 @@ body {
   border-color: var(--brand);
 }
 
+.menu-link:active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+
 .divider {
   height: 1px;
   background: var(--border);
@@ -91,6 +97,7 @@ body {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  font-family: "Space Grotesk", Inter, "PingFang SC", "Noto Sans SC", sans-serif;
 }
 
 .top-actions {
@@ -126,6 +133,7 @@ body {
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
+  font-family: "Space Grotesk", Inter, "PingFang SC", "Noto Sans SC", sans-serif;
 }
 
 .metric-note {
@@ -137,7 +145,7 @@ body {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 14px;
   margin-bottom: 12px;
 }
@@ -153,7 +161,7 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   background: #fff;
   height: 40px;
   padding: 0 12px;
@@ -165,6 +173,12 @@ body {
   background: var(--brand);
   color: #fff;
   border-color: var(--brand);
+}
+
+.btn.primary:hover,
+.btn.primary:active {
+  background: #3f8a90;
+  border-color: #3f8a90;
 }
 
 .btn-row {
@@ -181,14 +195,14 @@ body {
 
 .item {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 10px;
   margin-bottom: 8px;
 }
 
 .metric {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 10px;
   color: var(--text-secondary);
   font-size: 13px;
@@ -247,7 +261,7 @@ body {
   width: 100%;
   min-height: 40px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 8px 10px;
   font-size: 14px;
 }
