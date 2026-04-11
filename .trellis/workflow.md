@@ -423,6 +423,7 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
    - For cross-layer features, use `/trellis:check-cross-layer`
    - Develop one task per session **unless** you use [parallel multi-agent](#parallel-multi-agent-optional) (worktrees + clear ownership).
    - Run lint and tests frequently
+   - **Workbench home (`workbench.html` / `workbench-client.js`)**: any commit that changes these files **must** include an edit to `REQUIREMENTS_01_COVERAGE.md` in the **same** diff (see `AGENTS.md` + `verify_workbench_coverage_touch.py`). Use an explicit `N/A` rationale only when truly no doc delta, and get coordinator sign-off.
 
 3. **After development complete**:
    - Use `/trellis:finish-work` for completion checklist

@@ -23,6 +23,12 @@ Keep this managed block so 'trellis update' can refresh the instructions.
 - **开发窗口（04 / 17 / 开发 C 等）**：在 **`feat/<任务或简述>`** 分支上开发，并执行 **`git push origin feat/...`**；或只向集成交付 **patch / 合并顺序说明**，由集成在专用树里合并后再推 `main`。
 - **新会话**：先读本段并确认当前窗口角色；`session_bootstrap` 前后若目录/分支与角色不符，应停下纠正再继续（与下方 Recovery 清单一致）。
 
+## 工作台实现变更与对齐表（PR / 合入硬规则）
+
+- 若同一变更集修改 **`/.trellis/delivery-app/src/workbench.html`** 或 **`/.trellis/delivery-app/src/workbench-client.js`**，须**同时**修改 **`/.trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md`**（至少一行有实质意义，例如 §1、章节对照、§5 或**变更记录**）。
+- 确无文档更新必要时：在 PR 或集成说明中写 **`N/A` 及理由**，由协调者确认后合入；否则 **CI 会失败**（脚本 `verify_workbench_coverage_touch.py`）。
+- 本地自检（相对 `origin/main`）：`python3 ./.trellis/scripts/verify_workbench_coverage_touch.py`
+
 ## Session Recovery Baseline
 
 For any new chat session in this repository, run this recovery checklist before coding:
