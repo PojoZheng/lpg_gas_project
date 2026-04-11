@@ -150,6 +150,185 @@
         white-space: nowrap;
         border: 0;
       }
+      /* 快速开单底部 Sheet（对齐 requirements/01 规格 §1.2） */
+      .action-tile.primary.qo-launch-anim {
+        transform: scale(0.96);
+        transition: transform 150ms ease-out;
+      }
+      .qo-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 75;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .qo-overlay.show {
+        display: flex;
+        pointer-events: auto;
+      }
+      .qo-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(17, 17, 17, 0.35);
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+      }
+      .qo-sheet-wrap {
+        position: relative;
+        width: 100%;
+        max-width: 460px;
+        transform: translateY(100%);
+        transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .qo-overlay.show.qo-sheet-open .qo-sheet-wrap {
+        transform: translateY(0);
+      }
+      .qo-sheet {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card) var(--radius-card) 0 0;
+        padding: var(--space-3);
+        max-height: min(88vh, 640px);
+        overflow: auto;
+        box-shadow: 0 -8px 28px rgba(17, 24, 39, 0.12);
+      }
+      .qo-handle {
+        width: 40px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--border);
+        margin: 0 auto 10px;
+      }
+      .qo-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .qo-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .qo-close {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: var(--radius-button);
+        min-height: 40px;
+        padding: 0 12px;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+      .qo-search {
+        width: 100%;
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        padding: 0 10px;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .qo-list-btn {
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-button);
+        background: #fff;
+        cursor: pointer;
+      }
+      .qo-list-btn.active {
+        border-color: var(--brand);
+        background: #f0f9fa;
+      }
+      .qo-line2 {
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      .qo-links {
+        display: grid;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .qo-link {
+        font-size: 13px;
+        color: var(--brand);
+        text-decoration: none;
+      }
+      .qo-link:hover {
+        text-decoration: underline;
+      }
+      .qo-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .qo-row label {
+        width: 72px;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+      .qo-row input,
+      .qo-row select {
+        flex: 1;
+        min-width: 0;
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        padding: 0 10px;
+        font-size: 14px;
+      }
+      .qo-type-btn {
+        flex: 1;
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-button);
+        background: #fff;
+        cursor: pointer;
+      }
+      .qo-type-btn.active {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+      .qo-step-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-button);
+        background: #fff;
+        cursor: pointer;
+      }
+      .qo-qty {
+        min-width: 52px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+      .qo-empty {
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .qo-tip {
+        margin-top: 8px;
+        font-size: 13px;
+      }
     </style>
   </head>
   <body>
@@ -261,6 +440,81 @@
       </section>
     </main>
 
+    <div class="qo-overlay" id="qoOverlay" aria-hidden="true">
+      <button type="button" class="qo-scrim" id="qoScrim" aria-label="关闭快速开单面板"></button>
+      <div class="qo-sheet-wrap">
+        <div class="qo-sheet" id="qoSheet" role="dialog" aria-modal="true" aria-labelledby="qoTitle">
+          <div class="qo-handle" id="qoHandle" aria-hidden="true"></div>
+          <div class="qo-head">
+            <h2 class="qo-title" id="qoTitle">快速开单</h2>
+            <button type="button" class="qo-close" id="qoCloseBtn">关闭</button>
+          </div>
+          <div id="qoStepPick">
+            <input
+              type="search"
+              class="qo-search app-input"
+              id="qoSearch"
+              placeholder="搜索客户姓名、手机号或地址"
+              autocomplete="off"
+            />
+            <div id="qoCustomerList"></div>
+            <div class="qo-links">
+              <a class="qo-link" id="qoNewCustomerLink" href="./quick-order.html?from=workbench&amp;intent=newCustomer"
+                >添加新客户（跳转完整表单）</a>
+              <a class="qo-link" id="qoFullPageLink" href="./quick-order.html?from=workbench">更多字段与连续开单</a>
+            </div>
+            <button type="button" class="app-btn primary" id="qoNextBtn" style="width: 100%; margin-top: 4px">
+              下一步：确认订单
+            </button>
+          </div>
+          <div id="qoStepConfirm" hidden>
+            <div class="state-block info" id="qoCustomerSummary" style="margin-bottom: 10px"></div>
+            <div class="qo-row">
+              <button type="button" class="qo-type-btn active" data-qo-type="later_delivery">稍后配送</button>
+              <button type="button" class="qo-type-btn" data-qo-type="immediate_complete">当场完成</button>
+            </div>
+            <div class="qo-row" style="justify-content: center">
+              <button type="button" class="qo-step-btn" id="qoMinusBtn">-</button>
+              <div class="qo-qty" id="qoQtyText">1</div>
+              <button type="button" class="qo-step-btn" id="qoPlusBtn">+</button>
+            </div>
+            <div class="qo-row">
+              <label for="qoSpec">规格</label>
+              <select class="app-select" id="qoSpec">
+                <option value="10kg">10kg</option>
+                <option value="15kg" selected>15kg</option>
+                <option value="50kg">50kg</option>
+              </select>
+            </div>
+            <div class="qo-row">
+              <label for="qoPrice">单价</label>
+              <input id="qoPrice" type="number" min="0" step="0.01" value="120" />
+            </div>
+            <div class="qo-row" id="qoPayRow" hidden>
+              <label for="qoPayMethod">收款</label>
+              <select class="app-select" id="qoPayMethod">
+                <option value="cash">现金</option>
+                <option value="wechat">微信收款</option>
+                <option value="alipay">支付宝收款</option>
+                <option value="transfer">转账</option>
+              </select>
+            </div>
+            <div class="qo-row" id="qoReceivedRow" hidden>
+              <label for="qoReceived">实收</label>
+              <input id="qoReceived" type="number" min="0" step="0.01" placeholder="实收金额（元）" />
+            </div>
+            <button type="button" class="app-btn ghost" id="qoBackPickBtn" style="width: 100%; margin-top: 4px">
+              返回选客户
+            </button>
+            <button type="button" class="app-btn primary" id="qoSubmitBtn" style="width: 100%; margin-top: 8px">
+              确认开单
+            </button>
+            <div class="state-block info qo-tip" id="qoTip"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="sync-overlay" id="syncOverlay">
       <div class="sync-sheet">
         <h3 class="sync-title">检测到待同步数据</h3>
@@ -295,6 +549,12 @@
     <script type="module">
       import * as workbenchClient from "./workbench-client.js";
       import * as auth from "./auth-client.js";
+      import {
+        fetchQuickCustomers,
+        filterQuickCustomers,
+        checkInventory,
+        quickCreateOrder,
+      } from "./quick-order-client.js";
 
       if (typeof auth.ensureAuthenticatedPage !== "function") {
         throw new Error(
@@ -341,6 +601,212 @@
       const batchSyncNow =
         workbenchClient.batchSyncNow ||
         (async () => ({ success: false, error: "当前页面资源未完全刷新，请重试" }));
+
+      const QO_PREF_KEY = "quick-order-prefs-v1";
+      const qoOverlay = document.getElementById("qoOverlay");
+      const qoScrim = document.getElementById("qoScrim");
+      const qoSheet = document.getElementById("qoSheet");
+      const qoCloseBtn = document.getElementById("qoCloseBtn");
+      const qoHandle = document.getElementById("qoHandle");
+      const qoStepPick = document.getElementById("qoStepPick");
+      const qoStepConfirm = document.getElementById("qoStepConfirm");
+      const qoSearch = document.getElementById("qoSearch");
+      const qoCustomerList = document.getElementById("qoCustomerList");
+      const qoNextBtn = document.getElementById("qoNextBtn");
+      const qoBackPickBtn = document.getElementById("qoBackPickBtn");
+      const qoSubmitBtn = document.getElementById("qoSubmitBtn");
+      const qoCustomerSummary = document.getElementById("qoCustomerSummary");
+      const qoQtyText = document.getElementById("qoQtyText");
+      const qoMinusBtn = document.getElementById("qoMinusBtn");
+      const qoPlusBtn = document.getElementById("qoPlusBtn");
+      const qoSpec = document.getElementById("qoSpec");
+      const qoPrice = document.getElementById("qoPrice");
+      const qoPayRow = document.getElementById("qoPayRow");
+      const qoReceivedRow = document.getElementById("qoReceivedRow");
+      const qoPayMethod = document.getElementById("qoPayMethod");
+      const qoReceived = document.getElementById("qoReceived");
+      const qoTip = document.getElementById("qoTip");
+      const qoTypeBtns = [...document.querySelectorAll("[data-qo-type]")];
+
+      let qoAllCustomers = [];
+      let qoSelectedId = "";
+      let qoQuantity = 1;
+      let qoOrderType = "later_delivery";
+      let qoSubmitting = false;
+      let qoTouchStartY = 0;
+
+      function qoLoadPrefs() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(QO_PREF_KEY) || "{}");
+          if (parsed.spec) qoSpec.value = parsed.spec;
+          if (parsed.unitPrice != null) qoPrice.value = String(parsed.unitPrice);
+          if (parsed.orderType === "immediate_complete" || parsed.orderType === "later_delivery") {
+            qoOrderType = parsed.orderType;
+          }
+          if (parsed.paymentMethod) qoPayMethod.value = parsed.paymentMethod;
+        } catch (_e) {}
+        qoTypeBtns.forEach((b) => b.classList.toggle("active", b.dataset.qoType === qoOrderType));
+        qoSyncPayFields();
+      }
+
+      function qoSyncPayFields() {
+        const imm = qoOrderType === "immediate_complete";
+        qoPayRow.hidden = !imm;
+        qoReceivedRow.hidden = !imm;
+        if (imm) {
+          const unit = Number(qoPrice.value || 0);
+          const amt = Number((unit * qoQuantity).toFixed(2));
+          if (!qoReceived.value) qoReceived.value = String(amt);
+        }
+      }
+
+      function qoSetTip(text, isError = false) {
+        qoTip.textContent = text;
+        qoTip.className = isError ? "state-block error qo-tip" : "state-block info qo-tip";
+      }
+
+      function qoRenderList(list) {
+        qoCustomerList.innerHTML = "";
+        if (!list.length) {
+          qoCustomerList.innerHTML = '<div class="qo-empty">暂无匹配客户，请调整关键词或前往完整开单页添加。</div>';
+          qoSelectedId = "";
+          return;
+        }
+        list.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "qo-list-btn";
+          btn.dataset.customerId = item.id;
+          btn.innerHTML = `<div>${item.name}（${item.phone}）</div><div class="qo-line2">${item.address}</div>`;
+          btn.addEventListener("click", () => {
+            qoSelectedId = item.id;
+            qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
+            qoSetTip(`已选择：${item.name}`);
+          });
+          qoCustomerList.appendChild(btn);
+        });
+        if (!qoSelectedId && list.length) {
+          qoSelectedId = list[0].id;
+        }
+        [...qoCustomerList.querySelectorAll(".qo-list-btn")].forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.customerId === qoSelectedId);
+        });
+      }
+
+      async function qoLoadCustomers() {
+        qoSetTip("正在加载客户…");
+        const res = await fetchQuickCustomers();
+        qoAllCustomers = res.data || [];
+        qoSelectedId = "";
+        qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
+        qoSetTip(res.fromMock ? "当前使用模拟客户数据。" : "请选择客户后进入确认。");
+      }
+
+      function qoResetToPick() {
+        qoStepPick.hidden = false;
+        qoStepConfirm.hidden = true;
+        qoSearch.value = "";
+        qoQuantity = 1;
+        qoQtyText.textContent = "1";
+        qoLoadPrefs();
+      }
+
+      function openQoSheet() {
+        hideSyncOverlay();
+        qoResetToPick();
+        qoOverlay.classList.add("show");
+        qoOverlay.setAttribute("aria-hidden", "false");
+        void qoOverlay.offsetWidth;
+        requestAnimationFrame(() => {
+          qoOverlay.classList.add("qo-sheet-open");
+        });
+        qoLoadCustomers().then(() => {
+          setTimeout(() => qoSearch.focus(), 280);
+        });
+      }
+
+      function closeQoSheet() {
+        qoOverlay.classList.remove("qo-sheet-open");
+        window.setTimeout(() => {
+          qoOverlay.classList.remove("show");
+          qoOverlay.setAttribute("aria-hidden", "true");
+        }, 250);
+      }
+
+      function qoBuildPayload() {
+        if (!qoSelectedId) {
+          qoSetTip("请先选择客户。", true);
+          return null;
+        }
+        const spec = qoSpec.value;
+        const unitPrice = Number(qoPrice.value || 0);
+        if (unitPrice < 0) {
+          qoSetTip("单价不能为负数。", true);
+          return null;
+        }
+        const amount = Number((unitPrice * qoQuantity).toFixed(2));
+        const payAmount =
+          qoOrderType === "immediate_complete"
+            ? Number(qoReceived.value || amount)
+            : amount;
+        const payload = {
+          customerId: qoSelectedId,
+          orderType: qoOrderType,
+          spec,
+          quantity: qoQuantity,
+          unitPrice,
+          paymentMethod: qoPayMethod.value,
+          receivedAmount: payAmount,
+        };
+        if (qoOrderType === "immediate_complete") {
+          if (!Number.isFinite(payAmount) || payAmount < 0) {
+            qoSetTip("当场完成需填写有效实收金额。", true);
+            return null;
+          }
+          if (payAmount < amount) {
+            qoSetTip("实收金额小于应收金额，请确认后再提交。", true);
+            return null;
+          }
+        }
+        return payload;
+      }
+
+      async function qoSubmit() {
+        const payload = qoBuildPayload();
+        if (!payload || qoSubmitting) return;
+        qoSubmitting = true;
+        qoSubmitBtn.disabled = true;
+        qoSetTip("正在校验库存…");
+        const check = await checkInventory(payload.spec, payload.quantity);
+        if (!check.data?.canCreate) {
+          qoSubmitting = false;
+          qoSubmitBtn.disabled = false;
+          qoSetTip(`库存不足：${payload.spec} 可用 ${check.data?.available ?? 0} 瓶`, true);
+          return;
+        }
+        qoSetTip("正在创建订单…");
+        const result = await quickCreateOrder(payload);
+        qoSubmitting = false;
+        qoSubmitBtn.disabled = false;
+        if (!result.success) {
+          qoSetTip(result.error || "创建失败，请稍后重试。", true);
+          return;
+        }
+        try {
+          const next = {
+            orderType: qoOrderType,
+            spec: qoSpec.value,
+            unitPrice: Number(qoPrice.value || 0),
+            paymentMethod: qoPayMethod.value,
+            rememberDefaults: true,
+          };
+          localStorage.setItem(QO_PREF_KEY, JSON.stringify(next));
+        } catch (_e) {}
+        closeQoSheet();
+        tip.textContent = `开单成功，订单号 ${result.data.orderId}。数据已刷新。`;
+        tip.className = "state-block success";
+        await loadData(true);
+      }
 
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
       const DISMISS_KEY = "workbench-sync-dismiss-until";
@@ -461,7 +927,69 @@
       }
 
       quickOrderBtn.addEventListener("click", () => {
-        window.location.href = "./quick-order.html";
+        quickOrderBtn.classList.add("qo-launch-anim");
+        window.setTimeout(() => {
+          quickOrderBtn.classList.remove("qo-launch-anim");
+          openQoSheet();
+        }, 150);
+      });
+      qoScrim.addEventListener("click", closeQoSheet);
+      qoCloseBtn.addEventListener("click", closeQoSheet);
+      qoHandle.addEventListener("touchstart", (e) => {
+        qoTouchStartY = e.touches[0]?.clientY || 0;
+      });
+      qoHandle.addEventListener("touchend", (e) => {
+        const endY = e.changedTouches[0]?.clientY || 0;
+        if (endY - qoTouchStartY > 72) closeQoSheet();
+      });
+      qoSearch.addEventListener("input", () => {
+        qoSelectedId = "";
+        qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
+      });
+      qoNextBtn.addEventListener("click", () => {
+        if (!qoSelectedId) {
+          qoSetTip("请先选择客户。", true);
+          return;
+        }
+        const c = qoAllCustomers.find((x) => x.id === qoSelectedId);
+        qoCustomerSummary.textContent = c
+          ? `客户：${c.name}｜${c.phone}｜${c.address}`
+          : "已选择客户";
+        qoStepPick.hidden = true;
+        qoStepConfirm.hidden = false;
+        qoLoadPrefs();
+        qoSetTip("确认规格与配送方式后提交。");
+      });
+      qoBackPickBtn.addEventListener("click", () => {
+        qoStepConfirm.hidden = true;
+        qoStepPick.hidden = false;
+        qoSetTip("请继续选择或搜索客户。");
+      });
+      qoMinusBtn.addEventListener("click", () => {
+        qoQuantity = Math.max(1, qoQuantity - 1);
+        qoQtyText.textContent = String(qoQuantity);
+        qoSyncPayFields();
+      });
+      qoPlusBtn.addEventListener("click", () => {
+        qoQuantity = Math.min(99, qoQuantity + 1);
+        qoQtyText.textContent = String(qoQuantity);
+        qoSyncPayFields();
+      });
+      qoSpec.addEventListener("change", qoSyncPayFields);
+      qoPrice.addEventListener("change", qoSyncPayFields);
+      qoTypeBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          qoOrderType = btn.dataset.qoType;
+          qoTypeBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          qoSyncPayFields();
+        });
+      });
+      qoSubmitBtn.addEventListener("click", () => {
+        void qoSubmit();
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && qoOverlay.classList.contains("show")) closeQoSheet();
       });
       deliveryCompleteBtn.addEventListener("click", () => {
         window.location.href = "./delivery-complete.html";

@@ -1,7 +1,7 @@
 {
   "id": "40-order-bottom-sheet-quick-order-from-home",
   "title": "订单域：从工作台以底部面板进入快速开单（对齐 01 规格动线）",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "03-quick-order",
     "17-quick-order-ux-alignment",

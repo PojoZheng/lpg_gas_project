@@ -555,6 +555,11 @@
       });
 
       applyDefaults();
+      const qs = new URLSearchParams(window.location.search);
+      if (qs.get("from") === "workbench" && qs.get("intent") === "newCustomer") {
+        addCustomerOverlay.classList.add("show");
+        setTip("已从工作台跳转，请填写新客户信息后保存。");
+      }
       loadCustomers();
     </script>
   </body>
