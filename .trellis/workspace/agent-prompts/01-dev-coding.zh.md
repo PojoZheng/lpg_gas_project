@@ -28,8 +28,9 @@
 3. 开发边界
 - 只改与当前任务直接相关的文件。
 - 不新增无关重构，不跨任务扩散修改。
-- 允许执行 `git commit`（仅本地分支，用于交付可合并快照），但**禁止** `git push`。
-- 每次提交后，必须在回报里附上 commit hash，供集成 Agent 合并。
+- 允许 **`git commit` + `git push origin feat/...`**，并开 PR 到 `main`（或回报 `pull/new/...` 链接）。
+- **禁止** `git push origin main`（推主线由主仓集成会话完成）。
+- 每次提交后，必须在回报里附上 **commit hash** 与 **PR 链接**（或创建 PR 的说明）。
 
 4. 过程验证
 - 开发中按需执行任务测试：

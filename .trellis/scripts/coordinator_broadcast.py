@@ -167,7 +167,7 @@ def _run_notify(args: argparse.Namespace, id_a: str, id_b: str, id_i: str) -> No
     else:
         body = (
             f"指针: A→{id_a}  B→{id_b}  集成→{id_i}。"
-            " 请到三窗口各发一条: session_bootstrap 后继续。"
+            " 请到三棵辅树开发窗口及主仓（如需）各发一条: session_bootstrap 后继续。"
         )
     exe = Path(__file__).resolve().parent / "notify_local.py"
     subprocess.run(

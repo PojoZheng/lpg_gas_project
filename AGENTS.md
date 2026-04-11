@@ -21,6 +21,8 @@ Keep this managed block so 'trellis update' can refresh the instructions.
 
 - **除「集成」角色使用的 worktree / 窗口外，禁止执行 `git push origin main`。** 其它窗口若发现自己在 `main` 上且准备推送，先停下，改交集成处理。
 - **开发窗口（04 / 17 / 开发 C 等）**：在 **`feat/<任务或简述>`** 分支上开发，并执行 **`git push origin feat/...`**；或只向集成交付 **patch / 合并顺序说明**，由集成在专用树里合并后再推 `main`。
+- **`main` 分支检出（Git 硬限制）**：同一仓库里 **最多只有一个 worktree 能检出本地分支 `main`**。其它 worktree **禁止**再执行 `git checkout main`。要对齐远端主线请用：`git fetch origin` 后 **`git switch --detach origin/main`**，或 **`git switch -c feat/<topic> origin/main`** 从最新远端开功能分支。
+- **合并进 `main` 与 `push origin main`**：默认在 **主仓 worktree**（已检出 `main` 的那棵目录）执行；若「集成 Agent」会话改在 `wt-integrate` 等辅树做编码，**合并不自动迁到辅树**——仍回到主仓完成 merge / push，除非团队书面改约定。
 - **新会话**：先读本段并确认当前窗口角色；`session_bootstrap` 前后若目录/分支与角色不符，应停下纠正再继续（与下方 Recovery 清单一致）。
 
 ## 工作台实现变更与对齐表（PR / 合入硬规则）

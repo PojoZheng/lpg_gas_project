@@ -48,9 +48,9 @@ def _print_kickoff(repo: Path, dev_a_task: str, dev_b_task: str, integrate_task:
     b_label = _task_label(repo, dev_b_task)
     i_label = _task_label(repo, integrate_task)
     print("\n=== COPY FOR CHAT WINDOWS ===")
-    print(f"[开发A] 已下发任务 {a_label}。请按当前 .trellis/.current-task 连续执行到可提交状态（本地 commit，不 push），完成后回报 commit hash。")
-    print(f"[开发B] 已下发任务 {b_label}。请按当前 .trellis/.current-task 连续执行到可提交状态（本地 commit，不 push），完成后回报 commit hash。")
-    print(f"[集成] 当前主验收任务 {i_label}。等待 dev-a/dev-b commit hash；拿到后合并、跑检查、启动预览并回传 URL。")
+    print(f"[开发A] 已下发任务 {a_label}。请按当前 .trellis/.current-task 连续实现 acceptance；**commit + `git push origin feat/...` + 开 PR**；完成后回报 PR 链接或 commit hash。")
+    print(f"[开发B] 已下发任务 {b_label}。请按当前 .trellis/.current-task 连续实现 acceptance；**commit + `git push origin feat/...` + 开 PR**；完成后回报 PR 链接或 commit hash。")
+    print(f"[主仓集成] 当前主验收任务 {i_label}。在**主仓目录**等待 PR / commit；合并进 `main`、跑检查、`start_local_preview.sh` 并回传验收 URL。**禁止**在辅树 `push origin main`。")
     print("=== END COPY ===")
 
 
