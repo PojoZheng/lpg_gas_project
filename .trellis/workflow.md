@@ -293,12 +293,12 @@ Use `/trellis:finish-work` command to run through:
 
 ## Parallel multi-agent (optional)
 
-Use this when you run **two coding agents** plus **one integrator** (merge, full test, release).
+Use this when you run **three coding agents** (A / B / dev C on the third worktree; scripts may call it `integrate`) plus **integrator on the main-repo checkout** (merge, full test, release).
 
 ### Isolation
 
 - Prefer **one git worktree per agent** (separate Cursor windows). Each worktree has its own `.trellis/.current-task` (gitignored), so `auto_test_runner.py` and `pm_review_check.py` resolve the correct task per tree.
-- **Integrator** should use a **dedicated checkout** (main repo or a third worktree) for `git merge` / `rebase` and for `session_finalize.py` (optional commit/push) so git state is not contested with active dev.
+- **Integrator** should use the **main-repo checkout** (the single worktree that holds local branch `main`) for `git merge` / `rebase` and for `session_finalize.py` (optional commit/push), so git state is not contested with active dev worktrees.
 
 ### Roles
 
@@ -309,8 +309,10 @@ Use this when you run **two coding agents** plus **one integrator** (merge, full
 
 ### Git：`main` 归属（本仓库多窗口硬规则）
 
-- **仅集成窗口**可对 `origin/main` 执行 `git push`（或等价地由集成在合并验证通过后推送）。其它窗口 **禁止** `git push origin main`。
-- **开发窗口**只推自己的分支，例如 `feat/task-39-next-card`，或向集成提供 **patch / commit 列表 / 合并顺序**；集成在专用 checkout 上 `merge` / `cherry-pick` 并解决冲突后，再推 `main`。
+- **仅主仓上的集成职责**（常与调度同一会话）可对 `origin/main` 执行 `git push`（合并验证通过后）。**辅树开发窗口** **禁止** `git push origin main`。
+- **开发窗口**推自己的分支，例如 `feat/task-39-next-card`，并 **开 PR**；集成在**主仓** `merge` / `cherry-pick` 并解决冲突后，再推 `main`。
+- **`main` 检出唯一性（Git worktree）**：同一仓库内 **只有一个 worktree 能持有本地分支 `main`**。辅 worktree（如 `wt-04` / `wt-17` / `wt-integrate`）**不要**执行 `git checkout main`；对齐 `origin/main` 请用 `git switch --detach origin/main`，或 `git switch -c feat/<topic> origin/main`。
+- **调度与合并验收可合并到「主仓协调器」会话**：**merge / push `main` 只在主仓目录** 完成。第三辅树 **`wt-integrate` / 总线角色 `integrate` = 开发 C**（编码与 `feat`+PR），**不是**「唯一能写 main 的树」。
 - 跨会话不依赖聊天记忆：**以本段 + 根目录 `AGENTS.md` 中「Git 与多窗口」为准**；新会话先读 `AGENTS.md` 再写代码。
 
 ### `config.yaml` lifecycle hooks vs parallel agents
@@ -423,12 +425,13 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
    - For cross-layer features, use `/trellis:check-cross-layer`
    - Develop one task per session **unless** you use [parallel multi-agent](#parallel-multi-agent-optional) (worktrees + clear ownership).
    - Run lint and tests frequently
+   - **Workbench home (`workbench.html` / `workbench-client.js`)**: any commit that changes these files **must** include an edit to `REQUIREMENTS_01_COVERAGE.md` in the **same** diff (see `AGENTS.md` + `verify_workbench_coverage_touch.py`). Use an explicit `N/A` rationale only when truly no doc delta, and get coordinator sign-off.
 
 3. **After development complete**:
    - Use `/trellis:finish-work` for completion checklist
    - After fix bug, use `/trellis:break-loop` for deep analysis
-   - **Coding agents**: do not run `git commit` / `git push` in-repo; hand off a clean branch or PR.
-   - **Integrator agent** (merge + verify): may commit/push after checks pass, e.g. `python3 ./.trellis/scripts/session_finalize.py --commit-message "..."` (optionally `--push`).
+   - **Coding agents**: commit on **`feat/*`** branches, **`git push origin feat/...`**, open a PR to `main`; **never** `git push origin main`.
+   - **Integrator** (usually **main-repo** session): merge PRs / resolve conflicts, then push `main`; may use `session_finalize.py --commit-message "..."` (optionally `--push`) for integration-only commits after checks pass.
    - Use `add_session.py` to record progress
 
 ### [X] DON'T - Should Not Do
@@ -438,7 +441,7 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
 3. **Don't** develop multiple unrelated tasks **in the same working tree** without coordination (use worktrees + [Parallel multi-agent](#parallel-multi-agent-optional) if you need parallelism)
 4. **Don't** commit code with lint/test errors
 5. **Don't** forget to update spec docs after learning something
-6. [!] **Don't** execute `git commit` as a **coding** agent; **integrator** may commit via `session_finalize.py --commit-message` after checks pass (see [Parallel multi-agent](#parallel-multi-agent-optional))
+6. [!] **Don't** `git push origin main` from a **coding** worktree; **integrator** (main repo) merges PRs and may use `session_finalize.py --commit-message` after checks pass (see [Parallel multi-agent](#parallel-multi-agent-optional))
 
 ---
 

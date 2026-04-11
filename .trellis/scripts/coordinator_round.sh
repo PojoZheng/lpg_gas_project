@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 一轮调度：可选先看主链建议 → 写三处 .current-task → 打印广播 → 可选本机通知。
+# 一轮调度：可选先看主链建议 → 写三处辅树 .current-task（A/B/开发C「integrate」树）→ 打印广播 → 可选本机通知。合并 main 仍在主仓会话。
 # 依赖：已配置 coordinator.env（由 coordinator.env.example 复制）
 #
 # 用法:

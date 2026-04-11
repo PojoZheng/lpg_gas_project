@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Example script: create parallel worktrees for two coding agents + one integrator.
+# Example script: create parallel worktrees for dev A, dev B, and dev C (third tree; bus/scripts name it "integrate", e.g. wt-integrate). Merge to main stays on the main repo worktree.
 # Copy this file to a local script (for example: setup_parallel_worktrees.sh),
 # adjust variables below, then run it from anywhere.
 #

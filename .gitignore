@@ -1,0 +1,13 @@
+# Local runtime / state (shared repo, machine-specific files)
+.trellis/backend/data/
+.trellis/.bus-state-*.json
+.DS_Store
+
+# Per-machine agent / IDE extras (do not commit)
+.agents/
+.claude/skills/
+.continue/
+.kiro/
+.trae/
+skills/
+skills-lock.json
