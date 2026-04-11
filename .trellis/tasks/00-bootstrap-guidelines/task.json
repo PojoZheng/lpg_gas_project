@@ -13,15 +13,15 @@
   "subtasks": [
     {
       "name": "补齐后端规范",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "name": "补齐前端规范",
-      "status": "pending"
+      "status": "deferred"
     },
     {
       "name": "补充示例与反例",
-      "status": "pending"
+      "status": "deferred"
     }
   ],
   "children": [],
@@ -30,6 +30,6 @@
     ".trellis/spec/backend/",
     ".trellis/spec/frontend/"
   ],
-  "notes": "项目初始化阶段任务：统一规范、中文化文档、建立可执行门禁",
+  "notes": "项目初始化阶段任务：统一规范、中文化文档、建立可执行门禁。后端子任务已完成（spec/backend 具备 index 与域/质量指南锚点）。「补齐前端规范」「补充示例与反例」暂缓：relatedFiles 中 spec/frontend 尚未落盘，交付端规范暂以 delivery-app 为主；正反例尚未在各指南中块化沉淀。",
   "meta": {}
 }
