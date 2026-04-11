@@ -18,6 +18,12 @@ export async function fetchPendingDeliveryOrders() {
   });
 }
 
+export async function fetchOrderById(orderId) {
+  return requestJson(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}`, {
+    headers: authHeaders(),
+  });
+}
+
 export async function completeOrder(orderId, payload) {
   return requestJson(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/complete`, {
     method: "POST",

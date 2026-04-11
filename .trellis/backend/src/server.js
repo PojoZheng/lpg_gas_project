@@ -109,6 +109,22 @@ function directConsumeInventory(spec, quantity, orderId) {
   pushInventoryLog("direct_consume", spec, -quantity, 0, orderId);
   return { success: true, inventoryAfter: getInventoryState(spec) };
 }
+
+function returnInventoryToOnHand(spec, quantity, orderId) {
+  const state = getInventoryState(spec);
+  inventoryBySpec[spec].onHand = state.onHand + quantity;
+  pushInventoryLog("modify_return", spec, quantity, 0, orderId);
+  return getInventoryState(spec);
+}
+
+function appendOrderModifyLog(order, changes) {
+  if (!changes || !Object.keys(changes).length) return;
+  if (!Array.isArray(order.modifyLogs)) order.modifyLogs = [];
+  order.modifyLogs.push({ at: Date.now(), changes });
+  if (order.modifyLogs.length > 120) {
+    order.modifyLogs.splice(0, order.modifyLogs.length - 120);
+  }
+}
 const financeEntries = [];
 const dailyCloseRecords = [];
 const customerAccounts = new Map(
@@ -524,6 +540,8 @@ function createQuickOrder(payload) {
     scheduleAt: payload.scheduleAt || "尽快配送",
     inventoryStage: orderType === "later_delivery" ? "locked" : "consumed",
     createdAt: Date.now(),
+    modifyLogs: [],
+    driverNote: "",
   });
   if (orderStatus === "completed") {
     const createdOrder = quickOrders[quickOrders.length - 1];
@@ -1079,6 +1097,7 @@ function completeDeliveryOrder(order, payload) {
   order.lastAction = "complete";
   order.lastActionUndoUntil = Date.now() + 5000;
   order.lastActionSnapshot = prev;
+  order.canModifyUntil = Date.now() + 24 * 60 * 60 * 1000;
   adjustCustomerDebt(order, order.debtRecordedAmount, order.debtRecordedEmptyCount);
   const safetyRecord = ensureSafetyTriggered(order);
   appendFinanceEntry(order, "delivery_complete");
@@ -1126,45 +1145,101 @@ function basicUpdateOrder(order, payload) {
     throw new Error("订单已超过 24 小时可修改时限");
   }
 
+  const changes = {};
+  const snapDebtRecorded = Number(order.debtRecordedAmount || 0);
+  const wasCompleted = order.orderStatus === "completed";
+
   if (payload.scheduleAt !== undefined) {
     const scheduleAt = String(payload.scheduleAt || "").trim();
     if (!scheduleAt) throw new Error("配送时间不能为空");
+    if (order.scheduleAt !== scheduleAt) changes.scheduleAt = { before: order.scheduleAt, after: scheduleAt };
     order.scheduleAt = scheduleAt;
   }
   if (payload.address !== undefined) {
     const address = String(payload.address || "").trim();
     if (!address) throw new Error("配送地址不能为空");
+    if (order.address !== address) changes.address = { before: order.address, after: address };
     order.address = address;
   }
 
   const hasQuantity = payload.quantity !== undefined;
   const hasUnitPrice = payload.unitPrice !== undefined;
-  if (hasQuantity && order.orderStatus === "pending_delivery") {
-    const nextQuantity = Number(payload.quantity);
-    const delta = nextQuantity - Number(order.quantity || 0);
-    if (delta > 0) {
-      const lockResult = lockInventory(order.spec, delta, order.orderId);
-      if (!lockResult.success) throw new Error(lockResult.error);
-    } else if (delta < 0) {
-      releaseLockedInventory(order.spec, Math.abs(delta), order.orderId);
-    }
-  }
 
   if (hasQuantity) {
-    const quantity = Number(payload.quantity);
-    if (!Number.isInteger(quantity) || quantity <= 0) throw new Error("数量必须为正整数");
-    order.quantity = quantity;
+    const nextQuantity = Number(payload.quantity);
+    if (!Number.isInteger(nextQuantity) || nextQuantity <= 0) throw new Error("数量必须为正整数");
+    const delta = nextQuantity - Number(order.quantity || 0);
+    if (order.orderStatus === "pending_delivery") {
+      if (delta > 0) {
+        const lockResult = lockInventory(order.spec, delta, order.orderId);
+        if (!lockResult.success) throw new Error(lockResult.error);
+      } else if (delta < 0) {
+        releaseLockedInventory(order.spec, Math.abs(delta), order.orderId);
+      }
+    } else if (order.orderStatus === "completed" && delta !== 0) {
+      if (delta > 0) {
+        const inv = directConsumeInventory(order.spec, delta, order.orderId);
+        if (!inv.success) throw new Error(inv.error);
+      } else {
+        returnInventoryToOnHand(order.spec, Math.abs(delta), order.orderId);
+      }
+    }
+    if (Number(order.quantity) !== nextQuantity) {
+      changes.quantity = { before: order.quantity, after: nextQuantity };
+    }
+    order.quantity = nextQuantity;
   }
+
   if (hasUnitPrice) {
     const unitPrice = Number(payload.unitPrice);
     if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error("单价不能为负数");
+    if (Number(order.unitPrice) !== unitPrice) {
+      changes.unitPrice = { before: order.unitPrice, after: unitPrice };
+    }
     order.unitPrice = unitPrice;
   }
   if (hasQuantity || hasUnitPrice) {
-    order.amount = Number((Number(order.unitPrice || 0) * Number(order.quantity || 0)).toFixed(2));
+    const nextAmount = Number((Number(order.unitPrice || 0) * Number(order.quantity || 0)).toFixed(2));
+    if (Number(order.amount) !== nextAmount) {
+      changes.amount = { before: order.amount, after: nextAmount };
+    }
+    order.amount = nextAmount;
+  }
+
+  let touchedReceipt = false;
+  if (payload.receivedAmount !== undefined && wasCompleted) {
+    const nextReceived = Number(Number(payload.receivedAmount).toFixed(2));
+    if (!Number.isFinite(nextReceived) || nextReceived < 0) throw new Error("实收金额不合法");
+    if (Number(order.receivedAmount) !== nextReceived) {
+      changes.receivedAmount = { before: order.receivedAmount, after: nextReceived };
+      order.receivedAmount = nextReceived;
+      touchedReceipt = true;
+    }
+  }
+
+  if (payload.driverNote !== undefined) {
+    const note = String(payload.driverNote || "").trim().slice(0, 500);
+    const prevNote = String(order.driverNote || "");
+    if (prevNote !== note) {
+      changes.driverNote = { before: prevNote, after: note };
+      order.driverNote = note;
+    }
+  }
+
+  if (wasCompleted && order.orderStatus === "completed") {
+    const amt = Number(order.amount || 0);
+    const rec = Number(order.receivedAmount || 0);
+    order.paymentStatus = rec <= 0 ? "unpaid" : rec < amt ? "partial_paid" : "paid";
+    const newDebt = Number(Math.max(0, amt - rec).toFixed(2));
+    if (newDebt !== snapDebtRecorded || touchedReceipt || hasQuantity || hasUnitPrice) {
+      adjustCustomerDebt(order, newDebt - snapDebtRecorded, 0);
+      order.debtRecordedAmount = newDebt;
+    }
   }
 
   order.syncStatus = "pending";
+  appendOrderModifyLog(order, changes);
+
   return {
     orderId: order.orderId,
     scheduleAt: order.scheduleAt,
@@ -1172,6 +1247,12 @@ function basicUpdateOrder(order, payload) {
     quantity: order.quantity,
     unitPrice: order.unitPrice,
     amount: order.amount,
+    receivedAmount: order.receivedAmount,
+    paymentStatus: order.paymentStatus,
+    debtRecordedAmount: order.debtRecordedAmount,
+    driverNote: order.driverNote || "",
+    canModifyUntil: order.canModifyUntil,
+    modifyLogs: Array.isArray(order.modifyLogs) ? order.modifyLogs.slice(-20) : [],
   };
 }
 

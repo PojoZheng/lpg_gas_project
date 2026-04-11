@@ -167,6 +167,69 @@
         background: var(--brand-soft);
       }
       .bottom-nav { margin-top: 8px; }
+      .complete-toast {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 24px);
+        max-width: 440px;
+        z-index: 90;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(17, 17, 17, 0.14);
+        padding: 10px 12px;
+      }
+      .complete-toast-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: space-between;
+      }
+      .complete-toast-row span {
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.5;
+        min-width: 0;
+      }
+      .complete-toast-progress {
+        height: 3px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .complete-toast-progress-inner {
+        height: 100%;
+        width: 100%;
+        background: var(--brand);
+        transform-origin: left center;
+        transform: scaleX(1);
+      }
+      .complete-toast-progress-inner.run {
+        animation: dc-toast-progress 5s linear forwards;
+      }
+      @keyframes dc-toast-progress {
+        from {
+          transform: scaleX(1);
+        }
+        to {
+          transform: scaleX(0);
+        }
+      }
+      .modify-log {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        max-height: 160px;
+        overflow: auto;
+      }
+      .modify-log-item {
+        border-bottom: 1px solid var(--border);
+        padding: 6px 0;
+        line-height: 1.45;
+      }
       @media (max-width: 420px) {
         .title { font-size: 20px; }
         .header {
@@ -237,6 +300,18 @@
         <div class="state-block info tip" id="tip" aria-live="polite">请选择订单后执行完单流程。</div>
       </section>
 
+      <section class="app-card card" id="recentCompletedCard" hidden>
+        <h2 class="card-title">上一笔完单（24 小时内可改）</h2>
+        <p class="muted" id="recentCompletedHint"></p>
+        <div class="row"><label>数量</label><input class="app-input" id="postQtyInput" type="number" min="1" step="1" /></div>
+        <div class="row"><label>实收</label><input class="app-input" id="postReceivedInput" type="number" min="0" step="0.01" /></div>
+        <div class="row"><label>备注</label><input class="app-input" id="postNoteInput" placeholder="改单备注（可选）" /></div>
+        <button type="button" class="btn primary" id="postModifySubmitBtn" style="width: 100%; margin-top: 8px">
+          提交修改
+        </button>
+        <div class="modify-log" id="modifyLogList" aria-live="polite"></div>
+      </section>
+
       <section class="app-card card">
         <h2 class="card-title">客户详情与账户摘要</h2>
         <div class="summary" id="accountSummary">请选择订单后查看客户账户摘要。</div>
@@ -279,6 +354,15 @@
         <div class="state-block info tip" id="safetyTip">请按流程补充安检信息并上报。</div>
       </section>
     </main>
+    <div id="completeToast" class="complete-toast" hidden aria-live="polite">
+      <div class="complete-toast-row">
+        <span id="completeToastText"></span>
+        <button type="button" class="btn ghost" id="completeToastUndoBtn">撤销</button>
+      </div>
+      <div class="complete-toast-progress">
+        <div class="complete-toast-progress-inner" id="completeToastBar"></div>
+      </div>
+    </div>
     <div class="dock-wrap" role="region" aria-label="安检操作区">
       <div class="status-line" id="dockStatus" aria-live="polite">就绪：可提交安检上报，失败时可重试，随时可返回工作台</div>
       <div class="dock dock-actions">
@@ -307,6 +391,7 @@
     <script type="module">
       import {
         fetchPendingDeliveryOrders,
+        fetchOrderById,
         completeOrder,
         cancelOrder,
         updateOrder,
@@ -361,10 +446,103 @@
       const navMyBtn = document.getElementById("navMyBtn");
       const safetyChecks = [...document.querySelectorAll(".safety-check")];
       const payBtns = [...document.querySelectorAll(".pay-btn")];
+      const completeToast = document.getElementById("completeToast");
+      const completeToastText = document.getElementById("completeToastText");
+      const completeToastUndoBtn = document.getElementById("completeToastUndoBtn");
+      const completeToastBar = document.getElementById("completeToastBar");
+      const recentCompletedCard = document.getElementById("recentCompletedCard");
+      const recentCompletedHint = document.getElementById("recentCompletedHint");
+      const postQtyInput = document.getElementById("postQtyInput");
+      const postReceivedInput = document.getElementById("postReceivedInput");
+      const postNoteInput = document.getElementById("postNoteInput");
+      const postModifySubmitBtn = document.getElementById("postModifySubmitBtn");
+      const modifyLogList = document.getElementById("modifyLogList");
 
       let selectedOrder = null;
       let paymentMethod = "wechat";
       let currentSafety = null;
+      let lastCompletedOrderId = "";
+      let completeToastTimer = 0;
+
+      function hideCompleteToast() {
+        completeToast.hidden = true;
+        if (completeToastTimer) window.clearTimeout(completeToastTimer);
+        completeToastTimer = 0;
+        completeToastBar.classList.remove("run");
+      }
+
+      function showCompleteToast(orderId) {
+        lastCompletedOrderId = orderId;
+        completeToastText.textContent = "完单成功，5 秒内可撤销；超时后可在下方「上一笔完单」在 24 小时内改单。";
+        completeToast.hidden = false;
+        completeToastBar.classList.remove("run");
+        void completeToastBar.offsetWidth;
+        completeToastBar.classList.add("run");
+        if (completeToastTimer) window.clearTimeout(completeToastTimer);
+        completeToastTimer = window.setTimeout(() => hideCompleteToast(), 5100);
+        void refreshRecentCompletedCard();
+      }
+
+      function renderModifyLogs(logs) {
+        modifyLogList.textContent = "";
+        const list = Array.isArray(logs) ? logs.slice(-8) : [];
+        if (!list.length) {
+          modifyLogList.textContent = "暂无修改记录。";
+          return;
+        }
+        list.forEach((entry) => {
+          const row = document.createElement("div");
+          row.className = "modify-log-item";
+          const t = Number(entry.at || 0);
+          const parts = [];
+          const ch = entry.changes || {};
+          Object.keys(ch).forEach((k) => {
+            const v = ch[k];
+            if (v && typeof v === "object") parts.push(`${k}：${v.before} → ${v.after}`);
+          });
+          row.textContent = `${t ? new Date(t).toLocaleString("zh-CN") : ""} ${parts.join("；")}`;
+          modifyLogList.appendChild(row);
+        });
+      }
+
+      async function refreshRecentCompletedCard() {
+        if (!lastCompletedOrderId) {
+          recentCompletedCard.hidden = true;
+          return;
+        }
+        const res = await fetchOrderById(lastCompletedOrderId);
+        if (!res.success || !res.data) {
+          recentCompletedCard.hidden = true;
+          return;
+        }
+        const o = res.data;
+        const until = Number(o.canModifyUntil || 0);
+        if (o.orderStatus !== "completed" || !until || Date.now() > until) {
+          recentCompletedCard.hidden = true;
+          return;
+        }
+        recentCompletedCard.hidden = false;
+        recentCompletedHint.textContent = `订单 ${o.orderId}，修改截止：${new Date(until).toLocaleString("zh-CN")}`;
+        postQtyInput.value = String(o.quantity || 1);
+        postReceivedInput.value = String(Number(o.receivedAmount || 0).toFixed(2));
+        postNoteInput.value = String(o.driverNote || "");
+        renderModifyLogs(o.modifyLogs);
+      }
+
+      async function submitPostCompleteModify() {
+        if (!lastCompletedOrderId) return setTip("暂无可改的完单。", true);
+        setTip("正在提交改单…");
+        const payload = {
+          quantity: Number(postQtyInput.value || 0),
+          receivedAmount: Number(postReceivedInput.value || 0),
+          driverNote: postNoteInput.value,
+        };
+        const res = await updateOrder(lastCompletedOrderId, payload);
+        if (!res.success) return setTip(res.error || "改单失败", true);
+        setTip("改单已保存。");
+        await loadInventory();
+        await refreshRecentCompletedCard();
+      }
 
       const collectionStatusLabel = {
         none: "未开始",
@@ -585,14 +763,37 @@
           owedEmptyCount: Number(owedInput.value || 0),
         });
         if (!res.success) return setTip(`${res.error || "完单失败"}，请修改后重试`, true);
+        const oid = res.data.orderId || selectedOrder.orderId;
         setTip(
           `完单成功：欠款 ${Number(res.data.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(
             res.data.owedEmptyCount || 0
-          )} 瓶；5 秒内可撤销`
+          )} 瓶。`
         );
+        showCompleteToast(oid);
         await loadOrders();
         await loadInventory();
         await loadSafety();
+      });
+
+      completeToastUndoBtn.addEventListener("click", async () => {
+        if (!lastCompletedOrderId) return;
+        setTip("正在撤销完单…");
+        const res = await undoOrderAction(lastCompletedOrderId);
+        if (!res.success) {
+          setTip(res.error || "撤销失败", true);
+          return;
+        }
+        hideCompleteToast();
+        lastCompletedOrderId = "";
+        recentCompletedCard.hidden = true;
+        setTip("已撤销完单，订单回到待配送，可继续修改。");
+        await loadOrders();
+        await loadInventory();
+        await loadSafety();
+      });
+
+      postModifySubmitBtn.addEventListener("click", () => {
+        void submitPostCompleteModify();
       });
 
       cancelBtn.addEventListener("click", async () => {

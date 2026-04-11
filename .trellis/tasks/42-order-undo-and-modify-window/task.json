@@ -1,7 +1,7 @@
 {
   "id": "42-order-undo-and-modify-window",
   "title": "订单域：成交后短时撤销与窗口内改单（需求 §6）",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "03-quick-order",
     "04-delivery-to-complete",
