@@ -17,6 +17,12 @@ Keep this managed block so 'trellis update' can refresh the instructions.
 
 <!-- TRELLIS:END -->
 
+## Git 与多窗口（团队约定，跨会话以此为准）
+
+- **除「集成」角色使用的 worktree / 窗口外，禁止执行 `git push origin main`。** 其它窗口若发现自己在 `main` 上且准备推送，先停下，改交集成处理。
+- **开发窗口（04 / 17 / 开发 C 等）**：在 **`feat/<任务或简述>`** 分支上开发，并执行 **`git push origin feat/...`**；或只向集成交付 **patch / 合并顺序说明**，由集成在专用树里合并后再推 `main`。
+- **新会话**：先读本段并确认当前窗口角色；`session_bootstrap` 前后若目录/分支与角色不符，应停下纠正再继续（与下方 Recovery 清单一致）。
+
 ## Session Recovery Baseline
 
 For any new chat session in this repository, run this recovery checklist before coding:

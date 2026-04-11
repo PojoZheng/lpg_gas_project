@@ -307,6 +307,12 @@ Use this when you run **two coding agents** plus **one integrator** (merge, full
 | Dev A / B | Implement feature branches; run task-specific smoke tests | `session_bootstrap.py`, `auto_test_runner.py`, `task.py` as needed |
 | Integrator | Merge in agreed order; resolve conflicts; run full checks | `task_conflict_check.py`, `pm_review_check.py` (after merge), `pm_review_check.py --task <id>` if needed, `auto_test_runner.py` with `.current-task` set to integration target, `session_finalize.py` |
 
+### Git：`main` 归属（本仓库多窗口硬规则）
+
+- **仅集成窗口**可对 `origin/main` 执行 `git push`（或等价地由集成在合并验证通过后推送）。其它窗口 **禁止** `git push origin main`。
+- **开发窗口**只推自己的分支，例如 `feat/task-39-next-card`，或向集成提供 **patch / commit 列表 / 合并顺序**；集成在专用 checkout 上 `merge` / `cherry-pick` 并解决冲突后，再推 `main`。
+- 跨会话不依赖聊天记忆：**以本段 + 根目录 `AGENTS.md` 中「Git 与多窗口」为准**；新会话先读 `AGENTS.md` 再写代码。
+
 ### `config.yaml` lifecycle hooks vs parallel agents
 
 Hooks in `.trellis/config.yaml` (`after_create`, `after_start`, `after_finish`) run only when **`task.py`** runs the corresponding lifecycle (`create` / `start` / `finish`). They execute:
