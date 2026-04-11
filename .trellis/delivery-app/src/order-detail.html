@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>订单详情</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(120px + env(safe-area-inset-bottom, 0px)); }
+      .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+      .back-btn { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-button); background: #fff; cursor: pointer; }
+      .title { margin: 0; font-size: 18px; font-weight: 600; font-family: var(--font-title); flex: 1; }
+      .status-badge { padding: 4px 12px; border-radius: 999px; font-size: 12px; }
+      .status-pending { background: #fff7ed; color: #b45309; }
+      .status-completed { background: #f0fdf4; color: #166534; }
+      .status-cancelled { background: #f5f5f5; color: #757575; }
+      .status-returned { background: #fef2f2; color: #c62828; }
+      
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; }
+      .card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; font-family: var(--font-title); }
+      .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+      .info-row:last-child { border-bottom: none; }
+      .info-label { color: var(--text-secondary); font-size: 14px; }
+      .info-value { font-size: 14px; font-weight: 500; }
+      .amount { font-size: 20px; font-weight: 700; color: var(--brand); font-family: var(--font-title); }
+      
+      .bottom-actions { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); display: grid; gap: 10px; }
+      .btn { height: 48px; border-radius: var(--radius-button); border: 1px solid var(--border); background: #fff; cursor: pointer; font-size: 15px; }
+      .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .btn-danger { background: #ef4444; color: #fff; border-color: #ef4444; }
+      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      
+      .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; }
+      .modal.show { display: flex; }
+      .modal-content { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 80vh; overflow-y: auto; }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+      .modal-title { font-size: 18px; font-weight: 600; margin: 0; }
+      .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary); }
+      .form-field { margin-bottom: 16px; }
+      .form-label { display: block; font-size: 14px; margin-bottom: 6px; color: var(--text-secondary); }
+      .form-input, .form-select { width: 100%; height: 48px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 12px; font-size: 15px; }
+      .form-input:focus, .form-select:focus { outline: none; border-color: var(--brand); }
+      .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
+      .checkbox-row input { width: 20px; height: 20px; }
+      .submit-btn { width: 100%; height: 48px; background: var(--brand); color: #fff; border: none; border-radius: var(--radius-button); font-size: 16px; cursor: pointer; margin-top: 8px; }
+      .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      
+      .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; transition: transform 0.3s; z-index: 200; }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page" id="mainPage">
+      <header class="header">
+        <button class="back-btn" id="backBtn">返回</button>
+        <h1 class="title">订单详情</h1>
+        <span id="statusBadge"></span>
+      </header>
+
+      <div class="card">
+        <div class="card-title">客户信息</div>
+        <div class="info-row">
+          <span class="info-label">客户姓名</span>
+          <span class="info-value" id="customerName">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">配送地址</span>
+          <span class="info-value" id="address">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">订单信息</div>
+        <div class="info-row">
+          <span class="info-label">订单编号</span>
+          <span class="info-value" id="orderId">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">气瓶规格</span>
+          <span class="info-value" id="spec">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">配送数量</span>
+          <span class="info-value" id="quantity">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">下单时间</span>
+          <span class="info-value" id="createdAt">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">金额信息</div>
+        <div class="info-row">
+          <span class="info-label">应收金额</span>
+          <span class="info-value" id="amount">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">实收金额</span>
+          <span class="info-value" id="receivedAmount">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">支付方式</span>
+          <span class="info-value" id="paymentMethod">-</span>
+        </div>
+      </div>
+    </main>
+
+    <div class="bottom-actions" id="bottomActions">
+      <button class="btn btn-danger" id="returnBtn" style="display:none;">申请退货</button>
+    </div>
+
+    <div class="modal" id="returnModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">申请退货</h2>
+          <button class="modal-close" id="closeModal">&times;</button>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">退货原因 *</label>
+          <select class="form-select" id="returnReason">
+            <option value="">请选择退货原因</option>
+            <option value="质量问题-阀门漏气">质量问题：阀门漏气</option>
+            <option value="质量问题-瓶身损坏">质量问题：瓶身损坏</option>
+            <option value="客户原因-不需要了">客户原因：不需要了</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">退瓶数量 *</label>
+          <input type="number" class="form-input" id="returnQuantity" min="1" value="1" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">退款金额（元）*</label>
+          <input type="number" class="form-input" id="refundAmount" min="0" step="0.01" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">退款方式 *</label>
+          <select class="form-select" id="refundMethod">
+            <option value="cash">现金退款</option>
+            <option value="original">原路退回</option>
+          </select>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="bottleReturned" />
+          <label for="bottleReturned">已收回气瓶</label>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">备注（选填）</label>
+          <input type="text" class="form-input" id="returnNote" placeholder="请输入备注" />
+        </div>
+
+        <button class="submit-btn" id="submitReturn">确认退货</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { fetchOrderDetail, submitOrderReturn } from "./order-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("orderId");
+
+      if (!orderId) {
+        showToast("订单ID不存在");
+        setTimeout(() => window.location.href = "./order-list.html", 1500);
+        return;
+      }
+
+      let orderData = null;
+
+      function formatDate(timestamp) {
+        if (!timestamp) return "-";
+        const date = new Date(Number(timestamp));
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function formatPaymentMethod(method) {
+        const map = { cash: "现金", wechat: "微信", alipay: "支付宝", transfer: "转账" };
+        return map[method] || method || "-";
+      }
+
+      function formatStatus(status) {
+        const map = {
+          pending_delivery: { text: "待配送", class: "status-pending" },
+          completed: { text: "已完成", class: "status-completed" },
+          cancelled: { text: "已取消", class: "status-cancelled" },
+          returned: { text: "已退货", class: "status-returned" },
+        };
+        return map[status] || { text: status, class: "" };
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      function canReturn(order) {
+        if (order.orderStatus !== "completed") return false;
+        const completedAt = Number(order.completedAt || order.createdAt || 0);
+        const hoursSince = (Date.now() - completedAt) / (60 * 60 * 1000);
+        return hoursSince <= 24;
+      }
+
+      async function loadOrder() {
+        try {
+          const result = await fetchOrderDetail(orderId);
+          if (!result.success) {
+            showToast(result.error || "加载订单失败");
+            return;
+          }
+
+          orderData = result.data;
+          if (!orderData) {
+            showToast("订单不存在");
+            return;
+          }
+
+          document.getElementById("customerName").textContent = orderData.customerName || "-";
+          document.getElementById("address").textContent = orderData.address || "-";
+          document.getElementById("orderId").textContent = orderData.orderId || "-";
+          document.getElementById("spec").textContent = orderData.spec || "-";
+          document.getElementById("quantity").textContent = (orderData.quantity || 0) + "瓶";
+          document.getElementById("createdAt").textContent = formatDate(orderData.createdAt);
+          document.getElementById("amount").textContent = "¥" + (orderData.amount || 0);
+          document.getElementById("receivedAmount").textContent = "¥" + (orderData.receivedAmount || 0);
+          document.getElementById("paymentMethod").textContent = formatPaymentMethod(orderData.paymentMethod);
+
+          const status = formatStatus(orderData.orderStatus);
+          const badge = document.getElementById("statusBadge");
+          badge.className = `status-badge ${status.class}`;
+          badge.textContent = status.text;
+
+          if (canReturn(orderData)) {
+            document.getElementById("returnBtn").style.display = "block";
+            document.getElementById("refundAmount").value = orderData.receivedAmount || orderData.amount || 0;
+            document.getElementById("returnQuantity").max = orderData.quantity || 1;
+          }
+        } catch (err) {
+          showToast(err.message || "加载失败");
+        }
+      }
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./order-list.html";
+      });
+
+      const returnModal = document.getElementById("returnModal");
+      document.getElementById("returnBtn").addEventListener("click", () => {
+        returnModal.classList.add("show");
+      });
+
+      document.getElementById("closeModal").addEventListener("click", () => {
+        returnModal.classList.remove("show");
+      });
+
+      returnModal.addEventListener("click", (e) => {
+        if (e.target === returnModal) returnModal.classList.remove("show");
+      });
+
+      document.getElementById("submitReturn").addEventListener("click", async () => {
+        const reason = document.getElementById("returnReason").value;
+        const quantity = parseInt(document.getElementById("returnQuantity").value);
+        const refundAmount = parseFloat(document.getElementById("refundAmount").value);
+        const refundMethod = document.getElementById("refundMethod").value;
+        const bottleReturned = document.getElementById("bottleReturned").checked;
+        const note = document.getElementById("returnNote").value;
+
+        if (!reason) {
+          showToast("请选择退货原因");
+          return;
+        }
+        if (!bottleReturned) {
+          showToast("请确认已收回气瓶");
+          return;
+        }
+        if (!quantity || quantity < 1) {
+          showToast("退瓶数量必须大于0");
+          return;
+        }
+        if (!Number.isFinite(refundAmount) || refundAmount < 0) {
+          showToast("退款金额不合法");
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitReturn");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "提交中...";
+
+        try {
+          const result = await submitOrderReturn(orderId, {
+            reason,
+            reasonDetail: "",
+            bottleReturned,
+            bottleBarcode: "",
+            refundAmount,
+            refundMethod,
+            note,
+          });
+
+          if (result.success) {
+            showToast("退货申请成功");
+            setTimeout(() => {
+              window.location.href = "./order-list.html";
+            }, 1500);
+          } else {
+            showToast(result.error || "退货失败");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "确认退货";
+          }
+        } catch (err) {
+          showToast(err.message || "提交失败");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "确认退货";
+        }
+      });
+
+      loadOrder();
+    </script>
+  </body>
+</html>

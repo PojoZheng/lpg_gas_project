@@ -1643,6 +1643,12 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, data: createDailyClose(payload) });
     }
 
+    if (req.method === "GET" && pathname === "/orders") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, { success: true, data: quickOrders });
+    }
+
     if (req.method === "GET" && pathname === "/orders/pending-delivery") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
