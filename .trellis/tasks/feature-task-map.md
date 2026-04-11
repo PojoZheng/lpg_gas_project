@@ -24,11 +24,14 @@
 21. 平台前端目录拆分与独立入口
 22. 预览脚本与后端路由模块化收口
 23. 快速开单提交联调修复
-24. App 底部导航统一收口
-25. Platform 顶部菜单统一收口
-26. DESIGN.md 设计令牌与组件基线对齐
-27. App 端按 DESIGN.md 的页面重构
-28. Web 端按 DESIGN.md 的页面重构
+24. App 底部导航统一收口（`task-28-app-bottom-navigation`）
+25. Platform 顶部菜单统一收口（`task-29-platform-top-menu`）
+26. DESIGN.md 设计令牌与组件基线对齐（`task-30-design-token-component-baseline`）
+27. App 端按 DESIGN.md 的页面重构（`task-31-app-design-md-refactor`）
+28. Web 端按 DESIGN.md 的页面重构（`task-32-web-design-md-refactor`）
+29. App 页面结构级布局重构（`task-33-app-layout-overhaul`）
+30. Web 平台页面结构级布局重构（`task-34-platform-layout-overhaul`）
+31. Design System 强化与门禁脚本（`task-35-design-system-hardening`）
 
 ```mermaid
 flowchart TD
@@ -73,4 +76,16 @@ t16 --> t31[task-31-app-design-md-refactor]
 t30 --> t31
 t29 --> t32[task-32-web-design-md-refactor]
 t30 --> t32
+t31 --> t33[task-33-app-layout-overhaul]
+t32 --> t34[task-34-platform-layout-overhaul]
+t30 --> t35[task-35-design-system-hardening]
 ```
+
+补充依赖说明（与上表一致，图内为简化边）：
+
+- `28`：工作台体验后统一 App 底栏；依赖平台拆分后的入口一致性时与 `25` 关联。
+- `29`：`25`、`26` 后为平台顶栏与预览路径收口。
+- `30`：`24`、`29` 后为 DESIGN / token / ui-kit 基线。
+- `31`–`32`：依赖 `30`；`31` 可与 `16` 并行起点按 `task.json` 为准。
+- `33`–`34`：结构级改版，分别依赖 `31` / `32` 的基线落地。
+- `35`：强化 ui-kit 与校验脚本，依赖 `30`。

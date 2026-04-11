@@ -7,6 +7,7 @@
 - [架构总纲](./architecture.md)
 - [产品总览](./product-overview.md)
 - [业务域地图](./domain-map.md)
+- [需求 → Spec → 任务 追溯表](../REQUIREMENTS_TRACEABILITY.md)
 
 ## 适用范围
 - 所有端（delivery-app/platform/backend）都必须遵守本目录约束。

@@ -30,7 +30,10 @@
 | 配置 | [domain-config/overview.md](./domain-config/overview.md) | 业务参数与策略开关 |
 | 系统 | [domain-system/overview.md](./domain-system/overview.md) | 登录认证、同步、消息中心 |
 
-## 来源需求
+## 来源需求与任务索引
+
+- [需求 → Spec → 任务 追溯表](../REQUIREMENTS_TRACEABILITY.md)
+
 - `requirements/01_工作台/*`
 - `requirements/02_订单/*`
 - `requirements/03_客户/*`

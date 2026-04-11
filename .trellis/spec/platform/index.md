@@ -15,7 +15,10 @@
 - 共享字段与状态来自 [../shared/index.md](../shared/index.md)。
 - 架构约束来自 [../master/architecture.md](../master/architecture.md)。
 
-## 来源需求
+## 来源需求与任务索引
+
+- [需求 → Spec → 任务 追溯表](../REQUIREMENTS_TRACEABILITY.md)
+
 - `requirements/07_配置/平台端需求.md`
 - `requirements/07_配置/平台端规格.md`
 - `requirements/00_全局/业务流程.md`
