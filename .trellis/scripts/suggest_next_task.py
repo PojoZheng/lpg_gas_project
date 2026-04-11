@@ -95,6 +95,19 @@ def classify(tid: str) -> str:
     return "other"
 
 
+def ready_todo_ids(tasks: Dict[str, dict]) -> List[str]:
+    """All tasks with status=todo and depends_on fully completed, stable order."""
+    out: List[str] = []
+    for tid, raw in tasks.items():
+        if raw.get("status", "") != "todo":
+            continue
+        if not deps_satisfied(tid, tasks):
+            continue
+        out.append(tid)
+    out.sort(key=lambda x: (parse_number(x), x))
+    return out
+
+
 def analyze(tasks: Dict[str, dict]) -> dict:
     ready_main: List[str] = []
     for tid in MAIN_CHAIN_IDS:
@@ -129,6 +142,9 @@ def analyze(tasks: Dict[str, dict]) -> dict:
 
     core_open = [tid for tid, raw in tasks.items() if 3 <= parse_number(tid) <= 4 and not is_done(raw)]
 
+    ready_todos = ready_todo_ids(tasks)
+    suggested_next_todo = ready_todos[0] if ready_todos else None
+
     return {
         "recommended_main_next": recommended,
         "ready_main_parallel": ready_main,
@@ -136,9 +152,12 @@ def analyze(tasks: Dict[str, dict]) -> dict:
         "first_incomplete_main_blockers": first_blockers,
         "ready_side_parallel": ready_side,
         "core_chain_open_ids": sorted(core_open),
+        "ready_todos": ready_todos,
+        "suggested_next_todo": suggested_next_todo,
         "notes": (
             "recommended_main_next 取 ready_main_parallel 中在主链顺序里的第一个；"
             "并行开发请从 ready_main_parallel 拆给 A/B。"
+            "suggested_next_todo 为全库 status=todo 且依赖已满足者中编号最小的一个。"
         ),
     }
 
@@ -148,6 +167,18 @@ def print_human(payload: dict, tasks: Dict[str, dict]) -> None:
     ready = payload["ready_main_parallel"]
     first = payload["first_incomplete_main"]
     blockers = payload["first_incomplete_main_blockers"]
+    next_todo = payload.get("suggested_next_todo")
+    ready_todos = payload.get("ready_todos") or []
+
+    print("[suggest-next-task] 全库 todo（status=todo 且 depends_on 已全部完成）")
+    if next_todo:
+        t = tasks[next_todo]
+        print(f"  建议下一 todo: {next_todo} — {t.get('title', t.get('name', ''))}")
+        print(f"  目录: {rel_task_path(next_todo)}")
+        if len(ready_todos) > 1:
+            print(f"  同条件可选项（共 {len(ready_todos)} 个）: {', '.join(ready_todos[:8])}{'…' if len(ready_todos) > 8 else ''}")
+    else:
+        print("  建议下一 todo: (无 — 没有依赖已满足的 todo，或任务数据缺失)")
 
     print("[suggest-next-task] 主链（按 feature-task-map 顺序，依赖来自各 task.json）")
     if rec:
