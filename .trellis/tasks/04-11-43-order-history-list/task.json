@@ -1,0 +1,44 @@
+{
+  "id": "43-order-history-list",
+  "name": "43-order-history-list",
+  "title": "订单域：历史订单列表页（需求 §3）",
+  "description": "实现历史订单列表页，包含状态筛选标签（全部/待配送/已完成/已取消）、搜索功能（客户/地址/订单号）、订单列表项展示（客户姓名、地址、规格数量、金额、状态、时间）、操作按钮（送达收款/查看详情）。参考需求文档 requirements/02_订单/需求.md §3",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P1",
+  "creator": "dev-a",
+  "assignee": "dev-a",
+  "createdAt": "2026-04-11",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feat/task-43-customer-list",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
