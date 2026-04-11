@@ -168,6 +168,10 @@ python3 ./.trellis/scripts/session_bootstrap.py
 # Optional: task flow guard only (status/dependency/completion consistency)
 python3 ./.trellis/scripts/task_flow_guard.py
 
+# App/Web 模块与跨端口 import 静态校验（工作台若报「无导出」多为缓存，先跑此脚本再强刷）
+python3 ./.trellis/scripts/verify_runtime_auth_exports.py
+python3 ./.trellis/scripts/verify_two_entry_runtime.py
+
 # Optional: generate next-session handoff package
 python3 ./.trellis/scripts/session_finalize.py
 

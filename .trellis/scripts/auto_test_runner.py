@@ -76,6 +76,14 @@ def default_commands() -> List[str]:
         except Exception:
             pass
 
+    # App/Web 双入口静态校验（轻量，避免跨端口错误 import）
+    verify_auth = PROJECT_ROOT / ".trellis" / "scripts" / "verify_runtime_auth_exports.py"
+    verify_two = PROJECT_ROOT / ".trellis" / "scripts" / "verify_two_entry_runtime.py"
+    if verify_auth.is_file():
+        commands.append(f'python3 "{verify_auth}"')
+    if verify_two.is_file():
+        commands.append(f'python3 "{verify_two}"')
+
     return commands
 
 

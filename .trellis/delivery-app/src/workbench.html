@@ -169,9 +169,14 @@
 
     <script type="module">
       import * as workbenchClient from "./workbench-client.js";
-      import { ensureAuthenticatedPage, logoutCurrentSession } from "./auth-client.js";
+      import * as auth from "./auth-client.js";
 
-      if (!ensureAuthenticatedPage()) {
+      if (typeof auth.ensureAuthenticatedPage !== "function") {
+        throw new Error(
+          "认证模块未加载完整（多为缓存旧文件）。请重启本地预览后使用 Cmd+Shift+R 强刷。"
+        );
+      }
+      if (!auth.ensureAuthenticatedPage()) {
         throw new Error("未登录");
       }
 
@@ -337,7 +342,7 @@
         window.location.href = "./login.html";
       });
       logoutBtn.addEventListener("click", async () => {
-        await logoutCurrentSession();
+        await auth.logoutCurrentSession();
         window.location.href = "./login.html?from=您已退出登录";
       });
       syncQueueEntryBtn.addEventListener("click", () => {

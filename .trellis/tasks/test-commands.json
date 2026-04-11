@@ -36,5 +36,9 @@
   ],
   "33-app-layout-overhaul": [
     "python3 \".trellis/scripts/task33_app_layout_overhaul.py\""
+  ],
+  "runtime-auth-two-entry": [
+    "python3 \".trellis/scripts/verify_runtime_auth_exports.py\"",
+    "python3 \".trellis/scripts/verify_two_entry_runtime.py\""
   ]
 }

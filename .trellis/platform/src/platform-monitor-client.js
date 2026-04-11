@@ -1,4 +1,4 @@
-import { getCurrentSession } from "/delivery-app/src/auth-client.js";
+import { getCurrentSession } from "./platform-auth.js";
 
 const API_BASE_URL = "http://localhost:3100";
 
