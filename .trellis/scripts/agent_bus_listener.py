@@ -15,6 +15,7 @@ from bus_common import get_bus_dir, read_json, repo_root_from_script, utc_now, w
 from common.paths import set_current_task
 
 
+# "integrate" = dev C (third worktree, e.g. wt-integrate). Merge/push main is on the main repo session, not this role.
 VALID_ROLES = {'dev-a', 'dev-b', 'integrate'}
 
 

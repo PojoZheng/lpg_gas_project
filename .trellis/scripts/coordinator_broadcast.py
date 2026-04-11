@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Coordinator broadcast: format one-liners for dev A/B + integrator, optionally write .current-task.
+Coordinator broadcast: format one-liners for dev A, dev B, and dev C (third tree).
 
-Typical env (see setup_parallel_worktrees.example.sh):
-  TRELLIS_WT_DEV_A, TRELLIS_WT_DEV_B, TRELLIS_WT_INTEGRATE — absolute paths to worktree roots.
+Flags/env still use the name "integrate" for the third worktree (dev C), e.g. TRELLIS_WT_INTEGRATE -> wt-integrate.
+Merge/push main and preview URLs are done in the main-repo integrator session, not via this script's third line.
 """
 from __future__ import annotations
 
@@ -89,9 +89,10 @@ def emit(args: argparse.Namespace) -> int:
 
     acc_a = meta_a.get("acceptance") or []
     acc_b = meta_b.get("acceptance") or []
+    acc_i = meta_i.get("acceptance") or []
     goal_a = acc_a[0] if acc_a else "完成本轮验收项"
     goal_b = acc_b[0] if acc_b else "完成本轮验收项"
-    goal_i = "合并后 bash ./.trellis/scripts/start_local_preview.sh，再给出可点击验收 URL"
+    goal_i = acc_i[0] if acc_i else "完成本轮验收项"
 
     lines = [
         "=== 协调器广播（粘贴到各窗口首条或接力消息）===",
@@ -114,11 +115,11 @@ def emit(args: argparse.Namespace) -> int:
             f"本轮目标: {goal_b}",
         ),
         one_liner(
-            "集成",
+            "开发C(integrate)",
             it,
             id_i,
             title_i,
-            "P1",
+            priority_label(id_i),
             blocks_main_chain_hint(id_i, st_i),
             goal_i,
         ),
@@ -166,7 +167,7 @@ def _run_notify(args: argparse.Namespace, id_a: str, id_b: str, id_i: str) -> No
         body = custom
     else:
         body = (
-            f"指针: A→{id_a}  B→{id_b}  集成→{id_i}。"
+            f"指针: A→{id_a}  B→{id_b}  C(integrate)→{id_i}。"
             " 请到三棵辅树开发窗口及主仓（如需）各发一条: session_bootstrap 后继续。"
         )
     exe = Path(__file__).resolve().parent / "notify_local.py"
@@ -188,7 +189,11 @@ def main() -> int:
     parser.add_argument("--integrate-task", required=True)
     parser.add_argument("--write-dev-a", default="", help="Absolute path to dev A worktree root.")
     parser.add_argument("--write-dev-b", default="", help="Absolute path to dev B worktree root.")
-    parser.add_argument("--write-integrate", default="", help="Absolute path to integrator worktree root.")
+    parser.add_argument(
+        "--write-integrate",
+        default="",
+        help="Absolute path to dev C worktree root (third tree; bus role 'integrate', e.g. wt-integrate).",
+    )
     parser.add_argument(
         "--notify",
         action="store_true",

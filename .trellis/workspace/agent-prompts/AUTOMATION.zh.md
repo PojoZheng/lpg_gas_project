@@ -47,20 +47,20 @@ COORDINATOR_NOTIFY=0 bash .trellis/scripts/coordinator_round.sh
 
 ## 本机消息总线（可选，减少四窗口来回）
 
-你可以让**三棵辅树**上的开发窗口运行监听器；**若**仍使用 `--role integrate` 的监听，**必须在主仓目录**运行（与「合并只在主仓」一致）：
+你可以让**三棵辅树**上的开发窗口各跑对应监听器；**`--role integrate` 在第三辅树（开发 C，常 `wt-integrate`）目录执行**——与脚本命名一致（**integrate = 开发 C**）。**合并 `main` 仍在主仓会话人工完成**，主仓一般**不**跑 `integrate` 总线监听。
 
 1) 协调器下发（主仓库）：
 ```bash
 python3 ./.trellis/scripts/coordinator_bus_dispatch.py   --dev-a-task .trellis/tasks/07-safety-trigger-report   --dev-b-task .trellis/tasks/08-finance-posting-daily-close   --integrate-task .trellis/tasks/07-safety-trigger-report   --notify
 ```
 
-2) 监听（`agent_bus_listener` 当前仅有 `dev-a` / `dev-b` / `integrate` 三角色；**开发 C 无总线角色**，靠协调器广播 + 手动粘贴 `SESSION_KICKOFF`；**`integrate` 仅在主仓目录**运行）：
+2) 监听（`dev-a` / `dev-b` / **`integrate`（= 开发 C，第三辅树）**）：
 ```bash
 # 开发 A（在 wt-04 等辅树目录执行）
 python3 ./.trellis/scripts/agent_bus_listener.py --role dev-a --watch --run-bootstrap
 # 开发 B（在 wt-17 等辅树目录执行）
 python3 ./.trellis/scripts/agent_bus_listener.py --role dev-b --watch --run-bootstrap
-# 集成（仅在主仓目录执行，与合并职责一致）
+# 开发 C（在 wt-integrate 等第三辅树目录执行；总线角色名为 integrate）
 python3 ./.trellis/scripts/agent_bus_listener.py --role integrate --watch --run-bootstrap
 ```
 

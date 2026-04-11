@@ -5,7 +5,7 @@
 ## 文件说明
 
 - `AUTOMATION.zh.md`：**协调器本机自动化**（`coordinator_round.sh`、`coordinator.env`、与 CI 的分工）。
-- `SESSION_KICKOFF.zh.md`：三棵辅树 **开发 A / B / C** 的首条消息模板，外加 **主仓「调度 + 集成」** 一节。
+- `SESSION_KICKOFF.zh.md`：三棵辅树 **开发 A / B / C** 的首条消息模板（**C = 脚本里的 `integrate` 辅树**），外加 **主仓「调度 + 合并验收（02）」** 一节。
 - `00-unattended-runbook.zh.md`：三开发窗口 + 主仓少打扰、仅卡住时人工介入的约定（与协调器单点沟通时阅读）。
 - `01-dev-coding.zh.md`：开发 Agent（编码）提示词。
 - `02-integrator.zh.md`：集成 Agent（合并、验证、发布）提示词。
@@ -16,7 +16,7 @@
 - `worktree A` -> 开发 Agent A（例如 `04-delivery-to-complete`）
 - `worktree B` -> 开发 Agent B（例如 `17-quick-order-ux-alignment`）
 - **合并 / 推 `main`**：默认在 **已检出 `main` 的主仓 worktree** 的「集成」会话中完成（Git 规定全库只能有一棵检出 `main`）。
-- `wt-integrate`（或其它辅树）-> 可作 **开发 C** 或工具脚本；**不**因此自动承担写 `main`，除非主仓不可用且团队另有约定。
+- `TRELLIS_WT_INTEGRATE` / `wt-integrate` -> **开发 C**（总线角色名 **`integrate`**，与「集成合并」不是同一窗口）；**写 `main` 只在主仓**。
 - 任意独立会话 -> **调度**（可与主仓「集成」由同一人/同一会话承担，但文档上仍区分职责：调度=排期广播，集成=合并与验收链接）
 
 ## 最小操作规则

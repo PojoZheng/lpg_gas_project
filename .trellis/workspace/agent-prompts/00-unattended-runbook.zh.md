@@ -11,7 +11,7 @@
 
 1. **模式**：该窗口固定为 **Agent（可执行）**，不要用纯问答。
 2. **提示词**：
-   - **三棵辅 worktree**（开发 A/B/C）：各贴 `01-dev-coding.zh.md`（含 **0.1 自动化续跑**）；按 `commit` + `git push origin feat/...` + **开 PR**，**禁止** `git push origin main`。
+   - **三棵辅 worktree**（开发 A/B/**C**；第三棵即 **`integrate` 命名树**，与开发 C 同义）：各贴 `01-dev-coding.zh.md`（含 **0.1 自动化续跑**）；按 `commit` + `git push origin feat/...` + **开 PR**，**禁止** `git push origin main`。
    - **主仓**（调度 + 集成）：同一会话参考 `03-dispatcher.zh.md` 与 `02-integrator.zh.md`；合并与预览按集成提示词执行。
 3. **批准策略**（减少停住等你点）：在 Cursor 设置里对**本仓库**使用「自动跑终端 / 少确认」一类选项（以你本机 Cursor 版本为准），避免每一步都弹确认。
 4. **一条总指令**（每个窗口在贴完角色提示词后可加一次，不必每轮重复）：

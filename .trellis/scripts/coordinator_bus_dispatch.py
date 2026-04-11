@@ -50,12 +50,14 @@ def _print_kickoff(repo: Path, dev_a_task: str, dev_b_task: str, integrate_task:
     print("\n=== COPY FOR CHAT WINDOWS ===")
     print(f"[开发A] 已下发任务 {a_label}。请按当前 .trellis/.current-task 连续实现 acceptance；**commit + `git push origin feat/...` + 开 PR**；完成后回报 PR 链接或 commit hash。")
     print(f"[开发B] 已下发任务 {b_label}。请按当前 .trellis/.current-task 连续实现 acceptance；**commit + `git push origin feat/...` + 开 PR**；完成后回报 PR 链接或 commit hash。")
-    print(f"[主仓集成] 当前主验收任务 {i_label}。在**主仓目录**等待 PR / commit；合并进 `main`、跑检查、`start_local_preview.sh` 并回传验收 URL。**禁止**在辅树 `push origin main`。")
+    print(f"[开发C/integrate] 已下发任务 {i_label}。请按当前 .trellis/.current-task 连续实现 acceptance；**commit + `git push origin feat/...` + 开 PR**；完成后回报 PR 链接或 commit hash。（合并 `main` 由主仓会话处理，本树**禁止** `push origin main`）。")
     print("=== END COPY ===")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description='Dispatch tasks to local bus inbox for dev-a/dev-b/integrate')
+    parser = argparse.ArgumentParser(
+        description='Dispatch tasks to bus inbox: dev-a, dev-b, integrate (= dev C third worktree).'
+    )
     parser.add_argument('--dev-a-task', required=True)
     parser.add_argument('--dev-b-task', required=True)
     parser.add_argument('--integrate-task', required=True)

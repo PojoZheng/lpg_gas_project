@@ -2,8 +2,8 @@
 
 **约定（以此为准）**：
 
-- **三个 Cursor 执行窗口** = 开发 A、开发 B、开发 C（各在**自己的 git worktree**根目录打开）。
-- **合并 PR、`push origin main`、跑 `start_local_preview.sh`、给验收 URL** = 在**主仓**（全库**唯一**检出本地分支 `main` 的那棵目录）的**协调器 + 集成**会话中完成；**不再**要求「第三窗 = 集成专用 wt-integrate」。
+- **三个 Cursor 执行窗口** = 开发 A、开发 B、**开发 C**（各在**自己的 git worktree**根目录打开）。其中第三棵辅树在脚本与总线里常写作 **`integrate`（`--integrate-task`、`TRELLIS_WT_INTEGRATE`、`--role integrate`）——与「开发 C」同义**，不是「在主仓跑 integrate 监听」。
+- **合并 PR、`push origin main`、跑 `start_local_preview.sh`、给验收 URL** = 在**主仓**（全库**唯一**检出本地分支 `main` 的那棵目录）的**协调器 + 集成（`02-integrator`）**会话中完成。
 - 辅 worktree **禁止** `git checkout main`；对齐主线用 `git switch --detach origin/main` 或 `git switch -c feat/<topic> origin/main`（见根目录 `AGENTS.md`）。
 
 **使用方式**：协调器跑完 `coordinator_round.sh`（或写好各树 `.current-task`）后，在**对应 worktree 根目录**打开 Cursor，将**与你角色匹配**的整段复制为**该窗口第一条用户消息**（可删去括号说明）。
@@ -38,9 +38,9 @@
 
 ---
 
-## 窗口 3：开发 C（例如 wt-integrate）
+## 窗口 3：开发 C = integrate（例如 wt-integrate）
 
-你是我的开发 Agent（开发 C）。工作区必须打开为**本 git worktree 的仓库根目录**（常为 `wt-integrate` 或其它第三棵辅树）。
+你是我的开发 Agent（**开发 C**；本仓库总线与脚本里第三角色名为 **`integrate`**）。工作区必须打开为**本 git worktree 的仓库根目录**（常为 `wt-integrate` 或其它第三棵辅树）。
 
 请严格遵循 `.trellis/workspace/agent-prompts/01-dev-coding.zh.md`（含第 0、0.1 节）：先执行恢复步骤，再按 `.trellis/.current-task` 实现 acceptance；**本窗口不承担合并进 `main` 与 `push origin main`**（由主仓协调器+集成会话处理）。
 

@@ -293,7 +293,7 @@ Use `/trellis:finish-work` command to run through:
 
 ## Parallel multi-agent (optional)
 
-Use this when you run **two coding agents** plus **one integrator** (merge, full test, release).
+Use this when you run **three coding agents** (A / B / dev C on the third worktree; scripts may call it `integrate`) plus **integrator on the main-repo checkout** (merge, full test, release).
 
 ### Isolation
 
@@ -312,7 +312,7 @@ Use this when you run **two coding agents** plus **one integrator** (merge, full
 - **仅主仓上的集成职责**（常与调度同一会话）可对 `origin/main` 执行 `git push`（合并验证通过后）。**辅树开发窗口** **禁止** `git push origin main`。
 - **开发窗口**推自己的分支，例如 `feat/task-39-next-card`，并 **开 PR**；集成在**主仓** `merge` / `cherry-pick` 并解决冲突后，再推 `main`。
 - **`main` 检出唯一性（Git worktree）**：同一仓库内 **只有一个 worktree 能持有本地分支 `main`**。辅 worktree（如 `wt-04` / `wt-17` / `wt-integrate`）**不要**执行 `git checkout main`；对齐 `origin/main` 请用 `git switch --detach origin/main`，或 `git switch -c feat/<topic> origin/main`。
-- **调度与集成可合并到「主仓协调器」会话**：此时 **merge / push `main` 仍在主仓目录** 完成；原 `wt-integrate` 若主要承担开发 C 编码，不默认视为「唯一能写 main 的树」，除非团队改约定并更新本段。
+- **调度与合并验收可合并到「主仓协调器」会话**：**merge / push `main` 只在主仓目录** 完成。第三辅树 **`wt-integrate` / 总线角色 `integrate` = 开发 C**（编码与 `feat`+PR），**不是**「唯一能写 main 的树」。
 - 跨会话不依赖聊天记忆：**以本段 + 根目录 `AGENTS.md` 中「Git 与多窗口」为准**；新会话先读 `AGENTS.md` 再写代码。
 
 ### `config.yaml` lifecycle hooks vs parallel agents
