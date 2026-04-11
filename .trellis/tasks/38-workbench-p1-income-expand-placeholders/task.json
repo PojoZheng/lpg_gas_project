@@ -1,7 +1,7 @@
 {
   "id": "38-workbench-p1-income-expand-placeholders",
   "title": "工作台 P1：收入卡展开态 + 毛利与趋势占位",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "37-workbench-p0-view-all-pending",
     "31-app-design-md-refactor"
