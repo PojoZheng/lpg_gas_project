@@ -10,6 +10,9 @@
 # Ralph Loop state file
 .ralph-state.json
 
+# Local coordinator bus listener state (per worktree)
+.bus-state-*.json
+
 # Agent runtime files
 .agents/
 .agent-log
