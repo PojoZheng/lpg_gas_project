@@ -7,7 +7,7 @@ from pathlib import Path
 from bus_common import get_bus_dir, repo_root_from_script, utc_now, write_json_atomic
 
 
-VALID_ROLES = {'dev-a', 'dev-b', 'integrate'}
+VALID_ROLES = {'dev-a', 'dev-b', 'integrate'}  # integrate = dev C (third worktree)
 
 
 def main() -> int:

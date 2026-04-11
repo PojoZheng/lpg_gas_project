@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Summarize bus acks/reports for dev-a, dev-b, integrate (integrate = dev C)."""
 from __future__ import annotations
 
 import json

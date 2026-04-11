@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -27,6 +29,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Workbench home changes require coverage doc (pull_request)
+        if: github.event_name == 'pull_request'
+        run: python3 ./.trellis/scripts/verify_workbench_coverage_touch.py
+        env:
+          GITHUB_EVENT_NAME: pull_request
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+      - name: Workbench home changes require coverage doc (push)
+        if: github.event_name == 'push'
+        run: python3 ./.trellis/scripts/verify_workbench_coverage_touch.py
+        env:
+          GITHUB_EVENT_NAME: push
+          GIT_BEFORE: ${{ github.event.before }}
+          GIT_AFTER: ${{ github.sha }}
 
       - name: Task conflict check
         run: python3 ./.trellis/scripts/task_conflict_check.py
