@@ -1,7 +1,7 @@
 {
   "id": "41-order-continuous-quick-order-mode",
   "title": "订单域：连续开单模式（需求 §5）",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "40-order-bottom-sheet-quick-order-from-home",
     "03-quick-order"

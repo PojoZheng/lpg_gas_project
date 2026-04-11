@@ -81,6 +81,44 @@
         font-size: 14px;
         margin-bottom: 8px;
       }
+      .continuous-banner {
+        display: none;
+        margin-bottom: var(--space-3);
+        padding: 12px 14px;
+        border-radius: var(--radius-card);
+        border: 1px solid #d6e8ea;
+        background: var(--brand-soft);
+      }
+      .continuous-banner.show {
+        display: block;
+      }
+      .continuous-banner-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .continuous-banner-title {
+        font-size: 15px;
+        font-weight: 700;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+      }
+      .continuous-exit-btn {
+        min-height: 44px;
+        padding: 0 14px;
+        font-size: 14px;
+      }
+      .continuous-line {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--text-primary);
+        line-height: 1.45;
+      }
+      .continuous-muted { color: var(--text-secondary); font-size: 13px; }
+      .continuous-next { margin-top: 8px; font-weight: 600; color: #1f6f76; }
     </style>
   </head>
   <body>
@@ -91,6 +129,24 @@
         <button class="back-btn" id="backBtn">返回首页</button>
         <button class="login-mini-btn" id="loginBtn">登录</button>
       </header>
+
+      <div
+        id="continuousBanner"
+        class="continuous-banner"
+        role="region"
+        aria-label="连续开单进度"
+        aria-hidden="true"
+      >
+        <div class="continuous-banner-head">
+          <span class="continuous-banner-title">连续开单中</span>
+          <button type="button" class="app-btn ghost continuous-exit-btn" id="exitContinuousBtn">
+            退出连续模式
+          </button>
+        </div>
+        <p class="continuous-line" id="continuousLastSummary"></p>
+        <p class="continuous-line continuous-muted" id="continuousTodayStats"></p>
+        <p class="continuous-line continuous-next">下一单：请选择客户（上一单客户不会自动保留）</p>
+      </div>
 
       <section class="app-card card">
         <h2 class="card-title">选择客户</h2>
@@ -124,10 +180,13 @@
         <div class="switch-row">
           <div>
             <div class="switch-label">连续开单模式</div>
-            <div class="switch-desc">开单成功后保留客户与常用配置</div>
+            <div class="switch-desc">成功后保留收款方式、配送方式、规格与单价；每单需重新选择客户（对齐需求 §5.3）</div>
           </div>
-          <input id="continuousMode" type="checkbox" />
+          <input id="continuousMode" type="checkbox" aria-describedby="continuousModeHint" />
         </div>
+        <p id="continuousModeHint" class="continuous-muted" style="margin: 0 0 8px">
+          开启后，本页顶部会显示本单摘要与今日累计，便于排队连续开单。
+        </p>
         <div class="switch-row">
           <div>
             <div class="switch-label">记住默认值</div>
@@ -248,6 +307,11 @@
       const navMyBtn = document.getElementById("navMyBtn");
       const typeBtns = [...document.querySelectorAll(".tab-btn[data-type]")];
       const PREF_KEY = "quick-order-prefs-v1";
+      const CONT_SESSION_KEY = "qo-continuous-session-v1";
+      const continuousBanner = document.getElementById("continuousBanner");
+      const continuousLastSummary = document.getElementById("continuousLastSummary");
+      const continuousTodayStats = document.getElementById("continuousTodayStats");
+      const exitContinuousBtn = document.getElementById("exitContinuousBtn");
 
       let selectedCustomerId = "";
       let orderType = "later_delivery";
@@ -317,13 +381,57 @@
         );
       }
 
+      function readContSession() {
+        try {
+          const raw = sessionStorage.getItem(CONT_SESSION_KEY);
+          if (!raw) return null;
+          const o = JSON.parse(raw);
+          if (!o || typeof o !== "object") return null;
+          return o;
+        } catch (_e) {
+          return null;
+        }
+      }
+      function writeContSession(obj) {
+        sessionStorage.setItem(CONT_SESSION_KEY, JSON.stringify(obj));
+      }
+      function clearContSession() {
+        sessionStorage.removeItem(CONT_SESSION_KEY);
+      }
+      function applyContinuousBannerTexts(state) {
+        continuousLastSummary.textContent = state.lastSummaryText || "";
+        const cnt = Number(state.orderCount || 0);
+        const sum = Number(state.sumAmount || 0);
+        continuousTodayStats.textContent =
+          cnt > 0
+            ? `今日累计（本页连续）：￥${sum.toFixed(2)}（${cnt} 单）`
+            : "今日累计（本页连续）：等待首单完成。";
+      }
+      function showContinuousBanner(state) {
+        applyContinuousBannerTexts(state);
+        continuousBanner.classList.add("show");
+        continuousBanner.removeAttribute("aria-hidden");
+      }
+      function hideContinuousBanner() {
+        continuousBanner.classList.remove("show");
+        continuousBanner.setAttribute("aria-hidden", "true");
+        continuousLastSummary.textContent = "";
+        continuousTodayStats.textContent = "";
+      }
+
+      function customerNameById(id) {
+        const c = allCustomers.find((x) => x.id === id);
+        return c ? c.name : "未命名客户";
+      }
+
       function syncCustomerActive() {
         [...customerList.querySelectorAll(".list-btn")].forEach((btn) => {
           btn.classList.toggle("active", btn.dataset.customerId === selectedCustomerId);
         });
       }
 
-      function renderCustomers(customers) {
+      function renderCustomers(customers, options = {}) {
+        const skipAutoSelect = Boolean(options.skipAutoSelect);
         customerList.innerHTML = "";
         if (!customers.length) {
           customerList.innerHTML = '<div class="empty">暂无匹配客户，请调整关键词后重试。</div>';
@@ -343,7 +451,7 @@
           });
           customerList.appendChild(btn);
         });
-        if (customers.length && !selectedCustomerId) {
+        if (customers.length && !selectedCustomerId && !skipAutoSelect) {
           selectedCustomerId = customers[0].id;
         }
         syncCustomerActive();
@@ -354,8 +462,17 @@
         setTip("正在加载客户...");
         const res = await fetchQuickCustomers();
         allCustomers = res.data || [];
-        selectedCustomerId = selectId;
-        renderCustomers(allCustomers);
+        const cont = readContSession();
+        const inContinuousFlow = Boolean(cont?.active) && continuousMode.checked && !selectId;
+        if (selectId) {
+          selectedCustomerId = selectId;
+        } else {
+          selectedCustomerId = "";
+        }
+        renderCustomers(allCustomers, { skipAutoSelect: inContinuousFlow });
+        if (inContinuousFlow) {
+          showContinuousBanner(cont);
+        }
         if (res.fromMock) {
           setTip("当前使用模拟客户数据，接口层已预留");
           return;
@@ -413,10 +530,20 @@
       paymentMethod.addEventListener("change", saveDefaults);
       continuousMode.addEventListener("change", saveDefaults);
       rememberDefaults.addEventListener("change", saveDefaults);
+      exitContinuousBtn.addEventListener("click", () => {
+        clearContSession();
+        hideContinuousBanner();
+        continuousMode.checked = false;
+        saveDefaults();
+        setTip("已退出连续开单模式。可继续单次开单或再次勾选连续模式。");
+        tip.className = "state-block info tip";
+      });
       searchInput.addEventListener("input", () => {
         const list = filterQuickCustomers(allCustomers, searchInput.value);
         selectedCustomerId = "";
-        renderCustomers(list);
+        const cont = readContSession();
+        const skip = Boolean(cont?.active) && continuousMode.checked;
+        renderCustomers(list, { skipAutoSelect: skip });
       });
       addCustomerBtn.addEventListener("click", () => addCustomerOverlay.classList.add("show"));
       cancelAddBtn.addEventListener("click", () => addCustomerOverlay.classList.remove("show"));
@@ -510,17 +637,37 @@
         }
         const typeText = payload.orderType === "immediate_complete" ? "当场完成" : "稍后配送";
         lastCreatedOrderId = result.data.orderId;
-        setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}，可在待配送/完单链路继续追踪。`);
         tip.className = "state-block success tip";
         goWorkbenchBtn.classList.add("show");
         traceOrderBtn.classList.add("show");
         confirmOverlay.classList.remove("show");
         saveDefaults();
-        if (!continuousMode.checked) {
+        const amount = Number((payload.unitPrice * payload.quantity).toFixed(2));
+        const summaryLine = `本单已完成：${customerNameById(payload.customerId)}  ${payload.spec} × ${payload.quantity}   应收 ${amount.toFixed(2)} 元`;
+        if (continuousMode.checked) {
+          const prev = readContSession() || { orderCount: 0, sumAmount: 0 };
+          const next = {
+            active: true,
+            orderCount: Number(prev.orderCount || 0) + 1,
+            sumAmount: Number(prev.sumAmount || 0) + amount,
+            lastSummaryText: summaryLine,
+          };
+          writeContSession(next);
+          showContinuousBanner(next);
           quantity = 1;
           qtyText.textContent = "1";
           selectedCustomerId = "";
-          syncCustomerActive();
+          searchInput.value = "";
+          renderCustomers(allCustomers, { skipAutoSelect: true });
+          setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}。连续开单中，请为下一单选择客户。`);
+        } else {
+          clearContSession();
+          hideContinuousBanner();
+          setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}，可在待配送/完单链路继续追踪。`);
+          quantity = 1;
+          qtyText.textContent = "1";
+          selectedCustomerId = "";
+          renderCustomers(allCustomers);
         }
         loading = false;
         createBtn.disabled = false;
