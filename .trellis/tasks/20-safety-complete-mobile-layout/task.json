@@ -1,7 +1,7 @@
 {
   "id": "20-safety-complete-mobile-layout",
   "title": "完单安检移动端布局优化",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "07-safety-trigger-report"
   ],
