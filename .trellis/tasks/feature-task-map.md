@@ -33,6 +33,12 @@
 30. Web 平台页面结构级布局重构（`task-34-platform-layout-overhaul`）
 31. Design System 强化与门禁脚本（`task-35-design-system-hardening`）
 32. 工作台与 `requirements/01_工作台` 需求/规格对齐登记（`task-36-workbench-01-req-spec-alignment`，文档一期）
+33. 工作台 P0：查看全部待配送（`task-37-workbench-p0-view-all-pending`）
+34. 工作台 P1：收入卡展开与毛利/趋势占位（`task-38-workbench-p1-income-expand-placeholders`）
+35. 工作台 P1：下一配送卡片字段（`task-39-workbench-p1-next-card-fields`）
+36. 订单域：底部面板快速开单（`task-40-order-bottom-sheet-quick-order-from-home`）
+37. 订单域：连续开单（`task-41-order-continuous-quick-order-mode`）
+38. 订单域：撤销与窗口内改单（`task-42-order-undo-and-modify-window`）
 
 ```mermaid
 flowchart TD
@@ -82,6 +88,15 @@ t32 --> t34[task-34-platform-layout-overhaul]
 t30 --> t35[task-35-design-system-hardening]
 t02 --> t36[task-36-workbench-01-req-spec-alignment]
 t16 --> t36
+t36 --> t37[task-37-workbench-p0-view-all-pending]
+t37 --> t38[task-38-workbench-p1-income-expand-placeholders]
+t37 --> t39[task-39-workbench-p1-next-card-fields]
+t03 --> t40[task-40-order-bottom-sheet-quick-order-from-home]
+t17 --> t40
+t40 --> t41[task-41-order-continuous-quick-order-mode]
+t03 --> t42[task-42-order-undo-and-modify-window]
+t04 --> t42
+t05 --> t42
 ```
 
 补充依赖说明（与上表一致，图内为简化边）：

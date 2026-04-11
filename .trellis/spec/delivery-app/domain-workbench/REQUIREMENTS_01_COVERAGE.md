@@ -50,12 +50,16 @@
 | `28-app-bottom-navigation` | 三 Tab 与 spec 一致 |
 | **`36-workbench-01-req-spec-alignment`** | **本表维护 + overview 链接 + 缺口优先级登记（文档交付）** |
 
-## 5. 建议的后续迭代顺序（不在本表实施）
+## 5. 建议的后续迭代顺序（对应 Trellis 任务）
 
-1. **P0 交互一致**：工作台「查看全部待配送」与需求「区域 B 查看全部」一致化（链接或列表）。  
-2. **P1 收入卡**：展开态 + 毛利占位 + 趋势占位（可先静态/空态）。  
-3. **P1 下一单卡片**：按需求表补齐字段与强调色（遵守 DESIGN.md，无 emoji）。  
-4. **另开订单域任务**：底部弹出式开单、连续开单、撤销与改单与规格动画。
+| 优先级 | 内容 | 任务 ID |
+|--------|------|---------|
+| P0 | 「查看全部待配送」入口 | `37-workbench-p0-view-all-pending` |
+| P1 | 收入卡展开 + 毛利/趋势占位 | `38-workbench-p1-income-expand-placeholders` |
+| P1 | 下一配送卡片字段补齐 | `39-workbench-p1-next-card-fields` |
+| 订单域 | 工作台底部面板式快速开单 | `40-order-bottom-sheet-quick-order-from-home` |
+| 订单域 | 连续开单模式 | `41-order-continuous-quick-order-mode` |
+| 订单域 | 短时撤销与窗口内改单 | `42-order-undo-and-modify-window` |
 
 ---
 

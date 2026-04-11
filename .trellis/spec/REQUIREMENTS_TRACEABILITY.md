@@ -12,7 +12,7 @@
 | requirements 目录 | 主要 Spec 落点 | 代表性任务 ID（已实现/曾用） |
 |-------------------|----------------|-------------------------------|
 | `00_全局/` | [master/index.md](./master/index.md)、[master/product-overview.md](./master/product-overview.md)、[shared/entities.md](./shared/entities.md) | 跨任务约束，无单一编号 |
-| `01_工作台/` | [delivery-app/domain-workbench/overview.md](./delivery-app/domain-workbench/overview.md)、[REQUIREMENTS_01_COVERAGE.md](./delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md) | `02-workbench-aggregation`、`16-workbench-experience-polish`、`22-workbench-bottom-nav-and-header-polish`、`36-workbench-01-req-spec-alignment` |
+| `01_工作台/` | [delivery-app/domain-workbench/overview.md](./delivery-app/domain-workbench/overview.md)、[REQUIREMENTS_01_COVERAGE.md](./delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md) | `02`–`04`、`16`、`22`、`28`、`36`；缺口迭代 `37`–`39`；订单域延伸见 `40`–`42` |
 | `02_订单/` | [delivery-app/domain-order/overview.md](./delivery-app/domain-order/overview.md) | `03-quick-order`、`04-delivery-to-complete`、`17-quick-order-ux-alignment`、`19-quick-order-navigation-and-submit-contract`、`27-quick-order-submit-integration-fix` |
 | `03_客户/` | [delivery-app/domain-customer/overview.md](./delivery-app/domain-customer/overview.md)、[backend/domain-customer/overview.md](./backend/domain-customer/overview.md) | `06-customer-account-linkage`、`18-customer-account-persistence-history` |
 | `04_库存/` | [delivery-app/domain-inventory/overview.md](./delivery-app/domain-inventory/overview.md) | `05-inventory-lock-revert` |

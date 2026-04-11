@@ -1,0 +1,20 @@
+{
+  "id": "39-workbench-p1-next-card-fields",
+  "title": "工作台 P1：下一配送卡片按需求表补齐展示字段",
+  "status": "todo",
+  "depends_on": [
+    "37-workbench-p0-view-all-pending",
+    "18-customer-account-persistence-history"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/需求.md",
+    ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md",
+    ".trellis/spec/delivery-app/DESIGN.md"
+  ],
+  "acceptance": [
+    "对照需求 §3.2.2：在数据可用时展示客户标签、气瓶规格、数量、应收、预约时间、欠瓶、欠款等；缺数据时展示「--」或合理空态，禁止 emoji",
+    "强调色仅作辅助（黄/红提示），主操作色仍用品牌色体系",
+    "workbench-client 与后端字段映射在 completion 中简述；接口不变更则仅前端展示层",
+    "更新 REQUIREMENTS_01_COVERAGE.md 中「下一配送卡片」行"
+  ]
+}

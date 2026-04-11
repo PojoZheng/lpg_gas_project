@@ -1,0 +1,21 @@
+{
+  "id": "42-order-undo-and-modify-window",
+  "title": "订单域：成交后短时撤销与窗口内改单（需求 §6）",
+  "status": "todo",
+  "depends_on": [
+    "03-quick-order",
+    "04-delivery-to-complete",
+    "05-inventory-lock-revert"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/需求.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/shared/api-contracts.md"
+  ],
+  "acceptance": [
+    "5 秒撤销：成交后 Toast 提供撤销入口，撤销后回滚库存与收入至可编辑态（与后端能力一致；若原型阶段可仅 UI+接口占位，须在 completion 声明）",
+    "24 小时内改单：可改实收、数量、备注等规则与需求一致，并产生修改记录",
+    "涉及库存联动时调用既有锁定/回滚语义，不引入破坏性契约变更",
+    "界面中文、无 emoji"
+  ]
+}

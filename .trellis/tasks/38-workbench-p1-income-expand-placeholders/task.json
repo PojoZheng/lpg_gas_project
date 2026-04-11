@@ -1,0 +1,20 @@
+{
+  "id": "38-workbench-p1-income-expand-placeholders",
+  "title": "工作台 P1：收入卡展开态 + 毛利与趋势占位",
+  "status": "todo",
+  "depends_on": [
+    "37-workbench-p0-view-all-pending",
+    "31-app-design-md-refactor"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/规格.md",
+    ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md",
+    ".trellis/spec/delivery-app/DESIGN.md"
+  ],
+  "acceptance": [
+    "今日收入卡支持折叠/展开（或等效「查看更多」），展开区含「今日毛利」与「近 7 日趋势」占位；无真实接口时可展示静态说明或空态，不得使用 emoji",
+    "折叠/展开动效与高度变化可简化，须可访问性（按钮/区域有 label 或 aria）",
+    "不修改收入统计接口契约；若需 mock 数据须在 completion 说明",
+    "更新 REQUIREMENTS_01_COVERAGE.md 中 §3.1 / 规格收入卡相关行"
+  ]
+}

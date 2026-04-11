@@ -1,0 +1,18 @@
+{
+  "id": "41-order-continuous-quick-order-mode",
+  "title": "订单域：连续开单模式（需求 §5）",
+  "status": "todo",
+  "depends_on": [
+    "40-order-bottom-sheet-quick-order-from-home",
+    "03-quick-order"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/需求.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md"
+  ],
+  "acceptance": [
+    "完成一单后可在同一流程内进入「连续开单」状态：展示本单摘要、今日累计、退出连续模式入口",
+    "记忆规则：收款方式、订单类型、规格按需求 §5.3（客户不记忆）",
+    "文案中文、无 emoji；与库存/订单接口契约协调，completion 记录限制与风险"
+  ]
+}

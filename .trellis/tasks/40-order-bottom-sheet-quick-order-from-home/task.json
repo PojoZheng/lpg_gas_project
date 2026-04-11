@@ -1,0 +1,21 @@
+{
+  "id": "40-order-bottom-sheet-quick-order-from-home",
+  "title": "订单域：从工作台以底部面板进入快速开单（对齐 01 规格动线）",
+  "status": "todo",
+  "depends_on": [
+    "03-quick-order",
+    "17-quick-order-ux-alignment",
+    "19-quick-order-navigation-and-submit-contract"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/规格.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md"
+  ],
+  "acceptance": [
+    "从工作台点击「快速开单」优先以底部滑入面板/Sheet 承载选择客户与确认流程，与规格「底部弹出」一致；若技术限制需跳转独立页，须在 completion 说明并保留等价返回路径",
+    "动效时长与关闭方式（遮罩/下滑）在可接受范围内对齐规格描述",
+    "不破坏现有 quick-order 页契约；可复用 quick-order-client 模块",
+    "更新 REQUIREMENTS_01_COVERAGE.md §4 / 规格 1.2 相关行"
+  ]
+}

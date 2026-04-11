@@ -1,0 +1,23 @@
+{
+  "id": "37-workbench-p0-view-all-pending",
+  "title": "工作台 P0：「查看全部待配送」入口与需求区域 B 对齐",
+  "status": "todo",
+  "depends_on": [
+    "36-workbench-01-req-spec-alignment",
+    "02-workbench-aggregation",
+    "04-delivery-to-complete"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/需求.md",
+    "requirements/01_工作台/规格.md",
+    ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md",
+    ".trellis/spec/delivery-app/DESIGN.md"
+  ],
+  "acceptance": [
+    "工作台「下一个配送 / 待办」区块内提供明确「查看全部待配送」入口，跳转至待配送列表（delivery-complete.html 或带 query 的等价路径），与需求区域 B「查看全部」语义一致",
+    "入口文案为中文、无 emoji，触控区域符合 DESIGN 最小触达",
+    "不破坏现有快速开单、待配送主按钮与底部导航；不改后端接口契约，仅路由与 UI",
+    "更新 REQUIREMENTS_01_COVERAGE.md 对应行状态或备注（若已满足 P0 第 1 条）",
+    "本地校验：python3 ./.trellis/scripts/auto_test_runner.py --once、node --check 涉及脚本；可选补充 task37 轻量冒烟脚本"
+  ]
+}
