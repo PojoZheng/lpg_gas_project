@@ -125,7 +125,87 @@ function appendOrderModifyLog(order, changes) {
     order.modifyLogs.splice(0, order.modifyLogs.length - 120);
   }
 }
+
+function processOrderReturn(orderId, payload) {
+  const order = quickOrders.find((x) => x.orderId === orderId);
+  if (!order) throw new Error("订单不存在");
+  if (order.orderStatus !== "completed") throw new Error("只有已完成订单可申请退货");
+  
+  const completedAt = Number(order.completedAt || order.createdAt || 0);
+  const hoursSinceComplete = (Date.now() - completedAt) / (60 * 60 * 1000);
+  if (hoursSinceComplete > 24) throw new Error("订单完成超过24小时，无法退货");
+
+  const { reason, reasonDetail, bottleReturned, bottleBarcode, refundAmount, refundMethod, note } = payload;
+  if (!reason) throw new Error("请选择退货原因");
+  if (!bottleReturned) throw new Error("请确认已收回气瓶");
+  if (!Number.isFinite(refundAmount) || refundAmount < 0) throw new Error("退款金额不合法");
+  if (!["cash", "original", "wechat", "alipay"].includes(refundMethod)) throw new Error("退款方式不合法");
+
+  const recordId = `RET-${Date.now()}`;
+  const returnRecord = {
+    id: recordId,
+    orderId,
+    customerId: order.customerId,
+    customerName: order.customerName,
+    spec: order.spec,
+    quantity: order.quantity,
+    reason: reason || "",
+    reasonDetail: reasonDetail || "",
+    bottleReturned: Boolean(bottleReturned),
+    bottleBarcode: bottleBarcode || "",
+    refundAmount: Number(refundAmount) || 0,
+    refundMethod: refundMethod || "cash",
+    note: note || "",
+    originalAmount: order.receivedAmount || order.amount || 0,
+    createdAt: Date.now(),
+  };
+  returnRecords.unshift(returnRecord);
+  if (returnRecords.length > 200) returnRecords.pop();
+
+  order.orderStatus = "returned";
+  order.returnedAt = Date.now();
+  order.returnRecordId = recordId;
+
+  returnInventoryToOnHand(order.spec, order.quantity, orderId);
+  pushInventoryLog("order_return", order.spec, order.quantity, 0, orderId);
+
+  const originalReceived = Number(order.receivedAmount || 0);
+  if (originalReceived > 0) {
+    const reversalEntry = {
+      id: `FIN-RET-${Date.now()}`,
+      type: "return_reversal",
+      orderId,
+      amount: -Math.min(refundAmount, originalReceived),
+      method: refundMethod,
+      createdAt: Date.now(),
+      note: `退货退款：${reason}${note ? " - " + note : ""}`,
+    };
+    financeEntries.unshift(reversalEntry);
+    if (financeEntries.length > 500) financeEntries.pop();
+  }
+
+  return {
+    success: true,
+    data: {
+      order: {
+        orderId: order.orderId,
+        orderStatus: order.orderStatus,
+        returnedAt: order.returnedAt,
+      },
+      returnRecord: {
+        id: returnRecord.id,
+        refundAmount: returnRecord.refundAmount,
+        refundMethod: returnRecord.refundMethod,
+      },
+      inventoryChange: {
+        spec: order.spec,
+        delta: order.quantity,
+      },
+    },
+  };
+}
 const financeEntries = [];
+const returnRecords = [];
 const dailyCloseRecords = [];
 const customerAccounts = new Map(
   mockCustomers.map((x) => [
@@ -1610,6 +1690,15 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/undo", ""));
       const order = getOrderById(orderId);
       return sendJson(res, 200, { success: true, data: undoOrderAction(order) });
+    }
+
+    if (req.method === "POST" && pathname.endsWith("/return")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/return", ""));
+      const payload = await readBody(req);
+      const result = processOrderReturn(orderId, payload);
+      return sendJson(res, 200, result);
     }
 
     if (req.method === "GET" && pathname.startsWith("/safety/by-order/")) {
