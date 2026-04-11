@@ -12,8 +12,14 @@ function buildMockOverview() {
     nextDelivery: {
       orderId: "MOCK-ORDER-001",
       customerName: "城西便利店",
+      customerTags: ["VIP", "大客户"],
       address: "东环路 102 号",
+      spec: "15kg",
+      quantity: 2,
+      amount: 270,
       scheduleAt: "今天 16:20",
+      owedEmptyCount: 1,
+      owedAmount: 120.5,
       orderStatus: "pending_delivery",
     },
     sync: {

@@ -84,6 +84,50 @@
       }
       .sync-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
       .sync-actions .app-btn { font-size: 14px; }
+      .next-customer-block { margin-bottom: 4px; }
+      .next-name-tags {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+        row-gap: 6px;
+      }
+      .next-name {
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+        line-height: 1.25;
+      }
+      .next-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 22px; }
+      .next-tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        background: #fff;
+        white-space: nowrap;
+      }
+      .next-spec-row { display: flex; align-items: center; gap: 8px; }
+      .next-spec-icon {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        color: var(--brand);
+      }
+      .next-address-line {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+      }
+      .next-amount-brand { color: var(--brand); font-weight: 600; }
+      .next-emph-schedule { color: #b91c1c; font-weight: 600; }
+      .next-emph-caution { color: #b45309; font-weight: 600; }
+      .next-emph-warn { color: #b91c1c; font-weight: 600; }
       .income-card { position: relative; }
       .income-toggle-btn {
         width: 100%;
@@ -420,9 +464,28 @@
             href="./delivery-complete.html?from=workbench&amp;view=pending"
             >查看全部待配送</a>
         </div>
-        <p class="line">客户：<strong id="nextCustomer">--</strong></p>
-        <p class="line">地址：<strong id="nextAddress">--</strong></p>
-        <p class="line">时间：<strong id="nextSchedule">--</strong></p>
+        <div class="next-customer-block">
+          <div class="next-name-tags">
+            <span class="next-name" id="nextCustomer">--</span>
+            <span id="nextTags" class="next-tags" aria-label="客户标签"></span>
+          </div>
+        </div>
+        <p class="line">地址：<strong id="nextAddress" class="next-address-line">--</strong></p>
+        <p class="line next-spec-row">
+          <svg class="next-spec-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              d="M8 5h8v14H8z M10 8h4 M10 12h4 M10 16h3"
+            />
+          </svg>
+          <strong id="nextSpecQty">--</strong>
+        </p>
+        <p class="line">应收：<strong id="nextAmount" class="next-amount-brand">--</strong></p>
+        <p class="line">预约时间：<strong id="nextSchedule">--</strong></p>
+        <p class="line">欠瓶：<strong id="nextOwedBottles">--</strong></p>
+        <p class="line">欠款：<strong id="nextOwedMoney">--</strong></p>
         <p class="line">订单号：<strong id="nextOrderId">--</strong></p>
         <div class="next-actions">
           <button class="app-btn" id="nextDetailBtn">查看详情</button>
@@ -571,8 +634,13 @@
       const incomeToggleBtn = document.getElementById("incomeToggleBtn");
       const incomeExpandPanel = document.getElementById("incomeExpandPanel");
       const nextCustomer = document.getElementById("nextCustomer");
+      const nextTags = document.getElementById("nextTags");
       const nextAddress = document.getElementById("nextAddress");
+      const nextSpecQty = document.getElementById("nextSpecQty");
+      const nextAmount = document.getElementById("nextAmount");
       const nextSchedule = document.getElementById("nextSchedule");
+      const nextOwedBottles = document.getElementById("nextOwedBottles");
+      const nextOwedMoney = document.getElementById("nextOwedMoney");
       const nextOrderId = document.getElementById("nextOrderId");
       const nextDetailBtn = document.getElementById("nextDetailBtn");
       const startDeliveryBtn = document.getElementById("startDeliveryBtn");
@@ -831,13 +899,39 @@
         window.location.href = "./delivery-complete.html";
       }
 
+      function hasConcreteScheduleValue(s) {
+        const t = String(s ?? "").trim();
+        if (!t || t === "尽快配送" || t === "待创建") return false;
+        return true;
+      }
+
+      function renderCustomerTags(container, tags) {
+        container.innerHTML = "";
+        if (!Array.isArray(tags) || !tags.length) return;
+        tags.forEach((label) => {
+          const el = document.createElement("span");
+          el.className = "next-tag";
+          el.textContent = label;
+          container.appendChild(el);
+        });
+      }
+
       function renderNextDelivery(nextDelivery) {
         const hasTask = Boolean(nextDelivery?.orderId);
         if (!hasTask) {
           currentNextOrderId = "";
           nextCustomer.textContent = "暂无待配送";
+          renderCustomerTags(nextTags, []);
           nextAddress.textContent = "可前往快速开单创建新订单";
+          nextSpecQty.textContent = "--";
+          nextAmount.textContent = "--";
+          nextAmount.className = "next-amount-brand";
           nextSchedule.textContent = "创建后将自动刷新";
+          nextSchedule.className = "";
+          nextOwedBottles.textContent = "--";
+          nextOwedBottles.className = "";
+          nextOwedMoney.textContent = "--";
+          nextOwedMoney.className = "";
           nextOrderId.textContent = "--";
           nextDetailBtn.textContent = "去快速开单";
           startDeliveryBtn.textContent = "去待配送";
@@ -845,9 +939,57 @@
         }
         currentNextOrderId = nextDelivery.orderId;
         nextCustomer.textContent = nextDelivery.customerName || "--";
+        renderCustomerTags(nextTags, nextDelivery.customerTags);
         nextAddress.textContent = nextDelivery.address || "--";
-        nextSchedule.textContent = nextDelivery.scheduleAt || "--";
-        nextOrderId.textContent = nextDelivery.orderId;
+        const spec = nextDelivery.spec;
+        const qty = nextDelivery.quantity;
+        if (spec != null && String(spec).trim() !== "" && qty != null && String(qty).trim() !== "" && Number.isFinite(Number(qty))) {
+          nextSpecQty.textContent = `${String(spec).trim()} × ${Number(qty)} 瓶`;
+        } else {
+          nextSpecQty.textContent = "--";
+        }
+        if (nextDelivery.amount != null && String(nextDelivery.amount).trim() !== "" && Number.isFinite(Number(nextDelivery.amount))) {
+          nextAmount.textContent = fmtCurrency(nextDelivery.amount);
+        } else {
+          nextAmount.textContent = "--";
+        }
+        nextAmount.className = "next-amount-brand";
+        const schedRaw = nextDelivery.scheduleAt;
+        const sched = schedRaw != null && String(schedRaw).trim() !== "" ? String(schedRaw).trim() : "--";
+        nextSchedule.textContent = sched;
+        nextSchedule.className = hasConcreteScheduleValue(sched) ? "next-emph-schedule" : "";
+
+        const rawOb = nextDelivery.owedEmptyCount;
+        if (rawOb == null || String(rawOb).trim() === "") {
+          nextOwedBottles.textContent = "--";
+          nextOwedBottles.className = "";
+        } else {
+          const ob = Number(rawOb);
+          if (ob > 0) {
+            nextOwedBottles.textContent = `${ob} 瓶`;
+            nextOwedBottles.className = "next-emph-caution";
+          } else {
+            nextOwedBottles.textContent = "0 瓶";
+            nextOwedBottles.className = "";
+          }
+        }
+
+        const rawDebt = nextDelivery.owedAmount;
+        if (rawDebt == null || String(rawDebt).trim() === "") {
+          nextOwedMoney.textContent = "--";
+          nextOwedMoney.className = "";
+        } else {
+          const debt = Number(rawDebt);
+          if (debt > 0) {
+            nextOwedMoney.textContent = fmtCurrency(debt);
+            nextOwedMoney.className = "next-emph-warn";
+          } else {
+            nextOwedMoney.textContent = fmtCurrency(0);
+            nextOwedMoney.className = "";
+          }
+        }
+
+        nextOrderId.textContent = nextDelivery.orderId || "--";
         nextDetailBtn.textContent = "查看详情";
         startDeliveryBtn.textContent = "开始配送";
       }

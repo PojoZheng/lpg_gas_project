@@ -66,5 +66,11 @@
     "python3 \".trellis/scripts/task38_income_expand_smoke.py\"",
     "python3 \".trellis/scripts/task16_workbench_closure.py\"",
     "python3 \".trellis/scripts/task22_workbench_nav_header_polish.py\""
+  ],
+  "39-workbench-p1-next-card-fields": [
+    "node --check \".trellis/backend/src/server.js\"",
+    "node --check \".trellis/delivery-app/src/workbench-client.js\"",
+    "python3 \".trellis/scripts/task39_workbench_next_card_smoke.py\"",
+    "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ]
 }

@@ -15,9 +15,9 @@ const CUSTOMER_LEDGER_PATH =
   process.env.TRELLIS_CUSTOMER_LEDGER_PATH ||
   path.join(__dirname, "..", "data", "customer-ledger.json");
 const mockCustomers = [
-  { id: "CUST-001", name: "城南餐馆", phone: "13800000001", address: "城南路 18 号" },
-  { id: "CUST-002", name: "向阳便利店", phone: "13800000002", address: "向阳街 66 号" },
-  { id: "CUST-003", name: "东港小区李阿姨", phone: "13800000003", address: "东港小区 2 栋 301" },
+  { id: "CUST-001", name: "城南餐馆", phone: "13800000001", address: "城南路 18 号", tags: ["VIP", "大客户"] },
+  { id: "CUST-002", name: "向阳便利店", phone: "13800000002", address: "向阳街 66 号", tags: ["免押金"] },
+  { id: "CUST-003", name: "东港小区李阿姨", phone: "13800000003", address: "东港小区 2 栋 301", tags: [] },
 ];
 const inventoryBySpec = {
   "10kg": { onHand: 8, locked: 0 },
@@ -297,32 +297,74 @@ function mapOrderError(err) {
   return { statusCode: 400, code: "VALIDATION_400", message };
 }
 
+function hasConcreteSchedule(scheduleAt) {
+  const t = String(scheduleAt || "").trim();
+  if (!t || t === "尽快配送" || t === "待创建") return false;
+  return true;
+}
+
+function getNextWorkbenchDeliveryOrder() {
+  const pending = quickOrders.filter((x) => x.orderStatus === "pending_delivery");
+  if (!pending.length) return null;
+  pending.sort((a, b) => {
+    const ar = hasConcreteSchedule(a.scheduleAt) ? 0 : 1;
+    const br = hasConcreteSchedule(b.scheduleAt) ? 0 : 1;
+    if (ar !== br) return ar - br;
+    if (ar === 0) {
+      const c = String(a.scheduleAt || "").localeCompare(String(b.scheduleAt || ""), "zh-CN");
+      if (c !== 0) return c;
+    }
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  });
+  return pending[0];
+}
+
+function buildNextDeliveryPayload(order) {
+  if (!order) {
+    return {
+      orderId: null,
+      customerName: null,
+      customerTags: [],
+      address: null,
+      spec: null,
+      quantity: null,
+      amount: null,
+      scheduleAt: null,
+      owedEmptyCount: null,
+      owedAmount: null,
+      orderStatus: null,
+    };
+  }
+  const customer = mockCustomers.find((c) => c.id === order.customerId);
+  const tags = Array.isArray(customer?.tags) ? customer.tags : [];
+  const account = order.customerId ? buildCustomerAccountSummary(order.customerId) : {};
+  return {
+    orderId: order.orderId,
+    customerName: order.customerName,
+    customerTags: tags,
+    address: order.address,
+    spec: order.spec,
+    quantity: order.quantity,
+    amount: Number(Number(order.amount || 0).toFixed(2)),
+    scheduleAt: order.scheduleAt || "尽快配送",
+    owedEmptyCount: Number(account.owedEmptyCount || 0),
+    owedAmount: Number(Number(account.owedAmount || 0).toFixed(2)),
+    orderStatus: "pending_delivery",
+  };
+}
+
 function buildWorkbenchOverview() {
   const completedOrders = quickOrders.filter((x) => x.orderStatus === "completed");
   const receivedToday = completedOrders.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
   const pendingToday = completedOrders.reduce((sum, x) => sum + Math.max(0, Number(x.amount || 0) - Number(x.receivedAmount || 0)), 0);
-  const nextPending = quickOrders.find((x) => x.orderStatus === "pending_delivery");
+  const nextPending = getNextWorkbenchDeliveryOrder();
   return {
     finance: {
       receivedToday: Number(receivedToday.toFixed(2)),
       pendingToday: Number(pendingToday.toFixed(2)),
       currency: "CNY",
     },
-    nextDelivery: nextPending
-      ? {
-          orderId: nextPending.orderId,
-          customerName: nextPending.customerName,
-          address: nextPending.address,
-          scheduleAt: nextPending.scheduleAt || "尽快配送",
-          orderStatus: "pending_delivery",
-        }
-      : {
-          orderId: "暂无",
-          customerName: "暂无待配送订单",
-          address: "可先从快速开单创建稍后配送订单",
-          scheduleAt: "待创建",
-          orderStatus: "pending_delivery",
-        },
+    nextDelivery: buildNextDeliveryPayload(nextPending),
     sync: {
       syncStatus: offlineQueue.some((x) => x.syncStatus === "failed")
         ? "failed"
@@ -1265,11 +1307,15 @@ function createCustomer(payload) {
   if (mockCustomers.some((x) => x.phone === phone)) {
     throw new Error("该手机号已存在客户");
   }
+  const tagList = Array.isArray(payload.tags)
+    ? payload.tags.map((t) => String(t || "").trim()).filter(Boolean).slice(0, 12)
+    : [];
   const customer = {
     id: `CUST-${String(mockCustomers.length + 1).padStart(3, "0")}`,
     name,
     phone,
     address,
+    tags: tagList,
   };
   mockCustomers.unshift(customer);
   ensureCustomerAccount(customer.id);

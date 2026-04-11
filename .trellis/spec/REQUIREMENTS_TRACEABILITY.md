@@ -5,7 +5,7 @@
 ## 1. 当前任务状态（Trellis）
 
 - **未完成**：`00-bootstrap-guidelines`（进行中；子任务见该目录 `task.json`）
-- **进行中 / 待办（与 `01_工作台` / 订单缺口链相关）**：`39-workbench-p1-next-card-fields`、`41-order-continuous-quick-order-mode`、`42-order-undo-and-modify-window`（`todo`）；`37-workbench-p0-view-all-pending`、`38-workbench-p1-income-expand-placeholders`、`40-order-bottom-sheet-quick-order-from-home` 已在主线 **completed**
+- **进行中 / 待办（与 `01_工作台` / 订单缺口链相关）**：`41-order-continuous-quick-order-mode`、`42-order-undo-and-modify-window`（`todo`）；`37-workbench-p0-view-all-pending`、`38-workbench-p1-income-expand-placeholders`、`39-workbench-p1-next-card-fields`、`40-order-bottom-sheet-quick-order-from-home` 已在主线 **completed**
 - **其余**：`01`–`36`（除 `00`）在 `task.json` 中为 `completed` 的，以仓库为准
 
 ## 2. 按需求模块映射
@@ -13,7 +13,7 @@
 | requirements 目录 | 主要 Spec 落点 | 代表性任务 ID（已实现/曾用） |
 |-------------------|----------------|-------------------------------|
 | `00_全局/` | [master/index.md](./master/index.md)、[master/product-overview.md](./master/product-overview.md)、[shared/entities.md](./shared/entities.md) | 跨任务约束，无单一编号 |
-| `01_工作台/` | [delivery-app/domain-workbench/overview.md](./delivery-app/domain-workbench/overview.md)、[REQUIREMENTS_01_COVERAGE.md](./delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md) | `02`–`04`、`16`、`22`、`28`、`36-workbench-01-req-spec-alignment`、`37-workbench-p0-view-all-pending`、`38-workbench-p1-income-expand-placeholders`、`40-order-bottom-sheet-quick-order-from-home`；待办 `39`、`41`、`42` |
+| `01_工作台/` | [delivery-app/domain-workbench/overview.md](./delivery-app/domain-workbench/overview.md)、[REQUIREMENTS_01_COVERAGE.md](./delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md) | `02`–`04`、`16`、`22`、`28`、`36-workbench-01-req-spec-alignment`、`37-workbench-p0-view-all-pending`、`38-workbench-p1-income-expand-placeholders`、`39-workbench-p1-next-card-fields`、`40-order-bottom-sheet-quick-order-from-home`；待办 `41`、`42` |
 | `02_订单/` | [delivery-app/domain-order/overview.md](./delivery-app/domain-order/overview.md) | `03-quick-order`、`04-delivery-to-complete`、`17-quick-order-ux-alignment`、`19-quick-order-navigation-and-submit-contract`、`27-quick-order-submit-integration-fix` |
 | `03_客户/` | [delivery-app/domain-customer/overview.md](./delivery-app/domain-customer/overview.md)、[backend/domain-customer/overview.md](./backend/domain-customer/overview.md) | `06-customer-account-linkage`、`18-customer-account-persistence-history` |
 | `04_库存/` | [delivery-app/domain-inventory/overview.md](./delivery-app/domain-inventory/overview.md) | `05-inventory-lock-revert` |
