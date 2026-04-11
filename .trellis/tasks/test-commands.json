@@ -72,5 +72,10 @@
     "node --check \".trellis/delivery-app/src/workbench-client.js\"",
     "python3 \".trellis/scripts/task39_workbench_next_card_smoke.py\"",
     "python3 \".trellis/scripts/task16_workbench_closure.py\""
+  ],
+  "41-order-continuous-quick-order-mode": [
+    "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
+    "python3 \".trellis/scripts/task41_continuous_quick_order_smoke.py\"",
+    "python3 \".trellis/scripts/task33_app_layout_overhaul.py\""
   ]
 }
