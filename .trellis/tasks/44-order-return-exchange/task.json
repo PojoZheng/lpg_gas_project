@@ -1,0 +1,72 @@
+{
+  "id": "44-order-return-exchange",
+  "name": "order-return-exchange",
+  "title": "订单域：退货换货逆向流程",
+  "description": "实现订单退货换货功能，包括当场换货（5分钟内）和24小时内退货流程，涉及订单状态变更、库存回滚、收入调整",
+  "status": "planning",
+  "dev_type": "fullstack",
+  "scope": "delivery-app",
+  "priority": "P1",
+  "creator": "dev-b",
+  "assignee": "dev-b",
+  "createdAt": "2026-04-11",
+  "completedAt": null,
+  "branch": "feat/task-44-return-exchange",
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "等待 Task 43 合入"
+    },
+    {
+      "phase": 2,
+      "action": "implement"
+    },
+    {
+      "phase": 3,
+      "action": "check"
+    },
+    {
+      "phase": 4,
+      "action": "finish"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [
+    "后端：订单状态扩展（换货中、已退货）",
+    "后端：POST /orders/:id/exchange 换货API",
+    "后端：POST /orders/:id/return 退货API",
+    "后端：库存回滚逻辑（重瓶回库待检）",
+    "前端：完单后5分钟快捷换货按钮",
+    "前端：换货面板UI实现",
+    "前端：订单详情页退货入口（24小时内）",
+    "前端：退货面板UI实现"
+  ],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/delivery-app/src/delivery-complete.html",
+    ".trellis/delivery-app/src/delivery-complete-client.js",
+    ".trellis/backend/src/server.js"
+  ],
+  "depends_on": ["42-order-undo-and-modify-window"],
+  "input_spec": [
+    "requirements/01_工作台/需求.md §12",
+    "requirements/02_订单/规格.md §3 状态机",
+    ".trellis/spec/delivery-app/DESIGN.md"
+  ],
+  "acceptance": [
+    "当场换货：完单后5分钟内显示快捷换货按钮",
+    "换货流程：原订单标记换货中，库存回滚，新开订单完成",
+    "24小时内退货：订单详情页可申请退货",
+    "退货流程：选择原因、确认收瓶、退款、订单标记已退货",
+    "库存影响：换货/退货后重瓶回库（待检状态）",
+    "收入影响：换货按差价调整，退货扣除今日已收",
+    "界面中文、无emoji"
+  ],
+  "notes": "基于 requirements/01_工作台/需求.md §12 退货/换货逆向流程",
+  "meta": {}
+}
