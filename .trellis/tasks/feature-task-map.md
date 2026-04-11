@@ -32,6 +32,7 @@
 29. App 页面结构级布局重构（`task-33-app-layout-overhaul`）
 30. Web 平台页面结构级布局重构（`task-34-platform-layout-overhaul`）
 31. Design System 强化与门禁脚本（`task-35-design-system-hardening`）
+32. 工作台与 `requirements/01_工作台` 需求/规格对齐登记（`task-36-workbench-01-req-spec-alignment`，文档一期）
 
 ```mermaid
 flowchart TD
@@ -79,6 +80,8 @@ t30 --> t32
 t31 --> t33[task-33-app-layout-overhaul]
 t32 --> t34[task-34-platform-layout-overhaul]
 t30 --> t35[task-35-design-system-hardening]
+t02 --> t36[task-36-workbench-01-req-spec-alignment]
+t16 --> t36
 ```
 
 补充依赖说明（与上表一致，图内为简化边）：

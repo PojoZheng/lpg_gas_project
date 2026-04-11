@@ -1,0 +1,21 @@
+{
+  "id": "36-workbench-01-req-spec-alignment",
+  "title": "工作台对照 requirements/01 的需求与规格对齐（文档一期）",
+  "status": "completed",
+  "depends_on": [
+    "02-workbench-aggregation",
+    "16-workbench-experience-polish"
+  ],
+  "input_spec": [
+    "requirements/01_工作台/需求.md",
+    "requirements/01_工作台/规格.md",
+    ".trellis/spec/delivery-app/domain-workbench/overview.md"
+  ],
+  "acceptance": [
+    "新增《01 工作台》需求/规格与实现对齐表，并覆盖需求主章节与规格关键流（见 REQUIREMENTS_01_COVERAGE.md）",
+    "domain-workbench/overview.md 增加指向该对照表的链接",
+    "REQUIREMENTS_TRACEABILITY.md 中 01_工作台 行补充该对照文档与本任务 id",
+    "提供轻量校验脚本，防止对照文档被误删或空文件",
+    "界面文案如涉及新增，须中文且无 emoji（本任务以文档为主）"
+  ]
+}

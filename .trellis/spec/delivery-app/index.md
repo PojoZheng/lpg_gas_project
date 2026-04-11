@@ -21,7 +21,7 @@
 ## 业务域目录
 | 业务域 | 文件 | 说明 |
 |---|---|---|
-| 工作台 | [domain-workbench/overview.md](./domain-workbench/overview.md) | 首页收入、待送聚合与快速入口 |
+| 工作台 | [domain-workbench/overview.md](./domain-workbench/overview.md)、[01 需求/规格对照](./domain-workbench/REQUIREMENTS_01_COVERAGE.md) | 首页收入、待送聚合与快速入口 |
 | 订单 | [domain-order/overview.md](./domain-order/overview.md) | 开单、待送、完单、撤销、修改 |
 | 客户 | [domain-customer/overview.md](./domain-customer/overview.md) | 客户档案、账户摘要、历史关联 |
 | 库存 | [domain-inventory/overview.md](./domain-inventory/overview.md) | 锁定、出库、回滚、盘点、预警 |
