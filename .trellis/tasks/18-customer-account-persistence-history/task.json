@@ -1,7 +1,7 @@
 {
   "id": "18-customer-account-persistence-history",
   "title": "客户账户持久化与催收历史",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "06-customer-account-linkage"
   ],

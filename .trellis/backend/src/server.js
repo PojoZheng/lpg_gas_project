@@ -1,5 +1,7 @@
 const http = require("http");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const {
   issueCode,
   login,
@@ -8,7 +10,10 @@ const {
   logoutSession,
 } = require("./auth-service");
 
-const PORT = 3100;
+const PORT = Number(process.env.PORT || 3100);
+const CUSTOMER_LEDGER_PATH =
+  process.env.TRELLIS_CUSTOMER_LEDGER_PATH ||
+  path.join(__dirname, "..", "data", "customer-ledger.json");
 const mockCustomers = [
   { id: "CUST-001", name: "城南餐馆", phone: "13800000001", address: "城南路 18 号" },
   { id: "CUST-002", name: "向阳便利店", phone: "13800000002", address: "向阳街 66 号" },
@@ -117,9 +122,82 @@ const customerAccounts = new Map(
       collectionNote: "",
       updatedAt: Date.now(),
       lastCollectionAt: 0,
+      collectionHistory: [],
     },
   ])
 );
+
+const COLLECTION_STATUS_SET = new Set(["none", "pending", "contacted", "promised", "resolved"]);
+
+function normalizeCustomerAccountRecord(customerId, raw) {
+  const collectionHistory = Array.isArray(raw?.collectionHistory)
+    ? raw.collectionHistory
+        .map((e) => ({
+          changedAt: Number(e?.changedAt || 0),
+          status: COLLECTION_STATUS_SET.has(String(e?.status || "").trim())
+            ? String(e.status).trim()
+            : "none",
+          note: String(e?.note || "").trim().slice(0, 500),
+        }))
+        .filter((e) => e.changedAt > 0)
+        .slice(-200)
+    : [];
+  const st = String(raw?.collectionStatus || "").trim();
+  return {
+    customerId,
+    owedAmount: Number(Number(raw?.owedAmount ?? 0).toFixed(2)),
+    owedEmptyCount: Math.max(0, Number(raw?.owedEmptyCount ?? 0)),
+    collectionStatus: COLLECTION_STATUS_SET.has(st) ? st : "none",
+    collectionNote: String(raw?.collectionNote || "").trim().slice(0, 500),
+    updatedAt: Number(raw?.updatedAt || 0) || Date.now(),
+    lastCollectionAt: Number(raw?.lastCollectionAt || 0),
+    collectionHistory,
+  };
+}
+
+function persistCustomerLedger() {
+  const dir = path.dirname(CUSTOMER_LEDGER_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const accounts = Array.from(customerAccounts.entries()).map(([id, row]) => [
+    id,
+    {
+      customerId: id,
+      owedAmount: row.owedAmount,
+      owedEmptyCount: row.owedEmptyCount,
+      collectionStatus: row.collectionStatus,
+      collectionNote: row.collectionNote,
+      updatedAt: row.updatedAt,
+      lastCollectionAt: row.lastCollectionAt,
+      collectionHistory: Array.isArray(row.collectionHistory) ? row.collectionHistory : [],
+    },
+  ]);
+  fs.writeFileSync(
+    CUSTOMER_LEDGER_PATH,
+    JSON.stringify({ savedAt: Date.now(), accounts }, null, 2),
+    "utf-8"
+  );
+}
+
+function restoreCustomerLedger() {
+  if (!fs.existsSync(CUSTOMER_LEDGER_PATH)) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(CUSTOMER_LEDGER_PATH, "utf-8"));
+  } catch (_err) {
+    return;
+  }
+  if (!parsed || !Array.isArray(parsed.accounts)) return;
+  for (const entry of parsed.accounts) {
+    if (!Array.isArray(entry) || entry.length < 2) continue;
+    const customerId = String(entry[0] || "").trim();
+    if (!customerId) continue;
+    customerAccounts.set(customerId, normalizeCustomerAccountRecord(customerId, entry[1]));
+  }
+}
+
+restoreCustomerLedger();
 
 function ensureCustomerAccount(customerId) {
   if (!customerAccounts.has(customerId)) {
@@ -131,9 +209,12 @@ function ensureCustomerAccount(customerId) {
       collectionNote: "",
       updatedAt: Date.now(),
       lastCollectionAt: 0,
+      collectionHistory: [],
     });
   }
-  return customerAccounts.get(customerId);
+  const row = customerAccounts.get(customerId);
+  if (!Array.isArray(row.collectionHistory)) row.collectionHistory = [];
+  return row;
 }
 
 function sendJson(res, statusCode, payload) {
@@ -478,6 +559,7 @@ function adjustCustomerDebt(order, owedAmount, owedEmptyCount) {
   account.owedAmount = Number((Number(account.owedAmount || 0) + Number(owedAmount || 0)).toFixed(2));
   account.owedEmptyCount = Math.max(0, Number(account.owedEmptyCount || 0) + Number(owedEmptyCount || 0));
   account.updatedAt = Date.now();
+  persistCustomerLedger();
 }
 
 function getSafetyByOrderId(orderId) {
@@ -1091,25 +1173,65 @@ function undoOrderAction(order) {
   return { orderId: order.orderId, orderStatus: order.orderStatus, paymentStatus: order.paymentStatus };
 }
 
+function getRecentCollectionHistoryEntries(rawAccount, limit) {
+  const list = Array.isArray(rawAccount.collectionHistory) ? [...rawAccount.collectionHistory] : [];
+  return list.slice(-limit).reverse();
+}
+
+function buildAccountSummaryConsistency(summary, rawAccount) {
+  const history = Array.isArray(rawAccount.collectionHistory) ? rawAccount.collectionHistory : [];
+  if (!history.length) {
+    return { ok: true, message: "暂无催收变更记录；摘要与台账字段一致。" };
+  }
+  const last = history[history.length - 1];
+  const statusOk = String(last.status || "") === String(summary.collectionStatus || "");
+  const noteOk = String(last.note || "") === String(summary.collectionNote || "");
+  const timeOk = Number(last.changedAt || 0) === Number(summary.lastCollectionAt || 0);
+  if (statusOk && noteOk && timeOk) {
+    return { ok: true, message: "最近一条催收记录与当前摘要一致。" };
+  }
+  return {
+    ok: false,
+    message: "最近一条催收记录与摘要存在差异，请刷新后重试。",
+    checks: { statusMatch: statusOk, noteMatch: noteOk, lastActionTimeMatch: timeOk },
+  };
+}
+
 function getCustomerDetail(customerId) {
   const customer = mockCustomers.find((x) => x.id === customerId);
   if (!customer) throw new Error("客户不存在，请刷新后重试");
+  const rawAccount = ensureCustomerAccount(customerId);
+  const account = buildCustomerAccountSummary(customerId);
   return {
     ...customer,
-    account: buildCustomerAccountSummary(customerId),
+    account,
+    collectionHistory: getRecentCollectionHistoryEntries(rawAccount, 20),
+    accountSummaryConsistency: buildAccountSummaryConsistency(account, rawAccount),
   };
 }
 
 function updateCollectionStatus(customerId, payload) {
   const account = ensureCustomerAccount(customerId);
   const status = String(payload.status || "").trim();
-  if (!["none", "pending", "contacted", "promised", "resolved"].includes(status)) {
+  if (!COLLECTION_STATUS_SET.has(status)) {
     throw new Error("催收状态不合法，请重新选择");
   }
+  const newNote = String(payload.note || "").trim().slice(0, 500);
+  const prevStatus = account.collectionStatus;
+  const prevNote = String(account.collectionNote || "").trim();
+  const changed = prevStatus !== status || prevNote !== newNote;
   account.collectionStatus = status;
-  account.collectionNote = String(payload.note || "").trim();
-  account.lastCollectionAt = Date.now();
-  account.updatedAt = Date.now();
+  account.collectionNote = newNote;
+  const ts = Date.now();
+  account.lastCollectionAt = ts;
+  account.updatedAt = ts;
+  if (changed) {
+    account.collectionHistory.push({ changedAt: ts, status, note: newNote });
+    if (account.collectionHistory.length > 200) {
+      account.collectionHistory.splice(0, account.collectionHistory.length - 200);
+    }
+  }
+  persistCustomerLedger();
   return buildCustomerAccountSummary(customerId);
 }
 
@@ -1151,6 +1273,7 @@ function createCustomer(payload) {
   };
   mockCustomers.unshift(customer);
   ensureCustomerAccount(customer.id);
+  persistCustomerLedger();
   return customer;
 }
 
