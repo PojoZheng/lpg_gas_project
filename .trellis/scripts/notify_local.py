@@ -3,7 +3,7 @@
 本机桌面通知（macOS 用 osascript；其它系统仅打印到 stderr）。
 
 用法:
-  python3 ./.trellis/scripts/notify_local.py --title "Trellis" --body "指针已写，请在三窗口跑 session_bootstrap"
+  python3 ./.trellis/scripts/notify_local.py --title "Trellis" --body "指针已写，请在辅树与主仓各跑 session_bootstrap"
   python3 ./.trellis/scripts/notify_local.py "短正文"   # 标题默认 Trellis
 """
 from __future__ import annotations
@@ -51,7 +51,7 @@ def main() -> int:
     args = parser.parse_args()
     body = args.body.strip() or " ".join(args.body_positional).strip()
     if not body:
-        body = "请检查各 worktree，并在三窗口执行 session_bootstrap 后继续。"
+        body = "请检查各 worktree，并在辅树开发窗口与主仓（如需）执行 session_bootstrap 后继续。"
     return notify(args.title, body)
 
 
