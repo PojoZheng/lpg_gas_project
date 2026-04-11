@@ -23,6 +23,13 @@
   "16-workbench-experience-polish": [
     "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ],
+  "20-safety-complete-mobile-layout": [
+    "node --check \".trellis/delivery-app/src/delivery-complete-client.js\"",
+    "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
+  ],
+  "22-workbench-bottom-nav-and-header-polish": [
+    "python3 \".trellis/scripts/task22_workbench_nav_header_polish.py\""
+  ],
   "24-ui-ux-pro-max-redesign": [
     "python3 \".trellis/scripts/task24_ui_refactor_smoke.py\""
   ],
@@ -47,5 +54,11 @@
   ],
   "36-workbench-01-req-spec-alignment": [
     "python3 \".trellis/scripts/task36_workbench_coverage_doc.py\""
+  ],
+  "37-workbench-p0-view-all-pending": [
+    "node --check \".trellis/delivery-app/src/workbench-client.js\"",
+    "node --check \".trellis/delivery-app/src/delivery-complete-client.js\"",
+    "python3 \".trellis/scripts/task37_workbench_view_all_smoke.py\"",
+    "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ]
 }

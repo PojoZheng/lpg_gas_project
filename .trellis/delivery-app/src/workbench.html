@@ -27,6 +27,26 @@
       .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
       .login-btn { min-height: 40px; height: 40px; white-space: nowrap; }
       .logout-btn { min-height: 40px; height: 40px; white-space: nowrap; }
+      .next-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .next-card-head-text { min-width: 0; flex: 1 1 160px; }
+      .next-card-sub { margin: 2px 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+      a.view-all-pending-link {
+        flex-shrink: 0;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 14px;
+        white-space: nowrap;
+      }
       .header-note { margin-top: 4px; font-size: 12px; color: var(--text-secondary); }
       .line { margin: 6px 0; color: var(--text-secondary); }
       .line strong { color: var(--text-primary); }
@@ -114,8 +134,18 @@
         </div>
       </section>
 
-      <section class="app-card">
-        <h2 class="app-card-title">待办事项</h2>
+      <section class="app-card" aria-labelledby="nextDeliveryTitle">
+        <div class="next-card-head">
+          <div class="next-card-head-text">
+            <h2 class="app-card-title" id="nextDeliveryTitle">下一个配送</h2>
+            <p class="next-card-sub">下一单待办与待配送列表</p>
+          </div>
+          <a
+            class="app-btn ghost view-all-pending-link"
+            id="viewAllPendingLink"
+            href="./delivery-complete.html?from=workbench&amp;view=pending"
+            >查看全部待配送</a>
+        </div>
         <p class="line">客户：<strong id="nextCustomer">--</strong></p>
         <p class="line">地址：<strong id="nextAddress">--</strong></p>
         <p class="line">时间：<strong id="nextSchedule">--</strong></p>

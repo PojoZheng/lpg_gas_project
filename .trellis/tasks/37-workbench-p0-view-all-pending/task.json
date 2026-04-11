@@ -1,7 +1,7 @@
 {
   "id": "37-workbench-p0-view-all-pending",
   "title": "工作台 P0：「查看全部待配送」入口与需求区域 B 对齐",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "36-workbench-01-req-spec-alignment",
     "02-workbench-aggregation",

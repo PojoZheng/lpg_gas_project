@@ -22,6 +22,7 @@
 |------|------|----------|----------------|
 | §1 定位 | 3s/5s/10s | 部分 | 可补充性能与埋点验收（非本仓库必选） |
 | §2.1 布局 | A/B/C 三区 | 部分 | 设计 token 下可再压「主按钮区」视觉权重 |
+| §2.1 区域 B | 「查看全部」待配送列表入口 | **已满足** | `workbench.html`「下一个配送」卡片内「查看全部待配送」→ `delivery-complete.html?from=workbench&view=pending`（task-37） |
 | §3.1 收入卡 | 已收/待收/毛利/趋势 | 部分 | 毛利、趋势为 **P1+** 能力，建议独立迭代或接财务接口 |
 | §3.2 下一配送 | 排序规则 | 部分 | 规则见 overview；需与列表接口契约对齐 |
 | §3.2 下一配送 | 卡片字段全集 | 部分 | 对齐 `workbench` 待办区展示与 `workbench-client` 字段映射 |
@@ -52,14 +53,14 @@
 
 ## 5. 建议的后续迭代顺序（对应 Trellis 任务）
 
-| 优先级 | 内容 | 任务 ID |
-|--------|------|---------|
-| P0 | 「查看全部待配送」入口 | `37-workbench-p0-view-all-pending` |
-| P1 | 收入卡展开 + 毛利/趋势占位 | `38-workbench-p1-income-expand-placeholders` |
-| P1 | 下一配送卡片字段补齐 | `39-workbench-p1-next-card-fields` |
-| 订单域 | 工作台底部面板式快速开单 | `40-order-bottom-sheet-quick-order-from-home` |
-| 订单域 | 连续开单模式 | `41-order-continuous-quick-order-mode` |
-| 订单域 | 短时撤销与窗口内改单 | `42-order-undo-and-modify-window` |
+| 优先级 | 内容 | 任务 ID | 状态 / 备注 |
+|--------|------|---------|---------------|
+| P0 | 「查看全部待配送」入口 | `37-workbench-p0-view-all-pending` | **已满足**：区域 B 卡片「查看全部待配送」→ `delivery-complete.html?from=workbench&view=pending` |
+| P1 | 收入卡展开 + 毛利/趋势占位 | `38-workbench-p1-income-expand-placeholders` | 待办 |
+| P1 | 下一配送卡片字段补齐 | `39-workbench-p1-next-card-fields` | 待办 |
+| 订单域 | 工作台底部面板式快速开单 | `40-order-bottom-sheet-quick-order-from-home` | 待办 |
+| 订单域 | 连续开单模式 | `41-order-continuous-quick-order-mode` | 待办 |
+| 订单域 | 短时撤销与窗口内改单 | `42-order-undo-and-modify-window` | 待办 |
 
 ---
 
@@ -68,3 +69,4 @@
 | 日期 | 说明 |
 |------|------|
 | 2026-04-11 | 首版：建立 01 工作台需求/规格与实现对齐基线 |
+| 2026-04-11 | task-37：区域 B「查看全部待配送」入口落地；§2 / §5 P0 第 1 条标为已满足 |
