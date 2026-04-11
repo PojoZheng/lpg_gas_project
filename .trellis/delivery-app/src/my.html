@@ -62,6 +62,16 @@
             </span>
             <span class="entry-arrow">›</span>
           </button>
+          <button class="app-btn entry-btn" id="ordersBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" /></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">订单历史</div>
+                <div class="sub">历史订单与退货换货</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
         </div>
       </section>
 
@@ -158,6 +168,7 @@
       document.getElementById("loginTopBtn").addEventListener("click", () => (window.location.href = "./login.html"));
       document.getElementById("logoutTopBtn").addEventListener("click", doLogout);
       document.getElementById("deliveryBtn").addEventListener("click", () => (window.location.href = "./delivery-complete.html"));
+      document.getElementById("ordersBtn").addEventListener("click", () => (window.location.href = "./order-list.html"));
       document.getElementById("financeBtn").addEventListener("click", () => (window.location.href = "./finance-daily-close.html"));
       document.getElementById("syncBtn").addEventListener("click", () => (window.location.href = "/platform/src/sync-queue.html"));
       document.getElementById("platformBtn").addEventListener("click", () => (window.location.href = "/platform/src/index.html"));
