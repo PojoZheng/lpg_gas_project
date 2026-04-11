@@ -1,0 +1,30 @@
+{
+  "id": "43-order-history-list",
+  "title": "订单域 P0：历史订单列表页与详情入口",
+  "status": "todo",
+  "depends_on": [
+    "02-workbench-aggregation",
+    "04-delivery-to-complete"
+  ],
+  "input_spec": [
+    "requirements/02_订单/需求.md",
+    "requirements/02_订单/规格.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/delivery-app/DESIGN.md",
+    ".trellis/spec/shared/api-contracts.md"
+  ],
+  "acceptance": [
+    "「我的」页面增加「历史订单」入口卡片（文案中文、无 emoji，触控区符合 DESIGN 最小触达）",
+    "order-list.html 实现：顶部 Tab 筛选（全部/待配送/已完成/已取消/已退货）、搜索框（客户姓名/地址/订单号模糊匹配）",
+    "订单列表项展示：客户姓名、地址、规格×数量、金额、状态标签、时间",
+    "已完成订单可点击进入 order-detail.html 详情页",
+    "GET /orders?page=&size=&status=&keyword= 接口可用，返回分页订单列表",
+    "GET /orders/:id 接口可用，返回订单详情（含 items、amounts、payment、logs）",
+    "界面中文、无 emoji，符合品牌色 #4799a0"
+  ],
+  "output_artifacts": [
+    "delivery-app/src/order-list.html",
+    "delivery-app/src/order-list-client.js",
+    "backend/src/routes/orders.js（扩展 GET /orders 与 GET /:id）"
+  ]
+}
