@@ -20,9 +20,9 @@ const mockCustomers = [
   { id: "CUST-003", name: "东港小区李阿姨", phone: "13800000003", address: "东港小区 2 栋 301", tags: [] },
 ];
 const inventoryBySpec = {
-  "10kg": { onHand: 8, locked: 0 },
-  "15kg": { onHand: 12, locked: 0 },
-  "50kg": { onHand: 3, locked: 0 },
+  "10kg": { onHand: 8, locked: 0, pendingInspection: 0 },
+  "15kg": { onHand: 12, locked: 0, pendingInspection: 0 },
+  "50kg": { onHand: 3, locked: 0, pendingInspection: 0 },
 };
 const quickOrders = [];
 const inventoryLogs = [];
@@ -49,8 +49,16 @@ function getInventoryState(spec) {
   if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
   const onHand = Number(inventoryBySpec[spec].onHand || 0);
   const locked = Number(inventoryBySpec[spec].locked || 0);
+  const pendingInspection = Number(inventoryBySpec[spec].pendingInspection || 0);
   const available = Math.max(0, onHand - locked);
-  return { spec, onHand, locked, available };
+  return { spec, onHand, locked, pendingInspection, available };
+}
+
+function moveToPendingInspection(spec, quantity, orderId) {
+  const state = getInventoryState(spec);
+  inventoryBySpec[spec].pendingInspection = state.pendingInspection + quantity;
+  pushInventoryLog("to_inspection", spec, 0, 0, orderId);
+  return getInventoryState(spec);
 }
 
 function pushInventoryLog(type, spec, deltaOnHand, deltaLocked, orderId) {
@@ -200,6 +208,149 @@ function processOrderReturn(orderId, payload) {
       inventoryChange: {
         spec: order.spec,
         delta: order.quantity,
+      },
+    },
+  };
+}
+
+const exchangeRecords = [];
+
+function processOrderExchange(orderId, payload) {
+  const order = quickOrders.find((x) => x.orderId === orderId);
+  if (!order) throw new Error("订单不存在");
+  if (order.orderStatus !== "completed") throw new Error("只有已完成订单可申请换货");
+  
+  const completedAt = Number(order.completedAt || order.createdAt || 0);
+  const minutesSinceComplete = (Date.now() - completedAt) / (60 * 1000);
+  if (minutesSinceComplete > 5) throw new Error("订单完成超过5分钟，无法快捷换货");
+
+  const { reason, bottleReturned, newQuantity, priceDiff, diffHandling, note } = payload;
+  if (!reason) throw new Error("请选择换货原因");
+  if (!bottleReturned) throw new Error("请确认已收回气瓶");
+  if (!Number.isInteger(newQuantity) || newQuantity < 1) throw new Error("新单数量必须为正整数");
+  if (!Number.isFinite(priceDiff)) throw new Error("差价金额不合法");
+  if (!["no_diff", "customer_pays", "refund_customer"].includes(diffHandling)) {
+    throw new Error("差价处理方式不合法");
+  }
+
+  const exchangeId = `EXC-${Date.now()}`;
+  const now = Date.now();
+
+  const exchangeRecord = {
+    id: exchangeId,
+    originalOrderId: orderId,
+    customerId: order.customerId,
+    customerName: order.customerName,
+    originalSpec: order.spec,
+    originalQuantity: order.quantity,
+    newQuantity,
+    reason: reason || "",
+    bottleReturned: Boolean(bottleReturned),
+    priceDiff: Number(priceDiff) || 0,
+    diffHandling,
+    note: note || "",
+    createdAt: now,
+  };
+  exchangeRecords.unshift(exchangeRecord);
+  if (exchangeRecords.length > 200) exchangeRecords.pop();
+
+  order.orderStatus = "exchanged";
+  order.exchangedAt = now;
+  order.exchangeRecordId = exchangeId;
+
+  moveToPendingInspection(order.spec, order.quantity, orderId);
+
+  const newOrderId = `ORD-${now + 1}`;
+  const unitPrice = Number(order.unitPrice || 0);
+  const newAmount = Number((unitPrice * newQuantity).toFixed(2));
+  
+  let actualReceivedAmount = 0;
+  let paymentMethod = "";
+  if (diffHandling === "customer_pays" && priceDiff > 0) {
+    actualReceivedAmount = priceDiff;
+    paymentMethod = "cash";
+  } else if (diffHandling === "refund_customer" && priceDiff < 0) {
+    actualReceivedAmount = 0;
+  }
+
+  const newOrder = {
+    orderId: newOrderId,
+    customerId: order.customerId,
+    customerName: order.customerName,
+    orderType: "immediate_complete",
+    orderStatus: "completed",
+    spec: order.spec,
+    quantity: newQuantity,
+    unitPrice: unitPrice,
+    amount: newAmount,
+    paymentStatus: actualReceivedAmount >= newAmount ? "paid" : (actualReceivedAmount > 0 ? "partial_paid" : "unpaid"),
+    paymentMethod: paymentMethod,
+    receivedAmount: actualReceivedAmount,
+    recycledEmptyCount: 0,
+    owedEmptyCount: 0,
+    syncStatus: "pending",
+    lastAction: "",
+    lastActionUndoUntil: 0,
+    canModifyUntil: now + 24 * 60 * 60 * 1000,
+    address: order.address,
+    scheduleAt: "当场完成",
+    inventoryStage: "consumed",
+    createdAt: now,
+    completedAt: now,
+    modifyLogs: [],
+    driverNote: `换货新单，关联原单：${orderId}${note ? "，备注：" + note : ""}`,
+    originalOrderId: orderId,
+    exchangeId: exchangeId,
+  };
+
+  const inventoryResult = directConsumeInventory(order.spec, newQuantity, newOrderId);
+  if (!inventoryResult.success) {
+    throw new Error(inventoryResult.error || "库存不足");
+  }
+
+  quickOrders.push(newOrder);
+
+  if (actualReceivedAmount > 0) {
+    appendFinanceEntry(newOrder, "exchange_new_order");
+  }
+
+  if (diffHandling === "refund_customer" && priceDiff < 0) {
+    const refundEntry = {
+      id: `FIN-EXC-REF-${now}`,
+      type: "exchange_refund",
+      orderId: newOrderId,
+      amount: priceDiff,
+      method: "cash",
+      createdAt: now,
+      note: `换货退差：原单${orderId} -> 新单${newOrderId}`,
+    };
+    financeEntries.unshift(refundEntry);
+    if (financeEntries.length > 500) financeEntries.pop();
+  }
+
+  return {
+    success: true,
+    data: {
+      originalOrder: {
+        orderId: order.orderId,
+        orderStatus: order.orderStatus,
+        exchangedAt: order.exchangedAt,
+      },
+      newOrder: {
+        orderId: newOrder.orderId,
+        quantity: newOrder.quantity,
+        amount: newOrder.amount,
+        receivedAmount: newOrder.receivedAmount,
+      },
+      exchangeRecord: {
+        id: exchangeRecord.id,
+        priceDiff: exchangeRecord.priceDiff,
+        diffHandling: exchangeRecord.diffHandling,
+      },
+      inventoryChange: {
+        spec: order.spec,
+        originalToInspection: order.quantity,
+        newConsumed: newQuantity,
       },
     },
   };
@@ -1704,6 +1855,15 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/return", ""));
       const payload = await readBody(req);
       const result = processOrderReturn(orderId, payload);
+      return sendJson(res, 200, result);
+    }
+
+    if (req.method === "POST" && pathname.endsWith("/exchange")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/exchange", ""));
+      const payload = await readBody(req);
+      const result = processOrderExchange(orderId, payload);
       return sendJson(res, 200, result);
     }
 
