@@ -1,0 +1,27 @@
+{
+  "id": "45-order-exchange",
+  "title": "订单域 P0：换货功能",
+  "status": "in_progress",
+  "depends_on": [
+    "43-order-history-list",
+    "44-order-return-exchange"
+  ],
+  "input_spec": [
+    ".trellis/spec/delivery-app/domain-order/overview.md",
+    ".trellis/spec/delivery-app/domain-inventory/overview.md",
+    ".trellis/spec/shared/api-contracts.md"
+  ],
+  "acceptance": [
+    "POST /orders/:id/exchange 接口可用，处理换货逻辑",
+    "订单完成后5分钟内显示「快捷换货」按钮，超时隐藏",
+    "换货面板支持同规格开新单、自动计算差价",
+    "差价处理支持「无需补差/客户补差/退客户差」",
+    "换货时原单标记「已换货」，库存进入待检状态",
+    "新单与原单关联，可在订单列表查看",
+    "界面中文、无 emoji，符合品牌色 #4799a0"
+  ],
+  "output_artifacts": [
+    "backend/src/server.js（扩展 POST /:id/exchange 和库存待检逻辑）",
+    "delivery-app/src/order-detail.html（添加换货按钮和面板）"
+  ]
+}

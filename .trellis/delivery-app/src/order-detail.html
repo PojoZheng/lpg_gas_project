@@ -15,6 +15,7 @@
       .status-completed { background: #f0fdf4; color: #166534; }
       .status-cancelled { background: #f5f5f5; color: #757575; }
       .status-returned { background: #fef2f2; color: #c62828; }
+      .status-exchanged { background: #f3e8ff; color: #7c3aed; }
       
       .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; }
       .card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; font-family: var(--font-title); }
@@ -107,6 +108,7 @@
     </main>
 
     <div class="bottom-actions" id="bottomActions">
+      <button class="btn btn-primary" id="exchangeBtn" style="display:none;">快捷换货</button>
       <button class="btn btn-danger" id="returnBtn" style="display:none;">申请退货</button>
     </div>
 
@@ -160,11 +162,72 @@
       </div>
     </div>
 
+    <div class="modal" id="exchangeModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">快捷换货</h2>
+          <button class="modal-close" id="closeExchangeModal">&times;</button>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">换货原因 *</label>
+          <select class="form-select" id="exchangeReason">
+            <option value="">请选择换货原因</option>
+            <option value="质量问题-阀门漏气">质量问题：阀门漏气</option>
+            <option value="质量问题-瓶身损坏">质量问题：瓶身损坏</option>
+            <option value="客户原因-规格变更">客户原因：规格变更</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">原单数量</label>
+          <input type="number" class="form-input" id="originalQuantity" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">新单数量 *</label>
+          <input type="number" class="form-input" id="newQuantity" min="1" value="1" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">单价（元）</label>
+          <input type="number" class="form-input" id="unitPrice" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">差价金额（元）</label>
+          <input type="number" class="form-input" id="priceDiff" readonly value="0" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">差价处理 *</label>
+          <select class="form-select" id="diffHandling">
+            <option value="no_diff">无需补差</option>
+            <option value="customer_pays">客户补差</option>
+            <option value="refund_customer">退客户差</option>
+          </select>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="exchangeBottleReturned" />
+          <label for="exchangeBottleReturned">已收回气瓶</label>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">备注（选填）</label>
+          <input type="text" class="form-input" id="exchangeNote" placeholder="请输入备注" />
+        </div>
+
+        <button class="submit-btn" id="submitExchange">确认换货</button>
+      </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { fetchOrderDetail, submitOrderReturn } from "./order-client.js";
+      import { fetchOrderDetail, submitOrderReturn, submitOrderExchange } from "./order-client.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
@@ -198,8 +261,16 @@
           completed: { text: "已完成", class: "status-completed" },
           cancelled: { text: "已取消", class: "status-cancelled" },
           returned: { text: "已退货", class: "status-returned" },
+          exchanged: { text: "已换货", class: "status-exchanged" },
         };
         return map[status] || { text: status, class: "" };
+      }
+
+      function canExchange(order) {
+        if (order.orderStatus !== "completed") return false;
+        const completedAt = Number(order.completedAt || order.createdAt || 0);
+        const minutesSince = (Date.now() - completedAt) / (60 * 1000);
+        return minutesSince <= 5;
       }
 
       function showToast(message) {
@@ -250,6 +321,13 @@
             document.getElementById("refundAmount").value = orderData.receivedAmount || orderData.amount || 0;
             document.getElementById("returnQuantity").max = orderData.quantity || 1;
           }
+          if (canExchange(orderData)) {
+            document.getElementById("exchangeBtn").style.display = "block";
+            document.getElementById("originalQuantity").value = orderData.quantity || 1;
+            document.getElementById("newQuantity").value = orderData.quantity || 1;
+            document.getElementById("unitPrice").value = orderData.unitPrice || 0;
+            calculatePriceDiff();
+          }
         } catch (err) {
           showToast(err.message || "加载失败");
         }
@@ -271,6 +349,33 @@
       returnModal.addEventListener("click", (e) => {
         if (e.target === returnModal) returnModal.classList.remove("show");
       });
+
+      const exchangeModal = document.getElementById("exchangeModal");
+      const newQuantityInput = document.getElementById("newQuantity");
+      const unitPriceInput = document.getElementById("unitPrice");
+      const priceDiffInput = document.getElementById("priceDiff");
+
+      function calculatePriceDiff() {
+        const originalQty = parseInt(document.getElementById("originalQuantity").value) || 0;
+        const newQty = parseInt(newQuantityInput.value) || 0;
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        const diff = (newQty - originalQty) * unitPrice;
+        priceDiffInput.value = diff.toFixed(2);
+      }
+
+      document.getElementById("exchangeBtn").addEventListener("click", () => {
+        exchangeModal.classList.add("show");
+      });
+
+      document.getElementById("closeExchangeModal").addEventListener("click", () => {
+        exchangeModal.classList.remove("show");
+      });
+
+      exchangeModal.addEventListener("click", (e) => {
+        if (e.target === exchangeModal) exchangeModal.classList.remove("show");
+      });
+
+      newQuantityInput.addEventListener("input", calculatePriceDiff);
 
       document.getElementById("submitReturn").addEventListener("click", async () => {
         const reason = document.getElementById("returnReason").value;
@@ -326,6 +431,58 @@
           showToast(err.message || "提交失败");
           submitBtn.disabled = false;
           submitBtn.textContent = "确认退货";
+        }
+      });
+
+      document.getElementById("submitExchange").addEventListener("click", async () => {
+        const reason = document.getElementById("exchangeReason").value;
+        const newQuantity = parseInt(document.getElementById("newQuantity").value);
+        const priceDiff = parseFloat(document.getElementById("priceDiff").value);
+        const diffHandling = document.getElementById("diffHandling").value;
+        const bottleReturned = document.getElementById("exchangeBottleReturned").checked;
+        const note = document.getElementById("exchangeNote").value;
+
+        if (!reason) {
+          showToast("请选择换货原因");
+          return;
+        }
+        if (!bottleReturned) {
+          showToast("请确认已收回气瓶");
+          return;
+        }
+        if (!newQuantity || newQuantity < 1) {
+          showToast("新单数量必须大于0");
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitExchange");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "提交中...";
+
+        try {
+          const result = await submitOrderExchange(orderId, {
+            reason,
+            bottleReturned,
+            newQuantity,
+            priceDiff,
+            diffHandling,
+            note,
+          });
+
+          if (result.success) {
+            showToast("换货成功");
+            setTimeout(() => {
+              window.location.href = "./order-list.html";
+            }, 1500);
+          } else {
+            showToast(result.error || "换货失败");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "确认换货";
+          }
+        } catch (err) {
+          showToast(err.message || "提交失败");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "确认换货";
         }
       });
 
