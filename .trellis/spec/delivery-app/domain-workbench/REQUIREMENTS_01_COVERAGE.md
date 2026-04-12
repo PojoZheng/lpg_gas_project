@@ -77,3 +77,4 @@
 | 2026-04-11 | task-39：§3.2.2 下一配送卡片字段与 `nextDelivery` 聚合对齐；§1 摘要、§2 §3.2.2、§4、§5 P1 与变更记录更新 |
 | 2026-04-11 | 工程：工作台首页 `workbench.html` / `workbench-client.js` 变更须同 PR 更新本表（`verify_workbench_coverage_touch.py` + CI）；见 `AGENTS.md` |
 | 2026-04-11 | feat: 新增客户列表页 `customer-list.html`，底部导航「客户」按钮统一指向客户列表页；涉及 `workbench.html`、`my.html`、`delivery-complete.html`、`quick-order.html`、`order-list.html` 导航更新 |
+| 2026-04-12 | Task 47: 客户列表管理功能 - 搜索(300ms防抖)、筛选(全部/有欠款/有欠瓶/VIP)、分页加载、客户卡片展示(姓名/电话/地址/欠款/欠瓶标记)、GET /api/customers 接口调用；新增 `customer-detail.html` 详情页框架 |
