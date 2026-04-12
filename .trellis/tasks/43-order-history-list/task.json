@@ -1,7 +1,7 @@
 {
   "id": "43-order-history-list",
   "title": "订单域 P0：历史订单列表页与详情入口",
-  "status": "todo",
+  "status": "completed",
   "depends_on": [
     "02-workbench-aggregation",
     "04-delivery-to-complete"
