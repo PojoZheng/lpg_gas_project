@@ -181,8 +181,22 @@
         </div>
 
         <div class="form-field">
+          <label class="form-label">原规格</label>
+          <input type="text" class="form-input" id="originalSpec" readonly />
+        </div>
+
+        <div class="form-field">
           <label class="form-label">原单数量</label>
           <input type="number" class="form-input" id="originalQuantity" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">新规格 *</label>
+          <select class="form-select" id="newSpec">
+            <option value="10kg">10kg</option>
+            <option value="15kg" selected>15kg</option>
+            <option value="50kg">50kg</option>
+          </select>
         </div>
 
         <div class="form-field">
@@ -191,8 +205,13 @@
         </div>
 
         <div class="form-field">
-          <label class="form-label">单价（元）</label>
-          <input type="number" class="form-input" id="unitPrice" readonly />
+          <label class="form-label">原单价（元）</label>
+          <input type="number" class="form-input" id="originalUnitPrice" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">新单价（元）*</label>
+          <input type="number" class="form-input" id="newUnitPrice" min="0" step="0.01" value="120" />
         </div>
 
         <div class="form-field">
@@ -227,7 +246,7 @@
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { fetchOrderDetail, submitOrderReturn, submitOrderExchange } from "./order-client.js";
+      import { fetchOrderDetail, submitOrderReturn, submitOrderExchange, checkHeavyInventory } from "./order-client.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
@@ -323,9 +342,11 @@
           }
           if (canExchange(orderData)) {
             document.getElementById("exchangeBtn").style.display = "block";
+            document.getElementById("originalSpec").value = orderData.spec || "";
             document.getElementById("originalQuantity").value = orderData.quantity || 1;
             document.getElementById("newQuantity").value = orderData.quantity || 1;
-            document.getElementById("unitPrice").value = orderData.unitPrice || 0;
+            document.getElementById("originalUnitPrice").value = orderData.unitPrice || 0;
+            document.getElementById("newUnitPrice").value = orderData.unitPrice || 120;
             calculatePriceDiff();
           }
         } catch (err) {
@@ -351,15 +372,18 @@
       });
 
       const exchangeModal = document.getElementById("exchangeModal");
+      const newSpecSelect = document.getElementById("newSpec");
       const newQuantityInput = document.getElementById("newQuantity");
-      const unitPriceInput = document.getElementById("unitPrice");
+      const originalUnitPriceInput = document.getElementById("originalUnitPrice");
+      const newUnitPriceInput = document.getElementById("newUnitPrice");
       const priceDiffInput = document.getElementById("priceDiff");
 
       function calculatePriceDiff() {
         const originalQty = parseInt(document.getElementById("originalQuantity").value) || 0;
         const newQty = parseInt(newQuantityInput.value) || 0;
-        const unitPrice = parseFloat(unitPriceInput.value) || 0;
-        const diff = (newQty - originalQty) * unitPrice;
+        const originalPrice = parseFloat(originalUnitPriceInput.value) || 0;
+        const newPrice = parseFloat(newUnitPriceInput.value) || 0;
+        const diff = (newQty * newPrice) - (originalQty * originalPrice);
         priceDiffInput.value = diff.toFixed(2);
       }
 
@@ -376,6 +400,7 @@
       });
 
       newQuantityInput.addEventListener("input", calculatePriceDiff);
+      newUnitPriceInput.addEventListener("input", calculatePriceDiff);
 
       document.getElementById("submitReturn").addEventListener("click", async () => {
         const reason = document.getElementById("returnReason").value;
@@ -436,7 +461,11 @@
 
       document.getElementById("submitExchange").addEventListener("click", async () => {
         const reason = document.getElementById("exchangeReason").value;
+        const originalSpec = document.getElementById("originalSpec").value;
+        const newSpec = document.getElementById("newSpec").value;
         const newQuantity = parseInt(document.getElementById("newQuantity").value);
+        const originalUnitPrice = parseFloat(document.getElementById("originalUnitPrice").value) || 0;
+        const newUnitPrice = parseFloat(document.getElementById("newUnitPrice").value) || 0;
         const priceDiff = parseFloat(document.getElementById("priceDiff").value);
         const diffHandling = document.getElementById("diffHandling").value;
         const bottleReturned = document.getElementById("exchangeBottleReturned").checked;
@@ -455,6 +484,13 @@
           return;
         }
 
+        // 检查新规格重瓶库存
+        const availableStock = checkHeavyInventory(newSpec);
+        if (availableStock < newQuantity) {
+          showToast(`${newSpec}重瓶库存不足，当前可用 ${availableStock} 瓶`);
+          return;
+        }
+
         const submitBtn = document.getElementById("submitExchange");
         submitBtn.disabled = true;
         submitBtn.textContent = "提交中...";
@@ -463,7 +499,11 @@
           const result = await submitOrderExchange(orderId, {
             reason,
             bottleReturned,
+            originalSpec,
+            newSpec,
             newQuantity,
+            originalUnitPrice,
+            newUnitPrice,
             priceDiff,
             diffHandling,
             note,

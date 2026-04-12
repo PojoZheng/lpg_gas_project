@@ -1,5 +1,12 @@
 const API_BASE = "http://localhost:3100";
 
+// 本地库存状态（模拟）
+const inventoryState = {
+  "10kg": { heavy: 6, empty: 3 },
+  "15kg": { heavy: 10, empty: 5 },
+  "50kg": { heavy: 2, empty: 1 },
+};
+
 function getAccessToken() {
   const session = JSON.parse(localStorage.getItem("driver_session") || "{}");
   return session.accessToken || "";
@@ -40,5 +47,40 @@ export async function submitOrderExchange(orderId, payload) {
     },
     body: JSON.stringify(payload),
   });
-  return res.json();
+  
+  const result = await res.json();
+  
+  // 模拟库存联动：旧规格重瓶+1，新规格重瓶-1
+  if (result.success) {
+    const { originalSpec, newSpec, newQuantity } = payload;
+    
+    // 旧规格重瓶 +1（退回）
+    if (originalSpec && inventoryState[originalSpec]) {
+      inventoryState[originalSpec].heavy += 1;
+    }
+    
+    // 新规格重瓶 -newQuantity（出库）
+    if (newSpec && inventoryState[newSpec]) {
+      inventoryState[newSpec].heavy = Math.max(0, inventoryState[newSpec].heavy - (newQuantity || 1));
+    }
+    
+    // 将更新后的库存信息附加到结果中
+    result.inventoryUpdated = true;
+    result.inventoryChanges = {
+      [originalSpec]: { heavyDelta: +1 },
+      [newSpec]: { heavyDelta: -(newQuantity || 1) },
+    };
+  }
+  
+  return result;
+}
+
+// 获取当前库存状态（供页面展示）
+export function getInventoryState() {
+  return { ...inventoryState };
+}
+
+// 检查指定规格重瓶库存
+export function checkHeavyInventory(spec) {
+  return inventoryState[spec]?.heavy || 0;
 }
