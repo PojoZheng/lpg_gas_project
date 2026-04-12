@@ -1,0 +1,29 @@
+{
+  "id": "47-customer-list-management",
+  "title": "客户域 P1：客户列表与详情管理",
+  "status": "completed",
+  "depends_on": [
+    "40-order-bottom-sheet-quick-order-from-home",
+    "43-order-history-list"
+  ],
+  "input_spec": [
+    "requirements/03_客户/需求.md",
+    ".trellis/spec/delivery-app/domain-customer/overview.md",
+    ".trellis/spec/delivery-app/DESIGN.md"
+  ],
+  "acceptance": [
+    "「我的」页面「客户」入口指向 customer-list.html",
+    "customer-list.html：搜索框、客户卡片（姓名/电话/地址/标签）、欠瓶/欠款标记",
+    "客户详情页 customer-detail.html：基本信息、欠瓶/欠款统计、历史订单入口、快捷开单按钮",
+    "GET /customers 接口：支持搜索、分页",
+    "GET /customers/:id 接口：返回详情 + 台账汇总",
+    "GET /customers/:id/orders 接口：返回该客户历史订单",
+    "从客户详情可一键跳转快速开单（带客户ID预填）",
+    "界面中文、无 emoji，主色 #4799a0"
+  ],
+  "output_artifacts": [
+    "delivery-app/src/customer-list.html",
+    "delivery-app/src/customer-detail.html",
+    "delivery-app/src/customer-client.js"
+  ]
+}

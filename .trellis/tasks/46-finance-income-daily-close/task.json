@@ -1,0 +1,30 @@
+{
+  "id": "46-finance-income-daily-close",
+  "title": "财务域 P1：收入明细与日结对账",
+  "status": "completed",
+  "depends_on": [
+    "40-order-bottom-sheet-quick-order-from-home",
+    "42-order-undo-and-modify-window"
+  ],
+  "input_spec": [
+    "requirements/06_财务/需求.md",
+    ".trellis/spec/delivery-app/domain-finance/overview.md",
+    ".trellis/spec/delivery-app/DESIGN.md"
+  ],
+  "acceptance": [
+    "「我的」页面新增「财务管理」入口卡片",
+    "finance-overview.html：时间筛选（今日/本周/本月/自定义）、收入分类汇总（气款/押金/残液/其他）、收入明细列表",
+    "finance-daily-close.html：今日收支汇总、订单汇总、收款方式对账、确认日结按钮",
+    "GET /finance/income 接口：返回指定时间范围收入明细",
+    "GET /finance/daily-close 接口：返回当日对账数据",
+    "POST /finance/daily-close/confirm 接口：确认日结",
+    "界面中文、无 emoji，主色 #4799a0",
+    "日结确认后生成不可篡改记录"
+  ],
+  "output_artifacts": [
+    "delivery-app/src/finance-overview.html",
+    "delivery-app/src/finance-daily-close.html",
+    "delivery-app/src/finance-client.js",
+    "backend/src/routes/finance.js"
+  ]
+}

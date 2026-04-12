@@ -1,7 +1,7 @@
 {
   "id": "45-order-exchange",
   "title": "订单域 P0：换货功能",
-  "status": "in_progress",
+  "status": "completed",
   "depends_on": [
     "43-order-history-list",
     "44-order-return-exchange"
