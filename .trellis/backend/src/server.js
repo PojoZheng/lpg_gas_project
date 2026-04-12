@@ -1646,7 +1646,61 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/orders") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: quickOrders });
+      
+      // 解析分页参数
+      const page = Math.max(1, parseInt(reqUrl.searchParams.get("page") || "1", 10));
+      const size = Math.min(100, Math.max(1, parseInt(reqUrl.searchParams.get("size") || "20", 10)));
+      
+      // 解析筛选参数
+      const status = reqUrl.searchParams.get("status") || "all";
+      const keyword = (reqUrl.searchParams.get("keyword") || "").trim().toLowerCase();
+      
+      // 筛选订单
+      let filteredOrders = quickOrders;
+      
+      // 状态筛选
+      if (status !== "all") {
+        filteredOrders = filteredOrders.filter(order => order.orderStatus === status);
+      }
+      
+      // 关键词搜索（客户姓名、地址、订单号模糊匹配）
+      if (keyword) {
+        filteredOrders = filteredOrders.filter(order => {
+          const matchOrderId = order.orderId.toLowerCase().includes(keyword);
+          const matchCustomerName = order.customerName.toLowerCase().includes(keyword);
+          const matchAddress = (order.address || "").toLowerCase().includes(keyword);
+          return matchOrderId || matchCustomerName || matchAddress;
+        });
+      }
+      
+      // 排序：按创建时间倒序（最新的在前）
+      filteredOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      
+      // 分页
+      const total = filteredOrders.length;
+      const start = (page - 1) * size;
+      const end = start + size;
+      const list = filteredOrders.slice(start, end).map(order => ({
+        id: order.orderId,
+        customer_id: order.customerId,
+        customer_name: order.customerName,
+        address: order.address,
+        status: order.orderStatus,
+        cylinders: [{ spec: order.spec, quantity: order.quantity }],
+        total_amount: order.amount,
+        created_at: order.createdAt,
+        appointment_time: order.scheduleAt || null
+      }));
+      
+      return sendJson(res, 200, { 
+        success: true, 
+        data: {
+          total,
+          page,
+          size,
+          list
+        }
+      });
     }
 
     if (req.method === "GET" && pathname === "/orders/pending-delivery") {
