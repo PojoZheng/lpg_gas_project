@@ -186,7 +186,7 @@ function moveToPendingInspection(spec, quantity, orderId) {
   return getInventoryState(spec);
 }
 
-function pushInventoryLog(type, spec, deltaOnHand, deltaLocked, orderId) {
+function pushInventoryLog(type, spec, deltaOnHand, deltaLocked, orderId, extra = {}) {
   inventoryLogs.unshift({
     id: `INV-LOG-${Date.now()}`,
     type,
@@ -195,8 +195,94 @@ function pushInventoryLog(type, spec, deltaOnHand, deltaLocked, orderId) {
     deltaLocked,
     orderId,
     createdAt: Date.now(),
+    ...extra,
   });
   if (inventoryLogs.length > 200) inventoryLogs.pop();
+}
+
+function normalizeInventorySpec(value) {
+  const spec = String(value || "").trim();
+  if (!inventoryBySpec[spec]) {
+    throw new Error("气瓶规格不支持");
+  }
+  return spec;
+}
+
+function normalizePositiveInt(value, fieldName = "数量", max = 2000) {
+  const num = Number(value);
+  if (!Number.isInteger(num) || num <= 0) {
+    throw new Error(`${fieldName}必须为正整数`);
+  }
+  return Math.min(max, num);
+}
+
+function buildInventoryAlertSnapshot() {
+  const rules = getBusinessRules("default");
+  const warningEnabled = Boolean(rules?.inventoryWarning?.enabled);
+  const thresholds = {
+    "15kg": Number(rules?.inventoryWarning?.heavy?.kg15 || 0),
+    "10kg": Number(rules?.inventoryWarning?.heavy?.kg10 || 0),
+    "50kg": Number(rules?.inventoryWarning?.heavy?.kg50 || 0),
+  };
+  const items = Object.keys(inventoryBySpec).map((spec) => {
+    const state = getInventoryState(spec);
+    const threshold = Math.max(0, Number(thresholds[spec] || 0));
+    const isLow = warningEnabled && threshold > 0 && state.onHand < threshold;
+    return {
+      spec,
+      onHand: state.onHand,
+      locked: state.locked,
+      pendingInspection: state.pendingInspection,
+      threshold,
+      isLow,
+    };
+  });
+  const lowItems = items.filter((x) => x.isLow);
+  return {
+    enabled: warningEnabled,
+    lowCount: lowItems.length,
+    items,
+    lowItems,
+    message: lowItems.length
+      ? `低库存预警：${lowItems
+          .map((x) => `${x.spec}库存${x.onHand}（阈值${x.threshold}）`)
+          .join("；")}`
+      : "当前无低库存预警",
+  };
+}
+
+function applyInventoryPurchase(payload) {
+  const spec = normalizeInventorySpec(payload?.spec);
+  const quantity = normalizePositiveInt(payload?.quantity, "采购数量");
+  const state = getInventoryState(spec);
+  inventoryBySpec[spec].onHand = state.onHand + quantity;
+  pushInventoryLog("purchase_in", spec, quantity, 0, String(payload?.refId || ""), {
+    note: String(payload?.note || "").trim().slice(0, 120),
+  });
+  return getInventoryState(spec);
+}
+
+function applyInventoryRefill(payload) {
+  const spec = normalizeInventorySpec(payload?.spec);
+  const quantity = normalizePositiveInt(payload?.quantity, "充装数量");
+  const state = getInventoryState(spec);
+  inventoryBySpec[spec].onHand = state.onHand + quantity;
+  pushInventoryLog("refill_in", spec, quantity, 0, String(payload?.refId || ""), {
+    note: String(payload?.note || "").trim().slice(0, 120),
+  });
+  return getInventoryState(spec);
+}
+
+function applyInventoryStocktake(payload) {
+  const spec = normalizeInventorySpec(payload?.spec);
+  const countedOnHand = normalizePositiveInt(payload?.countedOnHand, "盘点数量", 5000);
+  const state = getInventoryState(spec);
+  const delta = countedOnHand - state.onHand;
+  inventoryBySpec[spec].onHand = countedOnHand;
+  pushInventoryLog("stocktake_adjust", spec, delta, 0, String(payload?.refId || ""), {
+    note: String(payload?.note || "").trim().slice(0, 120),
+  });
+  return getInventoryState(spec);
 }
 
 function lockInventory(spec, quantity, orderId) {
@@ -2553,10 +2639,38 @@ function createCustomer(payload) {
     phone,
     address,
     tags: tagList,
+    note: String(payload.note || "").trim().slice(0, 500),
   };
   mockCustomers.unshift(customer);
   ensureCustomerAccount(customer.id);
   persistCustomerLedger();
+  return customer;
+}
+
+function updateCustomer(customerId, payload) {
+  const customer = mockCustomers.find((x) => x.id === customerId);
+  if (!customer) throw new Error("客户不存在，请刷新后重试");
+  const nextName = String(payload?.name ?? customer.name).trim();
+  const nextPhone = String(payload?.phone ?? customer.phone).trim();
+  const nextAddress = String(payload?.address ?? customer.address).trim();
+  if (!nextName) throw new Error("客户姓名不能为空");
+  if (!/^1\d{10}$/.test(nextPhone)) throw new Error("手机号格式不正确");
+  if (!nextAddress) throw new Error("地址不能为空");
+  if (
+    mockCustomers.some((x) => x.id !== customerId && String(x.phone || "").trim() === nextPhone)
+  ) {
+    throw new Error("该手机号已存在客户");
+  }
+  const tagList = Array.isArray(payload?.tags)
+    ? payload.tags.map((t) => String(t || "").trim()).filter(Boolean).slice(0, 12)
+    : Array.isArray(customer.tags)
+      ? customer.tags
+      : [];
+  customer.name = nextName;
+  customer.phone = nextPhone;
+  customer.address = nextAddress;
+  customer.tags = tagList;
+  customer.note = String(payload?.note ?? customer.note ?? "").trim().slice(0, 500);
   return customer;
 }
 
@@ -2651,6 +2765,18 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, data: customer });
     }
 
+    if (req.method === "PATCH" && pathname.startsWith("/customers/") && !pathname.endsWith("/collection-status")) {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const customerId = decodeURIComponent(pathname.replace("/customers/", ""));
+      if (!customerId || customerId.includes("/")) {
+        return sendJson(res, 404, { success: false, error: "接口不存在" });
+      }
+      const payload = await readBody(req);
+      const updated = updateCustomer(customerId, payload);
+      return sendJson(res, 200, { success: true, data: updated });
+    }
+
     if (req.method === "GET" && pathname.startsWith("/customers/") && pathname.endsWith("/detail")) {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
@@ -2715,6 +2841,36 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const data = Object.keys(inventoryBySpec).map((spec) => getInventoryState(spec));
       return sendJson(res, 200, { success: true, data, logs: inventoryLogs.slice(0, 20) });
+    }
+
+    if (req.method === "GET" && pathname === "/inventory/alerts") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, { success: true, data: buildInventoryAlertSnapshot() });
+    }
+
+    if (req.method === "POST" && pathname === "/inventory/purchase") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const state = applyInventoryPurchase(payload);
+      return sendJson(res, 200, { success: true, data: state });
+    }
+
+    if (req.method === "POST" && pathname === "/inventory/refill") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const state = applyInventoryRefill(payload);
+      return sendJson(res, 200, { success: true, data: state });
+    }
+
+    if (req.method === "POST" && pathname === "/inventory/stocktake") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      const state = applyInventoryStocktake(payload);
+      return sendJson(res, 200, { success: true, data: state });
     }
 
     if (req.method === "POST" && pathname === "/orders/quick-create") {

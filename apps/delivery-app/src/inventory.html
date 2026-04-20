@@ -279,6 +279,7 @@
           <!-- 动态生成 -->
         </div>
       </div>
+      <div class="state-block info" id="tip" hidden></div>
 
       <!-- 快捷操作 -->
       <div class="action-section">
@@ -303,46 +304,156 @@
     </main>
 
     <script type="module">
-      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { ensureAuthenticatedPage, authFetchJson } from "./auth-client.js";
       import { goBackOr } from "./app-shell.js";
+      const API_BASE_URL = "http://localhost:3100";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
       }
 
-      // 模拟库存数据
-      const inventoryData = [
-        { spec: "15kg", type: "重瓶", count: 12, safeStock: 5 },
-        { spec: "15kg", type: "空瓶", count: 8, safeStock: 3 },
-        { spec: "10kg", type: "重瓶", count: 2, safeStock: 3 },
-        { spec: "10kg", type: "空瓶", count: 3, safeStock: 2 },
-        { spec: "50kg", type: "重瓶", count: 2, safeStock: 2 },
-        { spec: "50kg", type: "空瓶", count: 1, safeStock: 1 }
-      ];
+      const inventoryData = [];
+      const operationLogs = [];
+      const inventoryAlertBySpec = new Map();
+      const tip = document.getElementById("tip");
 
-      // 模拟操作日志
-      const operationLogs = [
-        { type: "采购入库", detail: "15kg×10", time: "今天 09:30" },
-        { type: "充装入库", detail: "15kg×5", time: "今天 10:00" },
-        { type: "配送出库", detail: "15kg×1 李大妈", time: "今天 10:15" },
-        { type: "回收入库", detail: "15kg×1 李大妈", time: "今天 10:30" }
-      ];
+      function setTip(text = "", type = "info") {
+        const msg = String(text || "").trim();
+        if (!msg) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = msg;
+        tip.className = `state-block ${type}`;
+      }
+
+      function formatTime(ts) {
+        const value = Number(ts || 0);
+        if (!value) return "--";
+        const date = new Date(value);
+        const hh = String(date.getHours()).padStart(2, "0");
+        const mm = String(date.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      }
+
+      function logTypeLabel(type) {
+        const map = {
+          purchase_in: "采购入库",
+          refill_in: "气瓶充装",
+          stocktake_adjust: "库存盘点",
+          direct_consume: "直接扣减",
+          consume: "锁定消耗",
+          lock: "库存锁定",
+          release: "释放锁定",
+          order_return: "订单退货",
+          to_inspection: "送检登记",
+        };
+        return map[String(type || "").trim()] || "库存变更";
+      }
+
+      function normalizeSpec(input) {
+        const val = String(input || "").trim().toLowerCase().replace(/\s+/g, "");
+        if (val === "10" || val === "10kg" || val === "10公斤") return "10kg";
+        if (val === "15" || val === "15kg" || val === "15公斤") return "15kg";
+        if (val === "50" || val === "50kg" || val === "50公斤") return "50kg";
+        return "";
+      }
+
+      function parsePositiveInt(input) {
+        const n = Number(String(input || "").trim());
+        return Number.isInteger(n) && n > 0 ? n : 0;
+      }
+
+      async function fetchInventorySnapshot() {
+        return authFetchJson(`${API_BASE_URL}/inventory/snapshot`);
+      }
+
+      async function fetchInventoryAlerts() {
+        return authFetchJson(`${API_BASE_URL}/inventory/alerts`);
+      }
+
+      async function submitInventoryAction(route, payload) {
+        return authFetchJson(`${API_BASE_URL}${route}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload || {}),
+        });
+      }
+
+      async function reloadAll() {
+        setTip("正在加载库存...", "loading");
+        const [snapshotRes, alertRes] = await Promise.all([
+          fetchInventorySnapshot(),
+          fetchInventoryAlerts(),
+        ]);
+        if (!snapshotRes?.success) {
+          setTip(snapshotRes?.error || "库存加载失败", "error");
+          return;
+        }
+        inventoryData.length = 0;
+        const snapshotItems = Array.isArray(snapshotRes.data) ? snapshotRes.data : [];
+        snapshotItems.forEach((item) => {
+          inventoryData.push({
+            spec: item.spec,
+            onHand: Number(item.onHand || 0),
+            locked: Number(item.locked || 0),
+            pendingInspection: Number(item.pendingInspection || 0),
+            available: Number(item.available || 0),
+          });
+        });
+        operationLogs.length = 0;
+        const logs = Array.isArray(snapshotRes.logs) ? snapshotRes.logs : [];
+        logs.slice(0, 8).forEach((x) => {
+          operationLogs.push({
+            type: logTypeLabel(x.type),
+            detail: `${x.spec || "--"} 在库${x.deltaOnHand > 0 ? "+" : ""}${Number(x.deltaOnHand || 0)} 锁定${
+              x.deltaLocked > 0 ? "+" : ""
+            }${Number(x.deltaLocked || 0)}`,
+            time: formatTime(x.createdAt),
+          });
+        });
+        inventoryAlertBySpec.clear();
+        if (alertRes?.success) {
+          const alertItems = Array.isArray(alertRes?.data?.items) ? alertRes.data.items : [];
+          alertItems.forEach((x) => inventoryAlertBySpec.set(x.spec, x));
+          const card = document.getElementById("alertCard");
+          const textEl = document.getElementById("alertText");
+          if (Number(alertRes?.data?.lowCount || 0) > 0) {
+            card.style.display = "block";
+            textEl.textContent = alertRes?.data?.message || "存在低库存预警";
+          } else {
+            card.style.display = "none";
+            textEl.textContent = "当前无低库存预警";
+          }
+        }
+        renderInventory();
+        renderLogs();
+        setTip("", "info");
+      }
 
       // 渲染库存列表
       function renderInventory() {
         const listEl = document.getElementById("inventoryList");
         listEl.innerHTML = inventoryData.map((item, index) => {
-          const statusClass = item.count < item.safeStock ? "status-warning" : "status-safe";
-          const statusText = item.count < item.safeStock ? "不足" : "正常";
+          const alertMeta = inventoryAlertBySpec.get(item.spec);
+          const threshold = Number(alertMeta?.threshold || 0);
+          const isLow = Boolean(alertMeta?.isLow);
+          const statusClass = isLow ? "status-warning" : "status-safe";
+          const statusText = isLow
+            ? `不足（阈值${threshold}）`
+            : `正常（可用${item.available} 锁定${item.locked} 待检${item.pendingInspection}）`;
           return `
             <div class="inventory-item">
               <div class="inventory-info">
-                <div class="inventory-name">${item.spec}${item.type}</div>
+                <div class="inventory-name">${item.spec}重瓶</div>
                 <div class="inventory-status ${statusClass}">${statusText}</div>
               </div>
               <div class="inventory-controls">
                 <button class="control-btn" data-index="${index}" data-action="minus">-</button>
-                <span class="inventory-count">${item.count}</span>
+                <span class="inventory-count">${item.onHand}</span>
                 <button class="control-btn" data-index="${index}" data-action="plus">+</button>
               </div>
             </div>
@@ -351,15 +462,28 @@
 
         // 绑定加减按钮
         document.querySelectorAll(".control-btn").forEach(btn => {
-          btn.addEventListener("click", (e) => {
+          btn.addEventListener("click", async (e) => {
             const index = parseInt(e.target.dataset.index);
             const action = e.target.dataset.action;
-            if (action === "plus") {
-              inventoryData[index].count++;
-            } else if (action === "minus" && inventoryData[index].count > 0) {
-              inventoryData[index].count--;
+            const row = inventoryData[index];
+            if (!row) return;
+            const next = action === "plus" ? row.onHand + 1 : Math.max(0, row.onHand - 1);
+            if (next <= 0) {
+              setTip("盘点数量必须大于 0", "error");
+              return;
             }
-            renderInventory();
+            setTip("正在提交盘点...", "loading");
+            const result = await submitInventoryAction("/inventory/stocktake", {
+              spec: row.spec,
+              countedOnHand: next,
+              note: "页面快捷盘点调整",
+            });
+            if (!result?.success) {
+              setTip(result?.error || "盘点失败", "error");
+              return;
+            }
+            await reloadAll();
+            setTip(`${row.spec}盘点已更新为 ${next}`, "success");
           });
         });
       }
@@ -367,6 +491,10 @@
       // 渲染操作日志
       function renderLogs() {
         const logEl = document.getElementById("logList");
+        if (!operationLogs.length) {
+          logEl.innerHTML = '<div class="log-item"><div class="log-detail">暂无库存操作记录</div></div>';
+          return;
+        }
         logEl.innerHTML = operationLogs.map(log => `
           <div class="log-item">
             <div class="log-info">
@@ -380,7 +508,10 @@
 
       // 显示过期预警
       function showAlert() {
-        document.getElementById("alertCard").style.display = "block";
+        const card = document.getElementById("alertCard");
+        if (card.style.display === "none") {
+          card.style.display = "block";
+        }
       }
 
       // 事件绑定
@@ -389,25 +520,86 @@
       });
 
       document.getElementById("alertBtn").addEventListener("click", () => {
-        alert("过期气瓶详情功能开发中...");
+        const lowList = [...inventoryAlertBySpec.values()].filter((x) => x.isLow);
+        if (!lowList.length) {
+          setTip("当前无低库存预警", "info");
+          return;
+        }
+        setTip(
+          `预警明细：${lowList.map((x) => `${x.spec}库存${x.onHand}/阈值${x.threshold}`).join("；")}`,
+          "warning"
+        );
       });
 
-      document.getElementById("purchaseBtn").addEventListener("click", () => {
-        alert("采购入库功能开发中...");
+      document.getElementById("purchaseBtn").addEventListener("click", async () => {
+        const spec = normalizeSpec(window.prompt("采购规格（10kg/15kg/50kg）", "15kg"));
+        if (!spec) {
+          setTip("规格不合法", "error");
+          return;
+        }
+        const qty = parsePositiveInt(window.prompt("采购数量（正整数）", "5"));
+        if (!qty) {
+          setTip("数量不合法", "error");
+          return;
+        }
+        setTip("正在提交采购入库...", "loading");
+        const result = await submitInventoryAction("/inventory/purchase", { spec, quantity: qty });
+        if (!result?.success) {
+          setTip(result?.error || "采购入库失败", "error");
+          return;
+        }
+        await reloadAll();
+        setTip(`已入库：${spec} × ${qty}`, "success");
       });
 
-      document.getElementById("refillBtn").addEventListener("click", () => {
-        alert("气瓶充装功能开发中...");
+      document.getElementById("refillBtn").addEventListener("click", async () => {
+        const spec = normalizeSpec(window.prompt("充装规格（10kg/15kg/50kg）", "15kg"));
+        if (!spec) {
+          setTip("规格不合法", "error");
+          return;
+        }
+        const qty = parsePositiveInt(window.prompt("充装数量（正整数）", "3"));
+        if (!qty) {
+          setTip("数量不合法", "error");
+          return;
+        }
+        setTip("正在提交气瓶充装...", "loading");
+        const result = await submitInventoryAction("/inventory/refill", { spec, quantity: qty });
+        if (!result?.success) {
+          setTip(result?.error || "气瓶充装失败", "error");
+          return;
+        }
+        await reloadAll();
+        setTip(`已充装：${spec} × ${qty}`, "success");
       });
 
-      document.getElementById("checkBtn").addEventListener("click", () => {
-        alert("库存盘点功能开发中...");
+      document.getElementById("checkBtn").addEventListener("click", async () => {
+        const spec = normalizeSpec(window.prompt("盘点规格（10kg/15kg/50kg）", "15kg"));
+        if (!spec) {
+          setTip("规格不合法", "error");
+          return;
+        }
+        const count = parsePositiveInt(window.prompt("盘点后在库数量（正整数）", "10"));
+        if (!count) {
+          setTip("盘点数量不合法", "error");
+          return;
+        }
+        setTip("正在提交库存盘点...", "loading");
+        const result = await submitInventoryAction("/inventory/stocktake", {
+          spec,
+          countedOnHand: count,
+        });
+        if (!result?.success) {
+          setTip(result?.error || "库存盘点失败", "error");
+          return;
+        }
+        await reloadAll();
+        setTip(`盘点完成：${spec} 在库 ${count}`, "success");
       });
 
       // 初始化
-      renderInventory();
-      renderLogs();
       showAlert();
+      reloadAll();
     </script>
   </body>
 </html>

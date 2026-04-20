@@ -1090,7 +1090,7 @@
           return;
         }
         if (res.fromMock) {
-          setMainTip("当前使用模拟数据，后端接口预留中", "info");
+          setMainTip("当前网络异常，已展示模拟数据", "info");
           return;
         }
         const pendingSync = Number(res.data?.sync?.pendingCount || 0);
