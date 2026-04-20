@@ -92,5 +92,12 @@
     "node --check \"services/backend/src/server.js\"",
     "python3 \".trellis/tests/stories/story_delivery_complete_validation.py\"",
     "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
+  ],
+  "74-delivery-complete-regression-suite": [
+    "node --check \"services/backend/src/server.js\"",
+    "python3 \".trellis/tests/stories/story_order_contract_consistency.py\"",
+    "python3 \".trellis/tests/stories/story_delivery_complete_validation.py\"",
+    "python3 \".trellis/tests/stories/story_delivery_complete_flow_e2e.py\"",
+    "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
   ]
 }
