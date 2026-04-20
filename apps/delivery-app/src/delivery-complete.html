@@ -49,6 +49,7 @@
       .pay-btn { flex: 1; height: 48px; min-height: 48px; border: 1px solid var(--border); border-radius: var(--radius-button); background: #fff; cursor: pointer; }
       .pay-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
       .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .handoff-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
       .primary { background: var(--brand); color: #fff; border-color: var(--brand); }
       .warn { color: #b45309; border-color: #f5d9a5; background: #fff7ed; }
       .tip { margin-top: 8px; }
@@ -247,6 +248,10 @@
           <button class="btn warn" id="cancelBtn">取消订单</button>
           <button class="btn" id="undoBtn">5 秒撤销</button>
         </div>
+        <div class="handoff-actions">
+          <button class="btn ghost" id="goOrderDetailBtn">去订单详情改单</button>
+          <button class="btn ghost" id="goDebtManageBtn">去债务管理</button>
+        </div>
         <button class="btn ghost" id="optionalSafetyBtn" hidden style="width: 100%; margin-top: 8px">去安检</button>
         <div class="state-block info tip" id="tip" aria-live="polite" hidden></div>
       </section>
@@ -319,6 +324,8 @@
       const cancelBtn = document.getElementById("cancelBtn");
       const undoBtn = document.getElementById("undoBtn");
       const optionalSafetyBtn = document.getElementById("optionalSafetyBtn");
+      const goOrderDetailBtn = document.getElementById("goOrderDetailBtn");
+      const goDebtManageBtn = document.getElementById("goDebtManageBtn");
       const tip = document.getElementById("tip");
       const safetyStatus = document.getElementById("safetyStatus");
       const safetyTip = document.getElementById("safetyTip");
@@ -605,11 +612,10 @@
         const res = await completeOrder(selectedOrder.orderId, validated.payload);
         if (!res.success) return setTip(`${res.error || "完单失败"}，请修改后重试`, true);
         const oid = res.data.orderId || selectedOrder.orderId;
-        setTip(
-          `完单成功：欠款 ${Number(res.data.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(
-            res.data.owedEmptyCount || 0
-          )} 瓶。`
-        );
+        const owedAmount = Number(res.data.owedAmount || 0);
+        const owedEmptyCount = Number(res.data.owedEmptyCount || 0);
+        const debtHint = owedAmount > 0 ? "如需催收处理，请前往“债务管理”。" : "24h 改单请在“订单详情”执行。";
+        setTip(`完单成功：欠款 ${owedAmount.toFixed(2)} 元，欠瓶 ${owedEmptyCount} 瓶。${debtHint}`);
         safetyTargetOrderId = oid;
         safetyBlockNextCompletion = isSafetyRequired();
         safetyChecks.forEach((item) => {
@@ -723,6 +729,13 @@
       });
       optionalSafetyBtn.addEventListener("click", () => {
         window.location.href = "./my.html";
+      });
+      goOrderDetailBtn.addEventListener("click", () => {
+        if (!selectedOrder?.orderId) return setTip("请先选择订单", true);
+        window.location.href = `./order-detail.html?orderId=${encodeURIComponent(selectedOrder.orderId)}`;
+      });
+      goDebtManageBtn.addEventListener("click", () => {
+        window.location.href = "./debt-overview.html";
       });
       syncPayBtn();
       void (async () => {

@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>订单详情</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(120px + env(safe-area-inset-bottom, 0px)); }
+      .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+      .title { margin: 0; font-size: 18px; font-weight: 600; font-family: var(--font-title); flex: 1; }
+      .status-badge { padding: 4px 12px; border-radius: 999px; font-size: 12px; }
+      .status-pending { background: #fff7ed; color: #b45309; }
+      .status-completed { background: #f0fdf4; color: #166534; }
+      .status-cancelled { background: #f5f5f5; color: #757575; }
+      .status-returned { background: #fef2f2; color: #c62828; }
+      .status-exchanged { background: #f3e8ff; color: #7c3aed; }
+      
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; }
+      .card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; font-family: var(--font-title); }
+      .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+      .info-row:last-child { border-bottom: none; }
+      .info-label { color: var(--text-secondary); font-size: 14px; }
+      .info-value { font-size: 14px; font-weight: 500; }
+      .amount { font-size: 20px; font-weight: 700; color: var(--brand); font-family: var(--font-title); }
+      .modify-card[hidden] { display: none; }
+      .modify-tip { margin: 0 0 10px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+      .modify-grid { display: grid; gap: 10px; }
+      .modify-row { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 10px; }
+      .modify-row label { font-size: 13px; color: var(--text-secondary); }
+      .modify-row input { width: 100%; height: 42px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; font: inherit; }
+      .modify-row input:disabled { background: #f7f8fa; color: var(--text-secondary); }
+      
+      .bottom-actions { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); display: grid; gap: 10px; }
+      .btn { height: 48px; border-radius: var(--radius-button); border: 1px solid var(--border); background: #fff; cursor: pointer; font-size: 15px; }
+      .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .btn-danger { background: #ef4444; color: #fff; border-color: #ef4444; }
+      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      
+      .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; }
+      .modal.show { display: flex; }
+      .modal-content { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 80vh; overflow-y: auto; }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+      .modal-title { font-size: 18px; font-weight: 600; margin: 0; }
+      .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary); }
+      .form-field { margin-bottom: 16px; }
+      .form-label { display: block; font-size: 14px; margin-bottom: 6px; color: var(--text-secondary); }
+      .form-input, .form-select { width: 100%; height: 48px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 12px; font-size: 15px; }
+      .form-input:focus, .form-select:focus { outline: none; border-color: var(--brand); }
+      .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
+      .checkbox-row input { width: 20px; height: 20px; }
+      .submit-btn { width: 100%; height: 48px; background: var(--brand); color: #fff; border: none; border-radius: var(--radius-button); font-size: 16px; cursor: pointer; margin-top: 8px; }
+      .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      
+      .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; transition: transform 0.3s; z-index: 200; }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page" id="mainPage">
+      <header class="header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="title">订单详情</h1>
+        <span id="statusBadge"></span>
+      </header>
+
+      <div class="card">
+        <div class="card-title">客户信息</div>
+        <div class="info-row">
+          <span class="info-label">客户姓名</span>
+          <span class="info-value" id="customerName">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">配送地址</span>
+          <span class="info-value" id="address">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">订单信息</div>
+        <div class="info-row">
+          <span class="info-label">订单编号</span>
+          <span class="info-value" id="orderId">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">气瓶规格</span>
+          <span class="info-value" id="spec">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">配送数量</span>
+          <span class="info-value" id="quantity">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">下单时间</span>
+          <span class="info-value" id="createdAt">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">金额信息</div>
+        <div class="info-row">
+          <span class="info-label">应收金额</span>
+          <span class="info-value" id="amount">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">实收金额</span>
+          <span class="info-value" id="receivedAmount">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">支付方式</span>
+          <span class="info-value" id="paymentMethod">-</span>
+        </div>
+      </div>
+
+      <div class="card modify-card" id="modifyCard" hidden>
+        <div class="card-title">24 小时改单</div>
+        <p class="modify-tip" id="modifyTip">仅订单详情页承载改单操作；完单页不再重复提供 24h 改单入口。</p>
+        <div class="modify-grid">
+          <div class="modify-row">
+            <label for="modifyScheduleAt">配送时间</label>
+            <input id="modifyScheduleAt" placeholder="如：今天 18:30" />
+          </div>
+          <div class="modify-row">
+            <label for="modifyAddress">配送地址</label>
+            <input id="modifyAddress" placeholder="请输入配送地址" />
+          </div>
+          <div class="modify-row">
+            <label for="modifyQuantity">配送数量</label>
+            <input id="modifyQuantity" type="number" min="1" step="1" />
+          </div>
+          <div class="modify-row">
+            <label for="modifyUnitPrice">单价</label>
+            <input id="modifyUnitPrice" type="number" min="0" step="0.01" />
+          </div>
+          <div class="modify-row">
+            <label for="modifyReceivedAmount">实收金额</label>
+            <input id="modifyReceivedAmount" type="number" min="0" step="0.01" />
+          </div>
+          <button class="btn btn-primary" id="submitModifyBtn">保存改单</button>
+        </div>
+      </div>
+    </main>
+
+    <div class="bottom-actions" id="bottomActions">
+      <button class="btn btn-primary" id="exchangeBtn" style="display:none;">快捷换货</button>
+      <button class="btn btn-danger" id="returnBtn" style="display:none;">申请退货</button>
+    </div>
+
+    <div class="modal" id="returnModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">申请退货</h2>
+          <button class="modal-close" id="closeModal">&times;</button>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">退货原因 *</label>
+          <select class="form-select" id="returnReason">
+            <option value="">请选择退货原因</option>
+            <option value="质量问题-阀门漏气">质量问题：阀门漏气</option>
+            <option value="质量问题-瓶身损坏">质量问题：瓶身损坏</option>
+            <option value="客户原因-不需要了">客户原因：不需要了</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">退瓶数量 *</label>
+          <input type="number" class="form-input" id="returnQuantity" min="1" value="1" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">退款金额（元）*</label>
+          <input type="number" class="form-input" id="refundAmount" min="0" step="0.01" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">退款方式 *</label>
+          <select class="form-select" id="refundMethod">
+            <option value="cash">现金退款</option>
+            <option value="original">原路退回</option>
+          </select>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="bottleReturned" />
+          <label for="bottleReturned">已收回气瓶</label>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">备注（选填）</label>
+          <input type="text" class="form-input" id="returnNote" placeholder="请输入备注" />
+        </div>
+
+        <button class="submit-btn" id="submitReturn">确认退货</button>
+      </div>
+    </div>
+
+    <div class="modal" id="exchangeModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">快捷换货</h2>
+          <button class="modal-close" id="closeExchangeModal">&times;</button>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label">换货原因 *</label>
+          <select class="form-select" id="exchangeReason">
+            <option value="">请选择换货原因</option>
+            <option value="质量问题-阀门漏气">质量问题：阀门漏气</option>
+            <option value="质量问题-瓶身损坏">质量问题：瓶身损坏</option>
+            <option value="客户原因-规格变更">客户原因：规格变更</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">原规格</label>
+          <input type="text" class="form-input" id="originalSpec" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">原单数量</label>
+          <input type="number" class="form-input" id="originalQuantity" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">新规格 *</label>
+          <select class="form-select" id="newSpec">
+            <option value="10kg">10kg</option>
+            <option value="15kg" selected>15kg</option>
+            <option value="50kg">50kg</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">新单数量 *</label>
+          <input type="number" class="form-input" id="newQuantity" min="1" value="1" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">原单价（元）</label>
+          <input type="number" class="form-input" id="originalUnitPrice" readonly />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">新单价（元）*</label>
+          <input type="number" class="form-input" id="newUnitPrice" min="0" step="0.01" value="120" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">差价金额（元）</label>
+          <input type="number" class="form-input" id="priceDiff" readonly value="0" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">差价处理 *</label>
+          <select class="form-select" id="diffHandling">
+            <option value="no_diff">无需补差</option>
+            <option value="customer_pays">客户补差</option>
+            <option value="refund_customer">退客户差</option>
+          </select>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="exchangeBottleReturned" />
+          <label for="exchangeBottleReturned">已收回气瓶</label>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">备注（选填）</label>
+          <input type="text" class="form-input" id="exchangeNote" placeholder="请输入备注" />
+        </div>
+
+        <button class="submit-btn" id="submitExchange">确认换货</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import {
+        fetchOrderDetail,
+        submitOrderReturn,
+        submitOrderExchange,
+        checkHeavyInventory,
+        updateOrderBasic,
+      } from "./order-client.js";
+      import { goBackOr } from "./app-shell.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("orderId") || urlParams.get("id");
+
+      if (!orderId) {
+        showToast("订单ID不存在");
+        setTimeout(() => goBackOr("./order-list.html"), 1500);
+        return;
+      }
+
+      let orderData = null;
+
+      function formatDate(timestamp) {
+        if (!timestamp) return "-";
+        const date = new Date(Number(timestamp));
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function formatPaymentMethod(method) {
+        const map = { cash: "现金", wechat: "微信", alipay: "支付宝", transfer: "转账" };
+        return map[method] || method || "-";
+      }
+
+      function formatStatus(status) {
+        const map = {
+          pending_delivery: { text: "待配送", class: "status-pending" },
+          completed: { text: "已完成", class: "status-completed" },
+          cancelled: { text: "已取消", class: "status-cancelled" },
+          returned: { text: "已退货", class: "status-returned" },
+          exchanged: { text: "已换货", class: "status-exchanged" },
+        };
+        return map[status] || { text: status, class: "" };
+      }
+
+      function canExchange(order) {
+        if (order.orderStatus !== "completed") return false;
+        const completedAt = Number(order.completedAt || order.createdAt || 0);
+        const minutesSince = (Date.now() - completedAt) / (60 * 1000);
+        return minutesSince <= 5;
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      function canReturn(order) {
+        if (order.orderStatus !== "completed") return false;
+        const completedAt = Number(order.completedAt || order.createdAt || 0);
+        const hoursSince = (Date.now() - completedAt) / (60 * 60 * 1000);
+        return hoursSince <= 24;
+      }
+
+      function canModify(order) {
+        if (order.orderStatus === "cancelled") return false;
+        return Date.now() <= Number(order.canModifyUntil || 0);
+      }
+
+      function syncModifyForm(order) {
+        document.getElementById("modifyScheduleAt").value = order.scheduleAt || "";
+        document.getElementById("modifyAddress").value = order.address || "";
+        document.getElementById("modifyQuantity").value = Number(order.quantity || 1);
+        document.getElementById("modifyUnitPrice").value = Number(order.unitPrice || 0);
+        document.getElementById("modifyReceivedAmount").value = Number(order.receivedAmount || 0);
+      }
+
+      async function loadOrder() {
+        try {
+          const result = await fetchOrderDetail(orderId);
+          if (!result.success) {
+            showToast(result.error || "加载订单失败");
+            return;
+          }
+
+          orderData = result.data;
+          if (!orderData) {
+            showToast("订单不存在");
+            return;
+          }
+
+          document.getElementById("customerName").textContent = orderData.customerName || "-";
+          document.getElementById("address").textContent = orderData.address || "-";
+          document.getElementById("orderId").textContent = orderData.orderId || "-";
+          document.getElementById("spec").textContent = orderData.spec || "-";
+          document.getElementById("quantity").textContent = (orderData.quantity || 0) + "瓶";
+          document.getElementById("createdAt").textContent = formatDate(orderData.createdAt);
+          document.getElementById("amount").textContent = "¥" + (orderData.amount || 0);
+          document.getElementById("receivedAmount").textContent = "¥" + (orderData.receivedAmount || 0);
+          document.getElementById("paymentMethod").textContent = formatPaymentMethod(orderData.paymentMethod);
+
+          const status = formatStatus(orderData.orderStatus);
+          const badge = document.getElementById("statusBadge");
+          badge.className = `status-badge ${status.class}`;
+          badge.textContent = status.text;
+
+          if (canReturn(orderData)) {
+            document.getElementById("returnBtn").style.display = "block";
+            document.getElementById("refundAmount").value = orderData.receivedAmount || orderData.amount || 0;
+            document.getElementById("returnQuantity").max = orderData.quantity || 1;
+          }
+          if (canExchange(orderData)) {
+            document.getElementById("exchangeBtn").style.display = "block";
+            document.getElementById("originalSpec").value = orderData.spec || "";
+            document.getElementById("originalQuantity").value = orderData.quantity || 1;
+            document.getElementById("newQuantity").value = orderData.quantity || 1;
+            document.getElementById("originalUnitPrice").value = orderData.unitPrice || 0;
+            document.getElementById("newUnitPrice").value = orderData.unitPrice || 120;
+            calculatePriceDiff();
+          }
+          if (canModify(orderData)) {
+            document.getElementById("modifyCard").hidden = false;
+            syncModifyForm(orderData);
+            if (orderData.orderStatus !== "completed") {
+              const received = document.getElementById("modifyReceivedAmount");
+              received.disabled = true;
+              received.title = "仅已完成订单可改实收金额";
+            }
+          } else {
+            document.getElementById("modifyCard").hidden = true;
+          }
+        } catch (err) {
+          showToast(err.message || "加载失败");
+        }
+      }
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        goBackOr("./order-list.html");
+      });
+
+      const returnModal = document.getElementById("returnModal");
+      document.getElementById("returnBtn").addEventListener("click", () => {
+        returnModal.classList.add("show");
+      });
+
+      document.getElementById("closeModal").addEventListener("click", () => {
+        returnModal.classList.remove("show");
+      });
+
+      returnModal.addEventListener("click", (e) => {
+        if (e.target === returnModal) returnModal.classList.remove("show");
+      });
+
+      const exchangeModal = document.getElementById("exchangeModal");
+      const newSpecSelect = document.getElementById("newSpec");
+      const newQuantityInput = document.getElementById("newQuantity");
+      const originalUnitPriceInput = document.getElementById("originalUnitPrice");
+      const newUnitPriceInput = document.getElementById("newUnitPrice");
+      const priceDiffInput = document.getElementById("priceDiff");
+
+      function calculatePriceDiff() {
+        const originalQty = parseInt(document.getElementById("originalQuantity").value) || 0;
+        const newQty = parseInt(newQuantityInput.value) || 0;
+        const originalPrice = parseFloat(originalUnitPriceInput.value) || 0;
+        const newPrice = parseFloat(newUnitPriceInput.value) || 0;
+        const diff = (newQty * newPrice) - (originalQty * originalPrice);
+        priceDiffInput.value = diff.toFixed(2);
+      }
+
+      document.getElementById("exchangeBtn").addEventListener("click", () => {
+        exchangeModal.classList.add("show");
+      });
+
+      document.getElementById("closeExchangeModal").addEventListener("click", () => {
+        exchangeModal.classList.remove("show");
+      });
+
+      exchangeModal.addEventListener("click", (e) => {
+        if (e.target === exchangeModal) exchangeModal.classList.remove("show");
+      });
+
+      newQuantityInput.addEventListener("input", calculatePriceDiff);
+      newUnitPriceInput.addEventListener("input", calculatePriceDiff);
+
+      document.getElementById("submitReturn").addEventListener("click", async () => {
+        const reason = document.getElementById("returnReason").value;
+        const quantity = parseInt(document.getElementById("returnQuantity").value);
+        const refundAmount = parseFloat(document.getElementById("refundAmount").value);
+        const refundMethod = document.getElementById("refundMethod").value;
+        const bottleReturned = document.getElementById("bottleReturned").checked;
+        const note = document.getElementById("returnNote").value;
+
+        if (!reason) {
+          showToast("请选择退货原因");
+          return;
+        }
+        if (!bottleReturned) {
+          showToast("请确认已收回气瓶");
+          return;
+        }
+        if (!quantity || quantity < 1) {
+          showToast("退瓶数量必须大于0");
+          return;
+        }
+        if (!Number.isFinite(refundAmount) || refundAmount < 0) {
+          showToast("退款金额不合法");
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitReturn");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "提交中...";
+
+        try {
+          const result = await submitOrderReturn(orderId, {
+            reason,
+            reasonDetail: "",
+            bottleReturned,
+            bottleBarcode: "",
+            refundAmount,
+            refundMethod,
+            note,
+          });
+
+          if (result.success) {
+            showToast("退货申请成功");
+            setTimeout(() => {
+              goBackOr("./order-list.html");
+            }, 1500);
+          } else {
+            showToast(result.error || "退货失败");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "确认退货";
+          }
+        } catch (err) {
+          showToast(err.message || "提交失败");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "确认退货";
+        }
+      });
+
+      document.getElementById("submitExchange").addEventListener("click", async () => {
+        const reason = document.getElementById("exchangeReason").value;
+        const originalSpec = document.getElementById("originalSpec").value;
+        const newSpec = document.getElementById("newSpec").value;
+        const newQuantity = parseInt(document.getElementById("newQuantity").value);
+        const originalUnitPrice = parseFloat(document.getElementById("originalUnitPrice").value) || 0;
+        const newUnitPrice = parseFloat(document.getElementById("newUnitPrice").value) || 0;
+        const priceDiff = parseFloat(document.getElementById("priceDiff").value);
+        const diffHandling = document.getElementById("diffHandling").value;
+        const bottleReturned = document.getElementById("exchangeBottleReturned").checked;
+        const note = document.getElementById("exchangeNote").value;
+
+        if (!reason) {
+          showToast("请选择换货原因");
+          return;
+        }
+        if (!bottleReturned) {
+          showToast("请确认已收回气瓶");
+          return;
+        }
+        if (!newQuantity || newQuantity < 1) {
+          showToast("新单数量必须大于0");
+          return;
+        }
+
+        // 检查新规格重瓶库存
+        const availableStock = checkHeavyInventory(newSpec);
+        if (availableStock < newQuantity) {
+          showToast(`${newSpec}重瓶库存不足，当前可用 ${availableStock} 瓶`);
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitExchange");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "提交中...";
+
+        try {
+          const result = await submitOrderExchange(orderId, {
+            reason,
+            bottleReturned,
+            originalSpec,
+            newSpec,
+            newQuantity,
+            originalUnitPrice,
+            newUnitPrice,
+            priceDiff,
+            diffHandling,
+            note,
+          });
+
+          if (result.success) {
+            showToast("换货成功");
+            setTimeout(() => {
+              goBackOr("./order-list.html");
+            }, 1500);
+          } else {
+            showToast(result.error || "换货失败");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "确认换货";
+          }
+        } catch (err) {
+          showToast(err.message || "提交失败");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "确认换货";
+        }
+      });
+
+      document.getElementById("submitModifyBtn").addEventListener("click", async () => {
+        if (!orderData) return;
+        const payload = {
+          scheduleAt: document.getElementById("modifyScheduleAt").value.trim(),
+          address: document.getElementById("modifyAddress").value.trim(),
+          quantity: Number(document.getElementById("modifyQuantity").value || 0),
+          unitPrice: Number(document.getElementById("modifyUnitPrice").value || 0),
+        };
+        if (orderData.orderStatus === "completed") {
+          payload.receivedAmount = Number(document.getElementById("modifyReceivedAmount").value || 0);
+        }
+        const btn = document.getElementById("submitModifyBtn");
+        btn.disabled = true;
+        btn.textContent = "保存中...";
+        try {
+          const result = await updateOrderBasic(orderId, payload);
+          if (!result.success) {
+            showToast(result.error || "改单失败");
+            return;
+          }
+          showToast("改单已保存");
+          await loadOrder();
+        } catch (err) {
+          showToast(err.message || "改单失败");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "保存改单";
+        }
+      });
+
+      loadOrder();
+    </script>
+  </body>
+</html>
