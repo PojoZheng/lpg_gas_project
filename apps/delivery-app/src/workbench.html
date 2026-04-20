@@ -758,10 +758,17 @@
       async function qoLoadCustomers() {
         qoSetTip("正在加载客户…");
         const res = await fetchQuickCustomers();
+        if (!res?.success) {
+          qoAllCustomers = [];
+          qoSelectedId = "";
+          qoRenderList([]);
+          qoSetTip(res?.error || "客户加载失败，请稍后重试", true);
+          return;
+        }
         qoAllCustomers = res.data || [];
         qoSelectedId = "";
         qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
-        qoSetTip(res.fromMock ? "当前使用模拟客户数据。" : "请选择客户后进入确认。");
+        qoSetTip("请选择客户后进入确认。");
       }
 
       function qoResetToPick() {
@@ -1087,10 +1094,6 @@
 
         if (!navigator.onLine) {
           setMainTip("当前网络不可用，已展示缓存信息", "info");
-          return;
-        }
-        if (res.fromMock) {
-          setMainTip("当前网络异常，已展示模拟数据", "info");
           return;
         }
         const pendingSync = Number(res.data?.sync?.pendingCount || 0);

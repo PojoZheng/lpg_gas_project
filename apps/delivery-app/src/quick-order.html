@@ -617,6 +617,13 @@
         const searchKeyword = String(options.searchKeyword || "").trim();
         setTip("正在加载客户...");
         const res = await fetchQuickCustomers();
+        if (!res?.success) {
+          setTip(res?.error || "客户加载失败，请稍后重试", "error");
+          allCustomers = [];
+          selectedCustomerId = "";
+          renderCustomers([]);
+          return;
+        }
         allCustomers = res.data || [];
         const cont = readContSession();
         const inContinuousFlow = Boolean(cont?.active) && continuousMode.checked && !selectId;
@@ -636,17 +643,10 @@
           selectedCustomerId = "";
           renderCustomers(filterQuickCustomers(allCustomers, searchKeyword));
           setTip(`已带入语音内容：${searchKeyword}`);
-          if (res.fromMock) {
-            setTip(`已带入语音内容：${searchKeyword}（当前为模拟数据）`);
-          }
           return;
         }
         if (inContinuousFlow) {
           showContinuousBanner(cont);
-        }
-        if (res.fromMock) {
-          setTip("当前网络异常，已切换模拟客户数据");
-          return;
         }
         setTip("客户加载完成");
       }
