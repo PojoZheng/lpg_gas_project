@@ -265,12 +265,21 @@ function applyInventoryPurchase(payload) {
 function applyInventoryRefill(payload) {
   const spec = normalizeInventorySpec(payload?.spec);
   const quantity = normalizePositiveInt(payload?.quantity, "充装数量");
+  const refillWeightRaw = Number(payload?.refillWeightKg);
+  if (!Number.isFinite(refillWeightRaw) || refillWeightRaw <= 0) {
+    throw new Error("充装重量必须为正数");
+  }
+  const refillWeightKg = Number(refillWeightRaw.toFixed(2));
   const state = getInventoryState(spec);
   inventoryBySpec[spec].onHand = state.onHand + quantity;
   pushInventoryLog("refill_in", spec, quantity, 0, String(payload?.refId || ""), {
     note: String(payload?.note || "").trim().slice(0, 120),
+    refillWeightKg,
   });
-  return getInventoryState(spec);
+  return {
+    ...getInventoryState(spec),
+    refillWeightKg,
+  };
 }
 
 function applyInventoryStocktake(payload) {

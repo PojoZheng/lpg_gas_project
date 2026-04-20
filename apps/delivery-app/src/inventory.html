@@ -387,6 +387,18 @@
           <label class="sheet-label" for="actionQty" id="actionQtyLabel">数量</label>
           <input id="actionQty" class="app-input" type="number" min="1" step="1" inputmode="numeric" />
         </div>
+        <div class="sheet-row" id="actionWeightRow" hidden>
+          <label class="sheet-label" for="actionWeight">充装重量（kg）</label>
+          <input
+            id="actionWeight"
+            class="app-input"
+            type="number"
+            min="0.1"
+            step="0.1"
+            inputmode="decimal"
+            placeholder="请输入本次充装总重量"
+          />
+        </div>
         <div class="sheet-hint" id="actionSheetHint"></div>
         <div class="sheet-actions">
           <button type="button" class="app-btn ghost" id="actionSheetCancelBtn">取消</button>
@@ -414,6 +426,8 @@
       const actionSpec = document.getElementById("actionSpec");
       const actionQty = document.getElementById("actionQty");
       const actionQtyLabel = document.getElementById("actionQtyLabel");
+      const actionWeightRow = document.getElementById("actionWeightRow");
+      const actionWeight = document.getElementById("actionWeight");
       const actionSheetHint = document.getElementById("actionSheetHint");
       const actionSheetCancelBtn = document.getElementById("actionSheetCancelBtn");
       const actionSheetSubmitBtn = document.getElementById("actionSheetSubmitBtn");
@@ -470,20 +484,32 @@
         return Number.isInteger(n) && n > 0 ? n : 0;
       }
 
+      function parsePositiveDecimal(input) {
+        const n = Number(String(input || "").trim());
+        if (!Number.isFinite(n) || n <= 0) return 0;
+        return Number(n.toFixed(2));
+      }
+
       function openActionSheet(mode, defaults = {}) {
         actionMode = mode;
         if (mode === "purchase") {
           actionSheetTitle.textContent = "采购入库";
           actionQtyLabel.textContent = "采购数量";
           actionSheetHint.textContent = "确认采购入库后会直接增加在库数量。";
+          actionWeightRow.hidden = true;
+          actionWeight.value = "";
         } else if (mode === "refill") {
           actionSheetTitle.textContent = "气瓶充装";
           actionQtyLabel.textContent = "充装数量";
-          actionSheetHint.textContent = "充装完成后会直接增加在库数量。";
+          actionSheetHint.textContent = "请填写充装数量与本次充装总重量。";
+          actionWeightRow.hidden = false;
+          actionWeight.value = String(defaults.weight || 0);
         } else {
           actionSheetTitle.textContent = "库存盘点";
           actionQtyLabel.textContent = "盘点后在库数量";
           actionSheetHint.textContent = "盘点会直接把在库数量更新为录入值。";
+          actionWeightRow.hidden = true;
+          actionWeight.value = "";
         }
         actionSpec.value = defaults.spec || "15kg";
         actionQty.value = String(defaults.qty || (mode === "stocktake" ? 10 : 5));
@@ -670,7 +696,7 @@
       });
 
       document.getElementById("refillBtn").addEventListener("click", () => {
-        openActionSheet("refill", { spec: "15kg", qty: 3 });
+        openActionSheet("refill", { spec: "15kg", qty: 3, weight: 45 });
       });
 
       document.getElementById("checkBtn").addEventListener("click", () => {
@@ -704,10 +730,15 @@
           loadingText = "正在提交采购入库...";
           successText = `已入库：${spec} × ${qty}`;
         } else if (actionMode === "refill") {
+          const refillWeightKg = parsePositiveDecimal(actionWeight.value);
+          if (!refillWeightKg) {
+            setTip("请填写有效的充装重量（kg）", "error");
+            return;
+          }
           route = "/inventory/refill";
-          payload = { spec, quantity: qty };
+          payload = { spec, quantity: qty, refillWeightKg };
           loadingText = "正在提交气瓶充装...";
-          successText = `已充装：${spec} × ${qty}`;
+          successText = `已充装：${spec} × ${qty}（${refillWeightKg}kg）`;
         } else {
           route = "/inventory/stocktake";
           payload = { spec, countedOnHand: qty };
