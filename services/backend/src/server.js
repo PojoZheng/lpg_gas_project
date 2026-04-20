@@ -742,11 +742,36 @@ function buildWorkbenchOverview() {
   const completedOrders = quickOrders.filter((x) => x.orderStatus === "completed");
   const receivedToday = completedOrders.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
   const pendingToday = completedOrders.reduce((sum, x) => sum + Math.max(0, Number(x.amount || 0) - Number(x.receivedAmount || 0)), 0);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const todayStart = startOfTodayMs();
+  const todayFinanceEntries = getFinanceEntriesInRange(todayStart, todayStart + dayMs);
+  const incomeToday = Number(buildFinanceIncomeSummary(todayFinanceEntries).totalIncome || 0);
+  const expenseToday = Number(buildFinanceExpenseSummary(todayFinanceEntries).totalExpense || 0);
+  const grossProfitToday = Number((incomeToday - expenseToday).toFixed(2));
+  const grossTrend7d = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const dayStart = todayStart - offset * dayMs;
+    const dayEntries = getFinanceEntriesInRange(dayStart, dayStart + dayMs);
+    const incomeSummary = buildFinanceIncomeSummary(dayEntries);
+    const expenseSummary = buildFinanceExpenseSummary(dayEntries);
+    const dayIncome = Number(incomeSummary.totalIncome || 0);
+    const dayExpense = Number(expenseSummary.totalExpense || 0);
+    const dayDate = formatLocalDateKey(dayStart);
+    grossTrend7d.push({
+      date: dayDate,
+      label: dayDate.slice(5),
+      income: Number(dayIncome.toFixed(2)),
+      expense: Number(dayExpense.toFixed(2)),
+      grossProfit: Number((dayIncome - dayExpense).toFixed(2)),
+    });
+  }
   const nextPending = getNextWorkbenchDeliveryOrder();
   return {
     finance: {
       receivedToday: Number(receivedToday.toFixed(2)),
       pendingToday: Number(pendingToday.toFixed(2)),
+      grossProfitToday,
+      grossTrend7d,
       currency: "CNY",
     },
     nextDelivery: buildNextDeliveryPayload(nextPending),

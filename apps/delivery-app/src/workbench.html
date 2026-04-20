@@ -146,18 +146,33 @@
         color: var(--text-primary);
         letter-spacing: 0.2px;
       }
-      .income-placeholder-note {
-        margin: 0;
-        font-size: 12px;
-        line-height: 1.45;
-        color: var(--text-secondary);
-      }
-      .income-trend-empty {
-        margin: 8px 0 0;
-        min-height: 72px;
+      .income-trend-chart {
+        margin-top: 8px;
+        min-height: 140px;
         border-radius: var(--radius-input);
-        border: 1px dashed #d6e8ea;
+        border: 1px solid #d6e8ea;
         background: #fff;
+        overflow: hidden;
+      }
+      .income-trend-svg {
+        width: 100%;
+        height: 106px;
+        display: block;
+      }
+      .income-trend-labels {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 2px;
+        padding: 0 6px 8px;
+      }
+      .income-trend-label {
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+      .income-trend-fallback {
+        min-height: 106px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -460,12 +475,10 @@
           <div class="income-placeholder-block">
             <p class="income-placeholder-title">今日毛利</p>
             <p class="income-placeholder-value" id="grossProfitToday">￥0.00</p>
-            <p class="income-placeholder-note">成本数据待接入。</p>
           </div>
-          <div class="income-placeholder-block" aria-label="近 7 日收款趋势占位">
+          <div class="income-placeholder-block" aria-label="近 7 日毛利趋势">
             <p class="income-placeholder-title">近 7 日趋势</p>
-            <div class="income-trend-empty">暂无趋势图</div>
-            <p class="income-placeholder-note">趋势数据待接入。</p>
+            <div class="income-trend-chart" id="grossTrendChart"></div>
           </div>
         </div>
       </section>
@@ -621,6 +634,8 @@
       const receivedToday = document.getElementById("receivedToday");
       const pendingToday = document.getElementById("pendingToday");
       const totalToday = document.getElementById("totalToday");
+      const grossProfitToday = document.getElementById("grossProfitToday");
+      const grossTrendChart = document.getElementById("grossTrendChart");
       const incomeDetailBtn = document.getElementById("incomeDetailBtn");
       const incomeExpandPanel = document.getElementById("incomeExpandPanel");
       const nextDeliverySection = document.getElementById("nextDeliverySection");
@@ -976,6 +991,62 @@
         recognition.start();
       }
 
+      function formatTrendLabel(value, index) {
+        const text = String(value || "").trim();
+        if (text) return text.slice(-5);
+        const date = new Date(Date.now() - (6 - index) * 24 * 60 * 60 * 1000);
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${month}-${day}`;
+      }
+
+      function renderGrossTrend(rawPoints) {
+        const points = Array.isArray(rawPoints) ? rawPoints.slice(-7) : [];
+        if (!points.length) {
+          grossTrendChart.innerHTML = '<div class="income-trend-fallback">近 7 日暂无数据</div>';
+          return;
+        }
+        const values = points.map((item) => Number(item?.grossProfit || 0));
+        const maxValue = Math.max(...values, 0);
+        const minValue = Math.min(...values, 0);
+        const span = Math.max(1, maxValue - minValue);
+        const width = 320;
+        const height = 106;
+        const padX = 16;
+        const padY = 14;
+        const unitX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
+        const mapY = (value) =>
+          Number((height - padY - ((value - minValue) / span) * (height - padY * 2)).toFixed(2));
+        const mapX = (index) => Number((padX + unitX * index).toFixed(2));
+        const zeroVisible = minValue <= 0 && maxValue >= 0;
+        const zeroY = mapY(0);
+        const dots = points
+          .map((item, index) => {
+            const gross = Number(item?.grossProfit || 0);
+            const x = mapX(index);
+            const y = mapY(gross);
+            const color = gross < 0 ? "#c94f45" : "var(--brand)";
+            return `<circle cx="${x}" cy="${y}" r="2.8" fill="${color}" />`;
+          })
+          .join("");
+        const labels = points
+          .map(
+            (item, index) =>
+              `<span class="income-trend-label">${formatTrendLabel(item?.label || item?.date, index)}</span>`
+          )
+          .join("");
+        grossTrendChart.innerHTML = `
+          <svg class="income-trend-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="毛利 7 日趋势图">
+            ${zeroVisible ? `<line x1="${padX}" y1="${zeroY}" x2="${width - padX}" y2="${zeroY}" stroke="#d6e8ea" stroke-dasharray="3 3" />` : ""}
+            <polyline points="${points
+              .map((item, index) => `${mapX(index)},${mapY(Number(item?.grossProfit || 0))}`)
+              .join(" ")}" fill="none" stroke="var(--brand)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            ${dots}
+          </svg>
+          <div class="income-trend-labels">${labels}</div>
+        `;
+      }
+
       async function loadData(fromPull = false) {
         setMainTip(fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...", "loading");
         const res = await fetchWorkbenchOverview();
@@ -986,9 +1057,14 @@
         const { finance, nextDelivery } = res.data;
         const received = Number(finance.receivedToday || 0);
         const pending = Number(finance.pendingToday || 0);
+        const gross = Number(
+          finance.grossProfitToday != null ? finance.grossProfitToday : received - pending
+        );
         totalToday.textContent = fmtCurrency(received + pending);
         receivedToday.textContent = fmtCurrency(received);
         pendingToday.textContent = fmtCurrency(pending);
+        grossProfitToday.textContent = fmtCurrency(gross);
+        renderGrossTrend(finance.grossTrend7d);
         if (received <= 0 && pending <= 0) {
           setMainTip("今日暂无收款数据，可先去快速开单。", "info");
         }
