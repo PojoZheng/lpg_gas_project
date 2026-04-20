@@ -147,6 +147,7 @@
         letter-spacing: 0.2px;
       }
       .income-trend-chart {
+        position: relative;
         margin-top: 8px;
         min-height: 140px;
         border-radius: var(--radius-input);
@@ -156,7 +157,7 @@
       }
       .income-trend-svg {
         width: 100%;
-        height: 106px;
+        height: 118px;
         display: block;
       }
       .income-trend-labels {
@@ -170,14 +171,6 @@
         line-height: 1.2;
         color: var(--text-secondary);
         text-align: center;
-      }
-      .income-trend-fallback {
-        min-height: 106px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        color: var(--text-secondary);
       }
       .tip-block { margin-top: 12px; }
       .workbench-action-zone {
@@ -1001,18 +994,30 @@
       }
 
       function renderGrossTrend(rawPoints) {
-        const points = Array.isArray(rawPoints) ? rawPoints.slice(-7) : [];
-        if (!points.length) {
-          grossTrendChart.innerHTML = '<div class="income-trend-fallback">近 7 日暂无数据</div>';
-          return;
-        }
+        const incoming = Array.isArray(rawPoints) ? rawPoints.slice(-7) : [];
+        const bucket = new Map();
+        incoming.forEach((item) => {
+          const key = String(item?.date || item?.label || "").slice(-5);
+          if (!key) return;
+          bucket.set(key, Number(item?.grossProfit || 0));
+        });
+        const points = Array.from({ length: 7 }).map((_, index) => {
+          const date = new Date(Date.now() - (6 - index) * 24 * 60 * 60 * 1000);
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const key = `${month}-${day}`;
+          return {
+            label: key,
+            grossProfit: Number(bucket.get(key) || 0),
+          };
+        });
         const values = points.map((item) => Number(item?.grossProfit || 0));
         const maxValue = Math.max(...values, 0);
         const minValue = Math.min(...values, 0);
         const span = Math.max(1, maxValue - minValue);
         const width = 320;
-        const height = 106;
-        const padX = 16;
+        const height = 118;
+        const padX = 38;
         const padY = 14;
         const unitX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
         const mapY = (value) =>
@@ -1035,9 +1040,19 @@
               `<span class="income-trend-label">${formatTrendLabel(item?.label || item?.date, index)}</span>`
           )
           .join("");
+        const topLabel = `￥${maxValue.toFixed(0)}`;
+        const midLabel = `￥${((maxValue + minValue) / 2).toFixed(0)}`;
+        const bottomLabel = `￥${minValue.toFixed(0)}`;
         grossTrendChart.innerHTML = `
           <svg class="income-trend-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="毛利 7 日趋势图">
+            <line x1="${padX}" y1="${padY}" x2="${padX}" y2="${height - padY}" stroke="#d6e8ea" />
+            <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="#d6e8ea" />
+            <line x1="${padX}" y1="${padY}" x2="${width - padX}" y2="${padY}" stroke="#edf4f5" />
+            <line x1="${padX}" y1="${(height / 2).toFixed(2)}" x2="${width - padX}" y2="${(height / 2).toFixed(2)}" stroke="#edf4f5" />
             ${zeroVisible ? `<line x1="${padX}" y1="${zeroY}" x2="${width - padX}" y2="${zeroY}" stroke="#d6e8ea" stroke-dasharray="3 3" />` : ""}
+            <text x="2" y="${padY + 4}" fill="#8aa1a5" font-size="10">${topLabel}</text>
+            <text x="2" y="${(height / 2 + 4).toFixed(2)}" fill="#8aa1a5" font-size="10">${midLabel}</text>
+            <text x="2" y="${height - padY + 4}" fill="#8aa1a5" font-size="10">${bottomLabel}</text>
             <polyline points="${points
               .map((item, index) => `${mapX(index)},${mapY(Number(item?.grossProfit || 0))}`)
               .join(" ")}" fill="none" stroke="var(--brand)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
