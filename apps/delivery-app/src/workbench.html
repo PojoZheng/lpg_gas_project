@@ -175,6 +175,7 @@
       .tip-block { margin-top: 12px; }
       .workbench-action-zone {
         display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
       .action-hero {
@@ -212,7 +213,7 @@
         stroke: currentColor;
       }
       .action-hero-title {
-        font-size: 26px;
+        font-size: 24px;
         line-height: 1.05;
         font-weight: 700;
         font-family: var(--font-title);
@@ -220,29 +221,31 @@
       }
       .voice-entry {
         width: 100%;
-        min-height: 48px;
+        min-height: 96px;
         border: 1px solid #d6e8ea;
-        border-radius: var(--radius-button);
+        border-radius: var(--radius-page-card);
         background: #fff;
         color: var(--text-primary);
-        padding: 0 14px;
+        padding: 14px;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: 12px;
+        box-shadow: var(--shadow-soft);
         font: inherit;
         cursor: pointer;
       }
       .voice-entry-main {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
+        flex-direction: column;
         gap: 10px;
         min-width: 0;
       }
       .voice-entry-icon {
-        width: 34px;
-        height: 34px;
-        border-radius: 12px;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
         background: var(--brand-soft);
         color: var(--brand);
         display: inline-flex;
@@ -251,14 +254,22 @@
         flex-shrink: 0;
       }
       .voice-entry-text {
-        font-size: 15px;
-        font-weight: 600;
+        font-size: 24px;
+        line-height: 1.05;
+        font-weight: 700;
         font-family: var(--font-title);
+        letter-spacing: -0.2px;
       }
       .voice-entry-arrow {
         color: var(--text-secondary);
         font-size: 18px;
         line-height: 1;
+        align-self: flex-end;
+      }
+      @media (max-width: 360px) {
+        .workbench-action-zone {
+          grid-template-columns: 1fr;
+        }
       }
       /* 快速开单底部 Sheet（对齐 requirements/01 规格 §1.2） */
       .action-hero.qo-launch-anim {
