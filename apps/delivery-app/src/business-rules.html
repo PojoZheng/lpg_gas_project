@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>业务规则</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .section { margin-bottom: 12px; }
+      .grid { display: grid; gap: 10px; }
+      .row { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 8px; }
+      .row label { font-size: 13px; color: var(--text-secondary); }
+      .row input, .row select { width: 100%; height: 42px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
+      .unit { font-size: 12px; color: var(--text-secondary); }
+      .checks { display: flex; gap: 12px; flex-wrap: wrap; }
+      .checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .tip { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+      .tip.err { color: #b42318; }
+      .switch-row { display: flex; justify-content: space-between; align-items: center; }
+      .switch-row label { font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">业务规则</h1>
+        <div style="width:38px"></div>
+      </header>
+
+      <section class="app-card section">
+        <h2 class="app-card-title">押金与租金</h2>
+        <div class="grid">
+          <div class="row"><label>15kg押金</label><input id="deposit15" type="number" min="0" /><span class="unit">元/瓶</span></div>
+          <div class="row"><label>10kg押金</label><input id="deposit10" type="number" min="0" /><span class="unit">元/瓶</span></div>
+          <div class="row"><label>50kg押金</label><input id="deposit50" type="number" min="0" /><span class="unit">元/瓶</span></div>
+          <div class="row"><label>月租金</label><input id="rentMonthly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/月</span></div>
+          <div class="row"><label>年租金</label><input id="rentYearly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/年</span></div>
+        </div>
+      </section>
+
+      <section class="app-card section">
+        <h2 class="app-card-title">残液处理</h2>
+        <div class="grid">
+          <div class="switch-row"><label for="residualEnabled">启用残液记录</label><input id="residualEnabled" type="checkbox" /></div>
+          <div class="row"><label>残液单价</label><input id="residualPrice" type="number" min="0" step="0.01" /><span class="unit">元/kg</span></div>
+          <div class="row">
+            <label>默认方式</label>
+            <select id="residualMode">
+              <option value="deduct">抵扣气款</option>
+              <option value="separate">单独收入</option>
+              <option value="ignore">忽略</option>
+            </select>
+            <span></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card section">
+        <h2 class="app-card-title">欠瓶管理</h2>
+        <div class="grid">
+          <div class="switch-row"><label for="owedEnabled">启用欠瓶跟踪</label><input id="owedEnabled" type="checkbox" /></div>
+          <div>
+            <div class="unit" style="margin-bottom:6px">提醒天数</div>
+            <div class="checks" id="owedDaysWrap">
+              <label><input type="checkbox" value="7" />7天</label>
+              <label><input type="checkbox" value="15" />15天</label>
+              <label><input type="checkbox" value="30" />30天</label>
+            </div>
+          </div>
+          <div class="row"><label>最长欠瓶</label><input id="owedMaxDays" type="number" min="7" /><span class="unit">天</span></div>
+          <div class="row">
+            <label>超期处理</label>
+            <select id="owedAction">
+              <option value="convert">转为收入</option>
+              <option value="continue">继续欠着</option>
+            </select>
+            <span></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card section">
+        <h2 class="app-card-title">欠款管理</h2>
+        <div class="grid">
+          <div class="switch-row"><label for="debtEnabled">启用欠款管理</label><input id="debtEnabled" type="checkbox" /></div>
+          <div class="row"><label>最大额度</label><input id="debtMaxAmount" type="number" min="0" /><span class="unit">元/客户</span></div>
+          <div class="row"><label>最长欠款</label><input id="debtMaxDays" type="number" min="7" /><span class="unit">天</span></div>
+          <div>
+            <div class="unit" style="margin-bottom:6px">提醒天数</div>
+            <div class="checks" id="debtDaysWrap">
+              <label><input type="checkbox" value="7" />7天</label>
+              <label><input type="checkbox" value="15" />15天</label>
+              <label><input type="checkbox" value="25" />25天</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card section">
+        <h2 class="app-card-title">库存预警</h2>
+        <div class="grid">
+          <div class="switch-row"><label for="invEnabled">启用库存预警</label><input id="invEnabled" type="checkbox" /></div>
+          <div class="row"><label>15kg重瓶</label><input id="warn15" type="number" min="0" /><span class="unit">瓶</span></div>
+          <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
+          <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
+          <div class="row"><label>超期锁定</label><input id="lockDays" type="number" min="1" /><span class="unit">天</span></div>
+          <div class="row"><label>过期提醒</label><input id="expireDays" type="number" min="1" /><span class="unit">天前</span></div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <div class="actions">
+          <button class="app-btn ghost" id="resetBtn">恢复默认</button>
+          <button class="app-btn primary" id="saveBtn">保存设置</button>
+        </div>
+        <div class="tip" id="tip"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { goBackOr } from "./app-shell.js";
+      import { fetchBusinessRules, saveBusinessRules, resetBusinessRules } from "./business-rules-client.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const $ = (id) => document.getElementById(id);
+      const tip = $("tip");
+
+      function setTip(text, isError = false) {
+        tip.textContent = text || "";
+        tip.className = `tip ${isError ? "err" : ""}`;
+      }
+
+      function readCheckedDays(wrapId) {
+        return [...document.querySelectorAll(`#${wrapId} input[type=checkbox]:checked`)].map((x) => Number(x.value));
+      }
+
+      function writeCheckedDays(wrapId, days = []) {
+        const set = new Set((days || []).map((x) => Number(x)));
+        [...document.querySelectorAll(`#${wrapId} input[type=checkbox]`)].forEach((x) => {
+          x.checked = set.has(Number(x.value));
+        });
+      }
+
+      function applyData(data) {
+        if (!data) return;
+        $("deposit15").value = Number(data.deposit?.kg15 || 0);
+        $("deposit10").value = Number(data.deposit?.kg10 || 0);
+        $("deposit50").value = Number(data.deposit?.kg50 || 0);
+        $("rentMonthly").value = Number(data.rent?.monthly || 0);
+        $("rentYearly").value = Number(data.rent?.yearly || 0);
+
+        $("residualEnabled").checked = Boolean(data.residual?.enabled);
+        $("residualPrice").value = Number(data.residual?.price || 0);
+        $("residualMode").value = data.residual?.defaultMode || "deduct";
+
+        $("owedEnabled").checked = Boolean(data.owedBottle?.enabled);
+        writeCheckedDays("owedDaysWrap", data.owedBottle?.remindDays || [7, 15, 30]);
+        $("owedMaxDays").value = Number(data.owedBottle?.maxDays || 60);
+        $("owedAction").value = data.owedBottle?.overdueAction || "convert";
+
+        $("debtEnabled").checked = Boolean(data.debt?.enabled);
+        $("debtMaxAmount").value = Number(data.debt?.maxAmount || 1000);
+        $("debtMaxDays").value = Number(data.debt?.maxDays || 30);
+        writeCheckedDays("debtDaysWrap", data.debt?.remindDays || [7, 15, 25]);
+
+        $("invEnabled").checked = Boolean(data.inventoryWarning?.enabled);
+        $("warn15").value = Number(data.inventoryWarning?.heavy?.kg15 || 5);
+        $("warn10").value = Number(data.inventoryWarning?.heavy?.kg10 || 3);
+        $("warn50").value = Number(data.inventoryWarning?.heavy?.kg50 || 2);
+        $("lockDays").value = Number(data.inventoryWarning?.lockDays || 3);
+        $("expireDays").value = Number(data.inventoryWarning?.expireDays || 30);
+      }
+
+      function buildPayload() {
+        return {
+          deposit: {
+            kg15: Number($("deposit15").value || 0),
+            kg10: Number($("deposit10").value || 0),
+            kg50: Number($("deposit50").value || 0),
+          },
+          rent: {
+            monthly: Number($("rentMonthly").value || 0),
+            yearly: Number($("rentYearly").value || 0),
+          },
+          residual: {
+            enabled: $("residualEnabled").checked,
+            price: Number($("residualPrice").value || 0),
+            defaultMode: $("residualMode").value,
+          },
+          owedBottle: {
+            enabled: $("owedEnabled").checked,
+            remindDays: readCheckedDays("owedDaysWrap"),
+            maxDays: Number($("owedMaxDays").value || 60),
+            overdueAction: $("owedAction").value,
+          },
+          debt: {
+            enabled: $("debtEnabled").checked,
+            maxAmount: Number($("debtMaxAmount").value || 1000),
+            maxDays: Number($("debtMaxDays").value || 30),
+            remindDays: readCheckedDays("debtDaysWrap"),
+          },
+          inventoryWarning: {
+            enabled: $("invEnabled").checked,
+            heavy: {
+              kg15: Number($("warn15").value || 0),
+              kg10: Number($("warn10").value || 0),
+              kg50: Number($("warn50").value || 0),
+            },
+            lockDays: Number($("lockDays").value || 3),
+            expireDays: Number($("expireDays").value || 30),
+          },
+        };
+      }
+
+      async function load() {
+        setTip("加载配置中...");
+        const res = await fetchBusinessRules();
+        if (!res.success) return setTip(res.error || "读取配置失败", true);
+        applyData(res.data);
+        setTip("");
+      }
+
+      $("backBtn").addEventListener("click", () => goBackOr("./my.html"));
+      $("saveBtn").addEventListener("click", async () => {
+        setTip("保存中...");
+        const res = await saveBusinessRules(buildPayload());
+        if (!res.success) return setTip(res.error || "保存失败", true);
+        applyData(res.data);
+        setTip("业务规则已保存");
+      });
+      $("resetBtn").addEventListener("click", async () => {
+        setTip("恢复默认中...");
+        const res = await resetBusinessRules();
+        if (!res.success) return setTip(res.error || "恢复默认失败", true);
+        applyData(res.data);
+        setTip("已恢复默认");
+      });
+
+      void load();
+    </script>
+  </body>
+</html>

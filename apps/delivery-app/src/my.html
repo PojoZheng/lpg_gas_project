@@ -10,6 +10,8 @@
       .entry-list { display: grid; gap: 10px; }
       .section-subtitle { margin: 0 0 10px; font-size: 13px; color: var(--text-secondary); }
       .account-card { margin-bottom: 12px; }
+      .logout-card { margin-top: 12px; }
+      .logout-btn { width: 100%; }
       .account-head {
         display: flex;
         align-items: flex-start;
@@ -63,12 +65,9 @@
           <div>
             <div class="account-label">账号与登录</div>
             <div class="account-name" id="accountName">当前账号</div>
-            <div class="account-sub" id="accountSub">查看当前登录状态、切换账号与退出登录。</div>
+            <div class="account-sub" id="accountSub">查看当前登录状态。</div>
           </div>
-          <div class="account-actions">
-            <button class="app-btn ghost" id="loginBtn">切换账号</button>
-            <button class="app-btn" id="logoutBtn">退出登录</button>
-          </div>
+          <div class="account-actions"></div>
         </div>
       </section>
 
@@ -126,7 +125,21 @@
             </span>
             <span class="entry-arrow">›</span>
           </button>
+          <button class="app-btn entry-btn" id="rulesBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h12" /><path d="M18 4v6M15 7h6" /></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">业务规则</div>
+                <div class="sub">押金租金、残液、欠瓶欠款与库存预警</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
         </div>
+      </section>
+
+      <section class="app-card logout-card">
+        <button class="app-btn logout-btn" id="logoutBtn">退出登录</button>
       </section>
     </main>
 
@@ -162,7 +175,7 @@
       bindClick("financeBtn", () => (window.location.href = "./finance-overview.html"));
       bindClick("debtBtn", () => (window.location.href = "./debt-overview.html"));
       bindClick("syncBtn", () => (window.location.href = "./offline-sync.html"));
-      bindClick("loginBtn", () => (window.location.href = "./login.html"));
+      bindClick("rulesBtn", () => (window.location.href = "./business-rules.html"));
       bindClick("logoutBtn", doLogout);
       mountAppBottomNav("appBottomNav", {
         active: "my",

@@ -44,6 +44,131 @@ const policyVersions = [
   },
 ];
 const policyAuditLogs = [];
+const DEFAULT_BUSINESS_RULES = {
+  deposit: {
+    kg15: 150,
+    kg10: 100,
+    kg50: 400,
+  },
+  rent: {
+    monthly: 5,
+    yearly: 50,
+  },
+  residual: {
+    enabled: true,
+    price: 5,
+    defaultMode: "deduct", // deduct | separate | ignore
+  },
+  owedBottle: {
+    enabled: true,
+    remindDays: [7, 15, 30],
+    maxDays: 60,
+    overdueAction: "convert", // convert | continue
+  },
+  debt: {
+    enabled: true,
+    maxAmount: 1000,
+    maxDays: 30,
+    remindDays: [7, 15, 25],
+  },
+  inventoryWarning: {
+    enabled: true,
+    heavy: { kg15: 5, kg10: 3, kg50: 2 },
+    lockDays: 3,
+    expireDays: 30,
+  },
+  updatedAt: Date.now(),
+};
+const businessRulesStore = new Map();
+
+function deepClone(v) {
+  return JSON.parse(JSON.stringify(v));
+}
+
+function normalizeRuleDays(v, fallback) {
+  const source = Array.isArray(v) ? v : fallback;
+  const seen = new Set();
+  const out = [];
+  source.forEach((x) => {
+    const n = Number(x);
+    if (Number.isInteger(n) && n >= 1 && n <= 365 && !seen.has(n)) {
+      seen.add(n);
+      out.push(n);
+    }
+  });
+  if (!out.length) return [...fallback];
+  return out.sort((a, b) => a - b).slice(0, 6);
+}
+
+function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
+  const src = payload || {};
+  const out = deepClone(base);
+  const toNum = (value, fallback, min, max) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, Number(n.toFixed(2))));
+  };
+  const toInt = (value, fallback, min, max) => {
+    const n = Number(value);
+    if (!Number.isInteger(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  };
+
+  out.deposit.kg15 = toNum(src.deposit?.kg15, out.deposit.kg15, 0, 1000);
+  out.deposit.kg10 = toNum(src.deposit?.kg10, out.deposit.kg10, 0, 1000);
+  out.deposit.kg50 = toNum(src.deposit?.kg50, out.deposit.kg50, 0, 2000);
+  out.rent.monthly = toNum(src.rent?.monthly, out.rent.monthly, 0, 100);
+  out.rent.yearly = toNum(src.rent?.yearly, out.rent.yearly, 0, 1000);
+
+  out.residual.enabled = src.residual?.enabled === undefined ? out.residual.enabled : Boolean(src.residual.enabled);
+  out.residual.price = toNum(src.residual?.price, out.residual.price, 0, 20);
+  const residualMode = String(src.residual?.defaultMode || out.residual.defaultMode);
+  out.residual.defaultMode = ["deduct", "separate", "ignore"].includes(residualMode) ? residualMode : out.residual.defaultMode;
+
+  out.owedBottle.enabled =
+    src.owedBottle?.enabled === undefined ? out.owedBottle.enabled : Boolean(src.owedBottle.enabled);
+  out.owedBottle.remindDays = normalizeRuleDays(src.owedBottle?.remindDays, out.owedBottle.remindDays);
+  out.owedBottle.maxDays = toInt(src.owedBottle?.maxDays, out.owedBottle.maxDays, 7, 180);
+  const overdueAction = String(src.owedBottle?.overdueAction || out.owedBottle.overdueAction);
+  out.owedBottle.overdueAction = ["convert", "continue"].includes(overdueAction)
+    ? overdueAction
+    : out.owedBottle.overdueAction;
+
+  out.debt.enabled = src.debt?.enabled === undefined ? out.debt.enabled : Boolean(src.debt.enabled);
+  out.debt.maxAmount = toNum(src.debt?.maxAmount, out.debt.maxAmount, 0, 10000);
+  out.debt.maxDays = toInt(src.debt?.maxDays, out.debt.maxDays, 7, 180);
+  out.debt.remindDays = normalizeRuleDays(src.debt?.remindDays, out.debt.remindDays);
+
+  out.inventoryWarning.enabled =
+    src.inventoryWarning?.enabled === undefined ? out.inventoryWarning.enabled : Boolean(src.inventoryWarning.enabled);
+  out.inventoryWarning.heavy.kg15 = toInt(src.inventoryWarning?.heavy?.kg15, out.inventoryWarning.heavy.kg15, 0, 200);
+  out.inventoryWarning.heavy.kg10 = toInt(src.inventoryWarning?.heavy?.kg10, out.inventoryWarning.heavy.kg10, 0, 200);
+  out.inventoryWarning.heavy.kg50 = toInt(src.inventoryWarning?.heavy?.kg50, out.inventoryWarning.heavy.kg50, 0, 200);
+  out.inventoryWarning.lockDays = toInt(src.inventoryWarning?.lockDays, out.inventoryWarning.lockDays, 1, 30);
+  out.inventoryWarning.expireDays = toInt(src.inventoryWarning?.expireDays, out.inventoryWarning.expireDays, 1, 365);
+  out.updatedAt = Date.now();
+  return out;
+}
+
+function getBusinessRules(dealerId = "default") {
+  if (!businessRulesStore.has(dealerId)) {
+    businessRulesStore.set(dealerId, deepClone(DEFAULT_BUSINESS_RULES));
+  }
+  return deepClone(businessRulesStore.get(dealerId));
+}
+
+function saveBusinessRules(payload, dealerId = "default") {
+  const merged = normalizeBusinessRules(payload, getBusinessRules(dealerId));
+  businessRulesStore.set(dealerId, merged);
+  return deepClone(merged);
+}
+
+function resetBusinessRules(dealerId = "default") {
+  const next = deepClone(DEFAULT_BUSINESS_RULES);
+  next.updatedAt = Date.now();
+  businessRulesStore.set(dealerId, next);
+  return deepClone(next);
+}
 
 function getInventoryState(spec) {
   if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
@@ -2987,6 +3112,34 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         success: true,
         data: buildComplianceMetrics(),
+      });
+    }
+
+    if (req.method === "GET" && pathname === "/settings/business") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: getBusinessRules("default"),
+      });
+    }
+
+    if (req.method === "PUT" && pathname === "/settings/business") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      const payload = await readBody(req);
+      return sendJson(res, 200, {
+        success: true,
+        data: saveBusinessRules(payload, "default"),
+      });
+    }
+
+    if (req.method === "POST" && pathname === "/settings/business/reset") {
+      const accessToken = readAccessToken(req);
+      listDevices(accessToken);
+      return sendJson(res, 200, {
+        success: true,
+        data: resetBusinessRules("default"),
       });
     }
 
