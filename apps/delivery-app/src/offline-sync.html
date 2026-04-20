@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>离线数据</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page {
+        min-height: 100vh;
+        padding: 16px 14px calc(32px + env(safe-area-inset-bottom, 0px));
+      }
+      .header {
+        display: grid;
+        grid-template-columns: 38px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .title {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.2;
+        text-align: center;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .header-action {
+        min-height: 38px;
+        height: 38px;
+        padding: 0 12px;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .stat-item {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        background: #fff;
+        padding: 10px;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .stat-value {
+        margin-top: 4px;
+        font-size: 20px;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .queue-list {
+        display: grid;
+        gap: 8px;
+      }
+      .queue-item {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        background: #fff;
+        padding: 10px;
+      }
+      .queue-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .queue-id {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .queue-status {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        background: #fff;
+      }
+      .queue-status.pending {
+        border-color: #d6e8ea;
+        color: #1f6f76;
+        background: #f0f9fa;
+      }
+      .queue-status.failed {
+        border-color: #f4c8c8;
+        color: #9d2d2d;
+        background: #fff4f4;
+      }
+      .queue-status.completed {
+        border-color: #ccead6;
+        color: #1f7a43;
+        background: #eefaf2;
+      }
+      .queue-line {
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.4;
+      }
+      .queue-line strong {
+        color: var(--text-primary);
+      }
+      .empty {
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-input);
+        padding: 12px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="title">离线数据</h1>
+        <button type="button" class="app-btn ghost header-action" id="refreshBtn">刷新</button>
+      </header>
+
+      <section class="app-card">
+        <h2 class="app-card-title">队列摘要</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">待提交</div>
+            <div class="stat-value" id="pendingCount">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">失败</div>
+            <div class="stat-value" id="failedCount">0</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="app-btn primary" id="submitAllBtn">手动提交</button>
+          <button type="button" class="app-btn" id="backMyBtn">返回我的</button>
+        </div>
+        <div class="state-block info" id="tip">正在读取离线数据...</div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">离线记录</h2>
+        <div class="queue-list" id="queueList"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { fetchOfflineQueue, submitOfflineQueueBatch } from "./offline-sync-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const backBtn = document.getElementById("backBtn");
+      const backMyBtn = document.getElementById("backMyBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const submitAllBtn = document.getElementById("submitAllBtn");
+      const pendingCount = document.getElementById("pendingCount");
+      const failedCount = document.getElementById("failedCount");
+      const tip = document.getElementById("tip");
+      const queueList = document.getElementById("queueList");
+
+      let currentItems = [];
+
+      function goBackMy() {
+        window.location.href = "./my.html";
+      }
+
+      function formatTime(ts) {
+        const value = Number(ts || 0);
+        if (!value) return "--";
+        const date = new Date(value);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        const hh = String(date.getHours()).padStart(2, "0");
+        const mm = String(date.getMinutes()).padStart(2, "0");
+        return `${y}-${m}-${d} ${hh}:${mm}`;
+      }
+
+      function statusText(status) {
+        if (status === "failed") return "失败";
+        if (status === "completed") return "已完成";
+        if (status === "syncing") return "同步中";
+        return "待提交";
+      }
+
+      function renderList(items) {
+        queueList.innerHTML = "";
+        if (!Array.isArray(items) || !items.length) {
+          queueList.innerHTML = '<div class="empty">暂无离线记录。</div>';
+          return;
+        }
+        items.forEach((item) => {
+          const card = document.createElement("div");
+          card.className = "queue-item";
+          const status = String(item.syncStatus || "pending");
+          const action = String(item.action || "").trim() || "未标记";
+          const entityType = String(item.entityType || "").trim() || "未知";
+          const summary = String(item.resultSummary || item.lastError || "").trim() || "等待手动提交";
+          card.innerHTML = `
+            <div class="queue-head">
+              <div class="queue-id">${String(item.offlineId || "--")}</div>
+              <span class="queue-status ${status}">${statusText(status)}</span>
+            </div>
+            <div class="queue-line">类型：<strong>${entityType}</strong>｜动作：<strong>${action}</strong></div>
+            <div class="queue-line">更新时间：${formatTime(item.updatedAt || item.createdAt)}</div>
+            <div class="queue-line">${summary}</div>
+          `;
+          queueList.appendChild(card);
+        });
+      }
+
+      async function loadQueue(withTip = false) {
+        if (withTip) {
+          tip.textContent = "正在刷新离线数据...";
+          tip.className = "state-block loading";
+        }
+        const res = await fetchOfflineQueue();
+        if (!res.success) {
+          tip.textContent = res.error || "离线数据读取失败";
+          tip.className = "state-block error";
+          return;
+        }
+        currentItems = Array.isArray(res.data.items) ? res.data.items : [];
+        const stats = res.data.stats || {};
+        pendingCount.textContent = String(Number(stats.pending || 0));
+        failedCount.textContent = String(Number(stats.failed || 0));
+        renderList(currentItems);
+        tip.textContent = Number(stats.pending || 0) > 0 || Number(stats.failed || 0) > 0 ? "有离线数据待手动提交。" : "";
+        tip.className = "state-block info";
+      }
+
+      async function submitAll() {
+        submitAllBtn.disabled = true;
+        tip.textContent = "正在手动提交离线数据...";
+        tip.className = "state-block loading";
+        const targetIds = currentItems
+          .filter((item) => ["pending", "failed"].includes(String(item.syncStatus || "")))
+          .map((item) => String(item.offlineId || "").trim())
+          .filter(Boolean);
+        const result = await submitOfflineQueueBatch(targetIds);
+        submitAllBtn.disabled = false;
+        if (!result.success) {
+          tip.textContent = result.error || "手动提交失败";
+          tip.className = "state-block error";
+          return;
+        }
+        const summary = result.data || {};
+        tip.textContent = `提交完成：成功 ${Number(summary.completed || 0)} 条，失败 ${Number(summary.failed || 0)} 条。`;
+        tip.className = "state-block success";
+        await loadQueue(false);
+      }
+
+      backBtn.addEventListener("click", () => {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        goBackMy();
+      });
+      backMyBtn.addEventListener("click", goBackMy);
+      refreshBtn.addEventListener("click", () => {
+        void loadQueue(true);
+      });
+      submitAllBtn.addEventListener("click", () => {
+        void submitAll();
+      });
+
+      void loadQueue(false);
+    </script>
+  </body>
+</html>

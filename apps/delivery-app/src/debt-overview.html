@@ -346,7 +346,7 @@
         state.items = listRes.data.items || [];
         renderList();
         if (withTip) {
-          listMeta.textContent = `已刷新 ${state.items.length} 位客户`;
+          listMeta.textContent = `共 ${state.items.length} 位客户`;
         }
       }
 
@@ -471,7 +471,7 @@
         if (!updatedItem) {
           state.expandedId = "";
           renderList();
-          listMeta.textContent = `已刷新 ${state.items.length} 位客户，当前客户欠款已结清`;
+          listMeta.textContent = `共 ${state.items.length} 位客户，当前客户欠款已结清`;
           return;
         }
         const detail = await ensureCustomerDetail(customerId);

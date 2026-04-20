@@ -846,7 +846,7 @@
           localStorage.setItem(QO_PREF_KEY, JSON.stringify(next));
         } catch (_e) {}
         closeQoSheet();
-        tip.textContent = `开单成功，订单号 ${result.data.orderId}。数据已刷新。`;
+        tip.textContent = `开单成功，订单号 ${result.data.orderId}。`;
         tip.className = "state-block success";
         await loadData(true);
       }
@@ -905,9 +905,15 @@
         nextAmount.className = "next-metric-value next-amount-brand";
       }
 
-      function openVoiceOrderFallback(message) {
+      function openVoiceOrderFallback(message, draft = "") {
         tip.textContent = message;
         tip.className = "state-block info";
+        const text = String(draft || "").trim();
+        if (text) {
+          sessionStorage.setItem(VOICE_DRAFT_KEY, text);
+          window.location.href = `./quick-order.html?from=workbench&intent=voice&draft=${encodeURIComponent(text)}`;
+          return;
+        }
         window.location.href = "./quick-order.html?from=workbench&intent=voice";
       }
 
@@ -927,10 +933,15 @@
         recognition.lang = "zh-CN";
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
+        let recognized = false;
+        let settled = false;
 
         recognition.addEventListener("result", (event) => {
           const transcript = event.results?.[0]?.[0]?.transcript?.trim() || "";
           if (transcript) {
+            if (settled) return;
+            recognized = true;
+            settled = true;
             sessionStorage.setItem(VOICE_DRAFT_KEY, transcript);
             tip.textContent = `已识别：${transcript}`;
             tip.className = "state-block success";
@@ -939,14 +950,25 @@
             }, 450);
             return;
           }
+          settled = true;
           openVoiceOrderFallback("未识别到有效内容，已进入完整开单页。");
         });
 
-        recognition.addEventListener("error", () => {
-          openVoiceOrderFallback("语音识别失败，已进入完整开单页。");
+        recognition.addEventListener("error", (event) => {
+          if (settled) return;
+          settled = true;
+          const reason =
+            event?.error === "not-allowed"
+              ? "未获得麦克风权限，已进入完整开单页。"
+              : "语音识别失败，已进入完整开单页。";
+          openVoiceOrderFallback(reason);
         });
 
         recognition.addEventListener("end", () => {
+          if (!recognized && !settled) {
+            settled = true;
+            openVoiceOrderFallback("未识别到有效内容，已进入完整开单页。");
+          }
           voiceRecognizing = false;
           voiceOrderBtn.disabled = false;
           voiceOrderBtn.removeAttribute("aria-busy");
@@ -992,8 +1014,8 @@
           tip.className = "state-block info";
           return;
         }
-        tip.textContent = "数据已更新";
-        tip.className = "state-block success";
+        tip.textContent = "";
+        tip.className = "state-block info";
       }
 
       quickOrderBtn.addEventListener("click", () => {
