@@ -87,5 +87,10 @@
     "node --check \"services/backend/src/server.js\"",
     "node --experimental-default-type=module --check \"apps/delivery-app/src/debt-client.js\"",
     "python3 \".trellis/tests/stories/story_customer_debt_cross_page_e2e.py\""
+  ],
+  "72-delivery-complete-validation-rules": [
+    "node --check \"services/backend/src/server.js\"",
+    "python3 \".trellis/tests/stories/story_delivery_complete_validation.py\"",
+    "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
   ]
 }

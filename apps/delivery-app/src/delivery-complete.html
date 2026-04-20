@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>待配送完单</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      /* 390×844：主内容可滚动，底部安检操作区固定，避免遮挡 */
+      body.delivery-complete-body {
+        margin: 0;
+        min-height: 100vh;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .page {
+        max-width: 460px;
+        margin: 0 auto;
+        padding: 16px 14px calc(300px + env(safe-area-inset-bottom, 0px));
+      }
+      .header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .title { margin: 0; font-size: 22px; font-weight: 700; font-family: var(--font-title); min-width: 0; }
+      .btn { border: 1px solid var(--border); border-radius: 12px; background: #fff; height: 48px; min-height: 48px; padding: 0 12px; cursor: pointer; }
+      .btn.ghost {
+        background: #fff;
+        color: var(--brand);
+        border-color: #d6e8ea;
+      }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-3); margin-bottom: var(--space-3); }
+      .card-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; font-family: var(--font-title); }
+      .order-btn { width: 100%; text-align: left; border: 1px solid var(--border); background: #fff; border-radius: var(--radius-button); padding: 10px; margin-bottom: 8px; cursor: pointer; }
+      .order-btn.active { border-color: var(--brand); background: #f0f9fa; }
+      .line2 { margin-top: 4px; color: var(--text-secondary); font-size: 13px; }
+      .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+      .row label { width: 74px; color: var(--text-secondary); font-size: 14px; }
+      .row input, .row select { flex: 1; height: 48px; min-height: 48px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; min-width: 0; }
+      .pay-methods { display: flex; gap: 8px; margin-bottom: 10px; }
+      .pay-btn { flex: 1; height: 48px; min-height: 48px; border: 1px solid var(--border); border-radius: var(--radius-button); background: #fff; cursor: pointer; }
+      .pay-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .warn { color: #b45309; border-color: #f5d9a5; background: #fff7ed; }
+      .tip { margin-top: 8px; }
+      .muted { color: var(--text-secondary); font-size: 13px; }
+      .safety-status {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        background: #fff7ed;
+        color: #b45309;
+      }
+      /* 安检检查项：单列更易单手点选，避免窄屏双列挤压 */
+      .safety-card .check-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .check-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 10px;
+        font-size: 14px;
+        color: var(--text-secondary);
+        background: #fff;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        word-break: break-word;
+      }
+      .check-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      .photo-tip { margin: 0 0 10px; color: var(--text-secondary); font-size: 12px; }
+      .safety-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .safety-card .row label {
+        align-self: start;
+        padding-top: 2px;
+      }
+      .dock-wrap {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        background: linear-gradient(to top, rgba(247, 248, 250, 0.98), rgba(247, 248, 250, 0.92));
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -8px 24px rgba(17, 17, 17, 0.06);
+        padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+      }
+      .dock {
+        max-width: 460px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .dock .btn {
+        height: 48px;
+        min-height: 48px;
+      }
+      .dock .btn.full {
+        width: 100%;
+      }
+      .dock-secondary-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .status-line {
+        max-width: 460px;
+        margin: 0 auto 8px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text-primary);
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #d7e9eb;
+        background: var(--brand-soft);
+      }
+      .bottom-nav { margin-top: 8px; }
+      .complete-toast {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 24px);
+        max-width: 440px;
+        z-index: 90;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(17, 17, 17, 0.14);
+        padding: 10px 12px;
+      }
+      .complete-toast-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: space-between;
+      }
+      .complete-toast-row span {
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.5;
+        min-width: 0;
+      }
+      .complete-toast-progress {
+        height: 3px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .complete-toast-progress-inner {
+        height: 100%;
+        width: 100%;
+        background: var(--brand);
+        transform-origin: left center;
+        transform: scaleX(1);
+      }
+      .complete-toast-progress-inner.run {
+        animation: dc-toast-progress 5s linear forwards;
+      }
+      @keyframes dc-toast-progress {
+        from {
+          transform: scaleX(1);
+        }
+        to {
+          transform: scaleX(0);
+        }
+      }
+      @media (max-width: 420px) {
+        .title { font-size: 20px; }
+        .header {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+        .header-actions {
+          justify-content: stretch;
+        }
+        .header-actions .btn {
+          flex: 1;
+          min-width: 0;
+        }
+        .row {
+          display: block;
+        }
+        .row label {
+          display: block;
+          width: auto;
+          margin-bottom: 6px;
+        }
+        .actions,
+        .safety-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body class="delivery-complete-body">
+    <main class="app-page page">
+      <header class="header">
+        <h1 class="title">待配送完单</h1>
+        <div class="header-actions">
+          <button class="back-icon-btn" type="button" id="backBtn" aria-label="返回上一页"></button>
+        </div>
+      </header>
+
+      <section class="app-card card" id="pendingDeliverySection">
+        <h2 class="card-title">待配送订单</h2>
+        <div id="orderList"></div>
+      </section>
+
+      <section class="app-card card">
+        <h2 class="card-title">完单与修改</h2>
+        <div class="row"><label>应收金额</label><input class="app-input" id="amountInput" disabled /></div>
+        <div class="row"><label>实收金额</label><input class="app-input" id="receivedInput" type="number" min="0" step="0.01" /></div>
+        <div class="pay-methods">
+          <button class="pay-btn active" data-method="wechat">微信收款</button>
+          <button class="pay-btn" data-method="cash">现金收款</button>
+          <button class="pay-btn" data-method="credit">记账</button>
+        </div>
+        <div class="row"><label>回收空瓶</label><input class="app-input" id="recycleInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>欠瓶数量</label><input class="app-input" id="owedInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>配送时间</label><input class="app-input" id="scheduleInput" placeholder="如：今天 18:30" /></div>
+        <div class="row"><label>配送地址</label><input class="app-input" id="addressInput" placeholder="请输入配送地址" /></div>
+        <div class="actions">
+          <button class="btn primary" id="completeBtn">确认完单</button>
+          <button class="btn" id="updateBtn">保存修改</button>
+          <button class="btn warn" id="cancelBtn">取消订单</button>
+          <button class="btn" id="undoBtn">5 秒撤销</button>
+        </div>
+        <button class="btn ghost" id="optionalSafetyBtn" hidden style="width: 100%; margin-top: 8px">去安检</button>
+        <div class="state-block info tip" id="tip" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="app-card card safety-card" id="safetyCard" aria-labelledby="safetyCardTitle">
+        <h2 class="card-title" id="safetyCardTitle">完单安检与上报</h2>
+        <span class="safety-status" id="safetyStatus">待触发</span>
+        <div class="check-list">
+          <label class="check-item"><input type="checkbox" value="阀门密封检查" class="safety-check" /> 阀门密封检查</label>
+          <label class="check-item"><input type="checkbox" value="减压阀连接检查" class="safety-check" /> 减压阀连接检查</label>
+          <label class="check-item"><input type="checkbox" value="软管老化检查" class="safety-check" /> 软管老化检查</label>
+          <label class="check-item"><input type="checkbox" value="通风环境检查" class="safety-check" /> 通风环境检查</label>
+        </div>
+        <div class="row"><label>安检照片</label><input class="app-input" id="photoInput" placeholder="输入照片编号，逗号分隔" /></div>
+        <p class="photo-tip">示例：img-001,img-002。当前原型以照片编号代替上传。</p>
+        <div class="row"><label>异常安检</label><input class="app-input" id="abnormalInput" placeholder="输入 是 或 否" value="否" /></div>
+        <div class="row"><label>隐患说明</label><input class="app-input" id="hazardInput" placeholder="异常时必须填写隐患说明" /></div>
+        <div class="state-block info tip" id="safetyTip" hidden></div>
+      </section>
+    </main>
+    <div id="completeToast" class="complete-toast" hidden aria-live="polite">
+      <div class="complete-toast-row">
+        <span id="completeToastText"></span>
+        <button type="button" class="btn ghost" id="completeToastUndoBtn">撤销</button>
+      </div>
+      <div class="complete-toast-progress">
+        <div class="complete-toast-progress-inner" id="completeToastBar"></div>
+      </div>
+    </div>
+    <div class="dock-wrap" role="region" aria-label="安检操作区">
+      <div class="status-line" id="dockStatus" aria-live="polite" hidden></div>
+      <div class="dock dock-actions">
+        <button class="btn primary full" type="button" id="submitSafetyBtn">提交安检</button>
+        <div class="dock-secondary-row">
+          <button class="btn ghost" type="button" id="backWorkbenchBtn" title="回到我的页工作台入口">返回工作台</button>
+          <button class="btn" type="button" id="retrySafetyBtn">失败重试</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        fetchPendingDeliveryOrders,
+        completeOrder,
+        cancelOrder,
+        updateOrder,
+        undoOrderAction,
+        fetchSafetyByOrder,
+        submitSafetyByOrder,
+        retrySafetyReport,
+        fetchCurrentPlatformPolicy,
+      } from "./delivery-complete-client.js";
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { goBackOr } from "./app-shell.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const orderList = document.getElementById("orderList");
+      const backBtn = document.getElementById("backBtn");
+      const amountInput = document.getElementById("amountInput");
+      const receivedInput = document.getElementById("receivedInput");
+      const recycleInput = document.getElementById("recycleInput");
+      const owedInput = document.getElementById("owedInput");
+      const scheduleInput = document.getElementById("scheduleInput");
+      const addressInput = document.getElementById("addressInput");
+      const completeBtn = document.getElementById("completeBtn");
+      const updateBtn = document.getElementById("updateBtn");
+      const cancelBtn = document.getElementById("cancelBtn");
+      const undoBtn = document.getElementById("undoBtn");
+      const optionalSafetyBtn = document.getElementById("optionalSafetyBtn");
+      const tip = document.getElementById("tip");
+      const safetyStatus = document.getElementById("safetyStatus");
+      const safetyTip = document.getElementById("safetyTip");
+      const photoInput = document.getElementById("photoInput");
+      const abnormalInput = document.getElementById("abnormalInput");
+      const hazardInput = document.getElementById("hazardInput");
+      const submitSafetyBtn = document.getElementById("submitSafetyBtn");
+      const retrySafetyBtn = document.getElementById("retrySafetyBtn");
+      const backWorkbenchBtn = document.getElementById("backWorkbenchBtn");
+      const dockStatus = document.getElementById("dockStatus");
+      const safetyChecks = [...document.querySelectorAll(".safety-check")];
+      const payBtns = [...document.querySelectorAll(".pay-btn")];
+      const completeToast = document.getElementById("completeToast");
+      const completeToastText = document.getElementById("completeToastText");
+      const completeToastUndoBtn = document.getElementById("completeToastUndoBtn");
+      const completeToastBar = document.getElementById("completeToastBar");
+      const safetyCard = document.getElementById("safetyCard");
+      const dockWrap = document.querySelector(".dock-wrap");
+
+      let selectedOrder = null;
+      let paymentMethod = "wechat";
+      let currentSafety = null;
+      let lastCompletedOrderId = "";
+      let completeToastTimer = 0;
+      let safetyTargetOrderId = "";
+      let safetyBlockNextCompletion = false;
+      let safetyCheckRequired = true;
+
+      function focusSafetyCard() {
+        if (!safetyCard) return;
+        safetyCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function resolveSafetyOrderId() {
+        if (safetyTargetOrderId) return safetyTargetOrderId;
+        if (selectedOrder?.orderStatus === "completed") return selectedOrder.orderId;
+        return "";
+      }
+
+      function isSafetyRequired() {
+        return Boolean(safetyCheckRequired);
+      }
+
+      function applySafetyLayout() {
+        const required = isSafetyRequired();
+        if (safetyCard) safetyCard.hidden = !required;
+        if (dockWrap) dockWrap.hidden = !required;
+        if (!required) {
+          safetyBlockNextCompletion = false;
+          setSafetyTip("");
+        }
+      }
+
+      function hideCompleteToast() {
+        completeToast.hidden = true;
+        if (completeToastTimer) window.clearTimeout(completeToastTimer);
+        completeToastTimer = 0;
+        completeToastBar.classList.remove("run");
+      }
+
+      function showCompleteToast(orderId) {
+        lastCompletedOrderId = orderId;
+        completeToastText.textContent = "完单成功，5 秒内可撤销。";
+        completeToast.hidden = false;
+        completeToastBar.classList.remove("run");
+        void completeToastBar.offsetWidth;
+        completeToastBar.classList.add("run");
+        if (completeToastTimer) window.clearTimeout(completeToastTimer);
+        completeToastTimer = window.setTimeout(() => hideCompleteToast(), 5100);
+      };
+
+      function setTip(text, isError = false) {
+        tip.hidden = !text;
+        tip.textContent = text;
+        tip.className = isError ? "state-block error tip" : "state-block info tip";
+      }
+
+      function syncPayBtn() {
+        payBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.method === paymentMethod));
+      }
+
+      function hasUpToTwoDecimals(raw) {
+        const text = String(raw || "").trim();
+        if (!text) return true;
+        return /^-?\d+(\.\d{1,2})?$/.test(text);
+      }
+
+      function validateCompleteInput(order) {
+        const receivedRaw = String(receivedInput.value || "").trim();
+        const recycleRaw = String(recycleInput.value || "").trim();
+        const owedRaw = String(owedInput.value || "").trim();
+        const receivedAmount = Number(receivedRaw);
+        const recycledEmptyCount = Number(recycleRaw || 0);
+        const owedEmptyCount = Number(owedRaw || 0);
+
+        if (!hasUpToTwoDecimals(receivedRaw) || !Number.isFinite(receivedAmount) || receivedAmount < 0) {
+          return { ok: false, message: "实收金额格式不正确，请输入最多两位小数且不小于 0 的数字。" };
+        }
+        if (!["wechat", "cash", "credit"].includes(paymentMethod)) {
+          return { ok: false, message: "请选择有效收款方式（微信、现金、记账）。" };
+        }
+        if (!Number.isInteger(recycledEmptyCount) || recycledEmptyCount < 0) {
+          return { ok: false, message: "回收空瓶数量必须为非负整数。" };
+        }
+        if (!Number.isInteger(owedEmptyCount) || owedEmptyCount < 0) {
+          return { ok: false, message: "欠瓶数量必须为非负整数。" };
+        }
+
+        const maxBottleCount = Number(order?.quantity || 0);
+        if (maxBottleCount > 0 && recycledEmptyCount + owedEmptyCount > maxBottleCount) {
+          return { ok: false, message: `回收空瓶与欠瓶合计不能超过配送数量（${maxBottleCount} 瓶）。` };
+        }
+
+        if (paymentMethod === "credit" && receivedAmount !== 0) {
+          return { ok: false, message: "选择记账时，实收金额必须为 0。" };
+        }
+        if (paymentMethod !== "credit" && receivedAmount <= 0) {
+          return { ok: false, message: "现金/微信收款时，实收金额必须大于 0；全额赊账请改选“记账”。" };
+        }
+
+        return {
+          ok: true,
+          payload: {
+            receivedAmount: Number(receivedAmount.toFixed(2)),
+            paymentMethod,
+            recycledEmptyCount,
+            owedEmptyCount,
+          },
+        };
+      }
+
+      function setSafetyTip(text, isError = false) {
+        safetyTip.hidden = !text;
+        dockStatus.hidden = !text;
+        safetyTip.textContent = text;
+        safetyTip.className = isError ? "state-block error tip" : "state-block info tip";
+        dockStatus.textContent = text || "";
+      }
+
+      function setSafetyStatus(status) {
+        const map = {
+          pending: "待上报",
+          completed: "已上报",
+          failed: "上报失败",
+          idle: "待触发",
+        };
+        safetyStatus.textContent = map[status] || map.idle;
+      }
+
+      function syncForm(order) {
+        amountInput.value = Number(order.amount || 0).toFixed(2);
+        receivedInput.value = Number(order.amount || 0).toFixed(2);
+        recycleInput.value = "0";
+        owedInput.value = "0";
+        scheduleInput.value = order.scheduleAt || "";
+        addressInput.value = order.address || "";
+      }
+
+      function renderOrders(list) {
+        orderList.innerHTML = "";
+        list.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.className = "order-btn";
+          btn.type = "button";
+          btn.innerHTML = `<div>${item.customerName}（${item.spec} x ${item.quantity}）</div><div class="line2">${item.address}｜${item.scheduleAt}｜订单号 ${item.orderId}</div>`;
+          btn.addEventListener("click", () => {
+            selectedOrder = item;
+            syncForm(item);
+            loadSafety({ silent: true });
+            [...orderList.children].forEach((x) => x.classList.remove("active"));
+            btn.classList.add("active");
+            setTip("已选择订单，可完单、取消或修改");
+          });
+          orderList.appendChild(btn);
+        });
+        if (!list.length) {
+          setTip("当前无待配送订单，可先去快速开单创建", false);
+          return;
+        }
+        selectedOrder = list[0];
+        syncForm(list[0]);
+        orderList.firstChild.classList.add("active");
+        loadSafety({ silent: true });
+      }
+
+      function maybeScrollToPendingList() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("view") !== "pending") return;
+        const block = document.getElementById("pendingDeliverySection");
+        if (!block) return;
+        requestAnimationFrame(() => {
+          block.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
+      async function loadOrders({ silent = false } = {}) {
+        if (!silent) setTip("正在加载待配送订单...");
+        const res = await fetchPendingDeliveryOrders();
+        if (!res.success) return !silent ? setTip(res.error || "加载失败，请点击重试", true) : undefined;
+        renderOrders(res.data || []);
+        if (!silent) setTip((res.data || []).length ? "待配送订单加载完成" : "");
+        maybeScrollToPendingList();
+      }
+
+      async function loadPolicy() {
+        const res = await fetchCurrentPlatformPolicy();
+        if (!res.success) return;
+        const required = res.data?.content?.safetyCheckRequired;
+        if (typeof required === "boolean") {
+          safetyCheckRequired = required;
+        }
+      }
+
+      async function loadSafety({ silent = false } = {}) {
+        if (!isSafetyRequired()) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          if (!silent) setSafetyTip("");
+          return;
+        }
+        const orderId = resolveSafetyOrderId();
+        if (!orderId) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          if (!silent) setSafetyTip("请先完成一笔订单后再提交安检");
+          return;
+        }
+        const res = await fetchSafetyByOrder(orderId);
+        if (!res.success) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          if (!silent) setSafetyTip(res.error || "安检记录加载失败", true);
+          return;
+        }
+        if (!res.data) {
+          currentSafety = null;
+          setSafetyStatus("idle");
+          if (!silent) setSafetyTip("完单后将自动触发安检流程");
+          return;
+        }
+        currentSafety = res.data;
+        setSafetyStatus(res.data.status || "pending");
+        if (safetyTargetOrderId && orderId === safetyTargetOrderId) {
+          if (res.data.status === "completed") {
+            safetyTargetOrderId = "";
+            safetyBlockNextCompletion = false;
+            if (!silent) setSafetyTip("安检上报已完成，可继续下一单完单");
+            return;
+          }
+          safetyBlockNextCompletion = isSafetyRequired();
+        }
+        if (silent) return;
+        if (res.data.status === "failed") {
+          setSafetyTip(`${res.data.lastError || "上报失败"}，可点击失败重试`, true);
+        } else if (res.data.status === "completed") {
+          setSafetyTip("安检上报已完成");
+        } else {
+          setSafetyTip(
+            isSafetyRequired()
+              ? `订单 ${orderId} 安检待提交，请补充检查项与照片后提交`
+              : `订单 ${orderId} 安检可补录提交`
+          );
+        }
+      }
+
+      payBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          paymentMethod = btn.dataset.method;
+          syncPayBtn();
+        });
+      });
+
+      completeBtn.addEventListener("click", async () => {
+        if (!selectedOrder) return setTip("请先选择待配送订单", true);
+        if (isSafetyRequired() && safetyBlockNextCompletion && safetyTargetOrderId && safetyTargetOrderId !== selectedOrder.orderId) {
+          setTip("请先提交上一笔完单的安检后再继续完单。", true);
+          focusSafetyCard();
+          return;
+        }
+        const validated = validateCompleteInput(selectedOrder);
+        if (!validated.ok) return setTip(validated.message, true);
+        if (!window.confirm("确认执行完单并登记收款？")) return;
+        setTip("正在提交完单...");
+        const res = await completeOrder(selectedOrder.orderId, validated.payload);
+        if (!res.success) return setTip(`${res.error || "完单失败"}，请修改后重试`, true);
+        const oid = res.data.orderId || selectedOrder.orderId;
+        setTip(
+          `完单成功：欠款 ${Number(res.data.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(
+            res.data.owedEmptyCount || 0
+          )} 瓶。`
+        );
+        safetyTargetOrderId = oid;
+        safetyBlockNextCompletion = isSafetyRequired();
+        safetyChecks.forEach((item) => {
+          item.checked = false;
+        });
+        photoInput.value = "";
+        abnormalInput.value = "否";
+        hazardInput.value = "";
+        showCompleteToast(oid);
+        if (isSafetyRequired()) {
+          setSafetyTip(`已完单，请先提交订单 ${oid} 的安检`);
+          focusSafetyCard();
+          optionalSafetyBtn.hidden = true;
+        } else {
+          optionalSafetyBtn.hidden = false;
+          setTip("完单成功，可选做安检。");
+        }
+        await loadOrders();
+        await loadSafety();
+      });
+
+      completeToastUndoBtn.addEventListener("click", async () => {
+        if (!lastCompletedOrderId) return;
+        setTip("正在撤销完单…");
+        const res = await undoOrderAction(lastCompletedOrderId);
+        if (!res.success) {
+          setTip(res.error || "撤销失败", true);
+          return;
+        }
+        hideCompleteToast();
+        lastCompletedOrderId = "";
+        if (safetyTargetOrderId && res.data?.orderId === safetyTargetOrderId) {
+          safetyTargetOrderId = "";
+          safetyBlockNextCompletion = false;
+          currentSafety = null;
+          setSafetyStatus("idle");
+          setSafetyTip("已撤销完单，安检流程已取消");
+        }
+        optionalSafetyBtn.hidden = true;
+        setTip("已撤销完单，订单回到待配送，可继续修改。");
+        await loadOrders();
+        await loadSafety();
+      });
+
+      cancelBtn.addEventListener("click", async () => {
+        if (!selectedOrder) return setTip("请先选择待配送订单", true);
+        if (!window.confirm("确认取消该订单并回滚库存？")) return;
+        setTip("正在取消订单...");
+        const res = await cancelOrder(selectedOrder.orderId);
+        if (!res.success) return setTip(`${res.error || "取消失败"}，请重试`, true);
+        setTip("订单已取消，库存已回滚，5 秒内可撤销");
+        await loadOrders();
+        await loadSafety();
+      });
+
+      updateBtn.addEventListener("click", async () => {
+        if (!selectedOrder) return setTip("请先选择待配送订单", true);
+        setTip("正在保存基础修改...");
+        const res = await updateOrder(selectedOrder.orderId, {
+          scheduleAt: scheduleInput.value,
+          address: addressInput.value,
+        });
+        if (!res.success) return setTip(`${res.error || "修改失败"}，请检查后重试`, true);
+        setTip("订单基础信息已更新");
+        await loadOrders();
+        await loadSafety();
+      });
+
+      undoBtn.addEventListener("click", async () => {
+        if (!selectedOrder) return setTip("请先选择待配送订单", true);
+        setTip("正在执行撤销...");
+        const res = await undoOrderAction(selectedOrder.orderId);
+        if (!res.success) return setTip(`${res.error || "撤销失败"}，可改用修改流程`, true);
+        setTip("已撤销最近关键操作");
+        await loadOrders();
+        await loadSafety();
+      });
+
+      submitSafetyBtn.addEventListener("click", async () => {
+        const targetOrderId = resolveSafetyOrderId();
+        if (!targetOrderId) return setSafetyTip("请先选择订单并完成完单", true);
+        const checkItems = safetyChecks.filter((x) => x.checked).map((x) => x.value);
+        const photoUrls = String(photoInput.value || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const hasAbnormal = ["是", "y", "yes", "true", "1"].includes(String(abnormalInput.value || "").trim().toLowerCase());
+        setSafetyTip("正在提交安检并执行上报...");
+        const res = await submitSafetyByOrder(targetOrderId, {
+          checkItems,
+          photoUrls,
+          hasAbnormal,
+          hazardNote: hazardInput.value,
+        });
+        if (!res.success) return setSafetyTip(`${res.error || "安检提交失败"}，请修改后重试`, true);
+        await loadSafety();
+      });
+
+      retrySafetyBtn.addEventListener("click", async () => {
+        if (!currentSafety?.safetyId) return setSafetyTip("当前无可重试的安检记录", true);
+        setSafetyTip("正在重试上报...");
+        const res = await retrySafetyReport(currentSafety.safetyId);
+        if (!res.success) return setSafetyTip(`${res.error || "重试失败"}，请稍后再试`, true);
+        await loadSafety();
+      });
+      backBtn.addEventListener("click", () => {
+        goBackOr("./workbench.html");
+      });
+      backWorkbenchBtn.addEventListener("click", () => {
+        window.location.href = "./my.html";
+      });
+      optionalSafetyBtn.addEventListener("click", () => {
+        window.location.href = "./my.html";
+      });
+      syncPayBtn();
+      void (async () => {
+        await loadPolicy();
+        applySafetyLayout();
+        await loadOrders({ silent: true });
+        await loadSafety({ silent: true });
+      })();
+    </script>
+  </body>
+</html>

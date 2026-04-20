@@ -545,6 +545,12 @@ function mapOrderError(err) {
   if (err?.code === "AUTH_401") {
     return { statusCode: Number(err.statusCode || 401), code: "AUTH_401", message: "登录态无效或已过期，请重新登录" };
   }
+  if (err?.code === "ORDER_409_STATUS") {
+    return { statusCode: 409, code: "ORDER_409_STATUS", message };
+  }
+  if (err?.code === "VALIDATION_400") {
+    return { statusCode: 400, code: "VALIDATION_400", message };
+  }
   if (message.includes("库存不足") || message.includes("库存冲突")) {
     return { statusCode: 409, code: "INVENTORY_409_STOCK", message };
   }
@@ -1920,23 +1926,50 @@ function listOfflineQueue(filters) {
 
 function completeDeliveryOrder(order, payload) {
   if (order.orderStatus !== "pending_delivery") {
-    throw new Error("仅待配送订单可执行完单");
+    const err = new Error("仅待配送订单可执行完单");
+    err.code = "ORDER_409_STATUS";
+    throw err;
   }
-  const receivedAmount = Number(payload.receivedAmount);
-  if (!Number.isFinite(receivedAmount) || receivedAmount < 0) {
-    throw new Error("实收金额必须为大于等于 0 的数字");
+  const receivedRaw = String(payload.receivedAmount ?? "").trim();
+  const receivedAmount = Number(receivedRaw);
+  if (!/^\d+(\.\d{1,2})?$/.test(receivedRaw) || !Number.isFinite(receivedAmount) || receivedAmount < 0) {
+    const err = new Error("实收金额格式不正确，请输入最多两位小数且不小于 0 的数字");
+    err.code = "VALIDATION_400";
+    throw err;
   }
   const paymentMethod = String(payload.paymentMethod || "").trim();
   if (!["wechat", "cash", "credit"].includes(paymentMethod)) {
-    throw new Error("请选择有效收款方式");
+    const err = new Error("请选择有效收款方式（微信、现金、记账）");
+    err.code = "VALIDATION_400";
+    throw err;
   }
   const recycledEmptyCount = Number(payload.recycledEmptyCount || 0);
   const owedEmptyCount = Number(payload.owedEmptyCount || 0);
   if (!Number.isInteger(recycledEmptyCount) || recycledEmptyCount < 0) {
-    throw new Error("回收空瓶数量必须为非负整数");
+    const err = new Error("回收空瓶数量必须为非负整数");
+    err.code = "VALIDATION_400";
+    throw err;
   }
   if (!Number.isInteger(owedEmptyCount) || owedEmptyCount < 0) {
-    throw new Error("欠瓶数量必须为非负整数");
+    const err = new Error("欠瓶数量必须为非负整数");
+    err.code = "VALIDATION_400";
+    throw err;
+  }
+  const orderQuantity = Number(order.quantity || 0);
+  if (orderQuantity > 0 && recycledEmptyCount + owedEmptyCount > orderQuantity) {
+    const err = new Error(`回收空瓶与欠瓶合计不能超过配送数量（${orderQuantity} 瓶）`);
+    err.code = "VALIDATION_400";
+    throw err;
+  }
+  if (paymentMethod === "credit" && receivedAmount !== 0) {
+    const err = new Error("选择记账时，实收金额必须为 0");
+    err.code = "VALIDATION_400";
+    throw err;
+  }
+  if (paymentMethod !== "credit" && receivedAmount <= 0) {
+    const err = new Error("现金/微信收款时，实收金额必须大于 0；全额赊账请改选“记账”");
+    err.code = "VALIDATION_400";
+    throw err;
   }
 
   const prev = { orderStatus: order.orderStatus, paymentStatus: order.paymentStatus };
@@ -2961,6 +2994,10 @@ const server = http.createServer(async (req, res) => {
   } catch (err) {
     if (pathname.startsWith("/auth/")) {
       const mapped = mapAuthError(err, pathname);
+      return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
+    }
+    if (pathname === "/orders" || pathname.startsWith("/orders/")) {
+      const mapped = mapOrderError(err);
       return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
     }
     return sendJson(res, 400, { success: false, error: err.message });
