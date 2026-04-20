@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>安检上报</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px; }
+      .check-list { display: grid; gap: 8px; margin-bottom: 10px; }
+      .check-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 14px; display: flex; gap: 8px; }
+      .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+      .row label { width: 82px; font-size: 13px; color: var(--text-secondary); }
+      .row input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
+      .tip { margin-top: 10px; font-size: 13px; line-height: 1.5; }
+      .err { color: #b42318; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">安检上报</h1>
+        <div style="width:38px"></div>
+      </header>
+      <section class="card">
+        <div id="orderText" style="margin-bottom: 10px; font-size: 13px; color: var(--text-secondary)"></div>
+        <div class="check-list">
+          <label class="check-item"><input type="checkbox" class="safety-check" value="阀门密封检查" />阀门密封检查</label>
+          <label class="check-item"><input type="checkbox" class="safety-check" value="减压阀连接检查" />减压阀连接检查</label>
+          <label class="check-item"><input type="checkbox" class="safety-check" value="软管老化检查" />软管老化检查</label>
+          <label class="check-item"><input type="checkbox" class="safety-check" value="通风环境检查" />通风环境检查</label>
+        </div>
+        <div class="row"><label>照片编号</label><input id="photoInput" placeholder="如 img-001,img-002" /></div>
+        <div class="row"><label>异常安检</label><input id="abnormalInput" value="否" placeholder="是/否" /></div>
+        <div class="row"><label>隐患说明</label><input id="hazardInput" placeholder="异常时必须填写" /></div>
+        <button class="app-btn primary" id="submitBtn">提交安检</button>
+        <button class="app-btn" id="retryBtn" style="margin-top:8px">失败重试</button>
+        <div id="tip" class="tip"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { goBackOr } from "./app-shell.js";
+      import {
+        fetchCurrentPlatformPolicy,
+        fetchSafetyByOrder,
+        submitSafetyByOrder,
+        retrySafetyReport,
+      } from "./delivery-complete-client.js";
+      import { getFlowState } from "./delivery-flow-state.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const flow = getFlowState();
+      const orderId = flow.lastComplete?.orderId || flow.selectedOrderId || "";
+      if (!orderId) window.location.href = "./pending-delivery-list.html";
+
+      let currentSafety = null;
+      const checks = [...document.querySelectorAll(".safety-check")];
+      const tipEl = document.getElementById("tip");
+
+      function tip(text, err = false) {
+        tipEl.textContent = text || "";
+        tipEl.className = `tip ${err ? "err" : ""}`;
+      }
+
+      async function guardByPolicy() {
+        const res = await fetchCurrentPlatformPolicy();
+        const required = Boolean(res.success ? res.data?.content?.safetyCheckRequired : true);
+        if (!required) {
+          window.location.href = "./delivery-result.html";
+          return false;
+        }
+        return true;
+      }
+
+      async function loadSafety() {
+        const ok = await guardByPolicy();
+        if (!ok) return;
+        document.getElementById("orderText").textContent = `订单号 ${orderId}`;
+        const res = await fetchSafetyByOrder(orderId);
+        if (res.success) currentSafety = res.data || null;
+      }
+
+      document.getElementById("backBtn").addEventListener("click", () => goBackOr("./delivery-settlement.html"));
+      document.getElementById("submitBtn").addEventListener("click", async () => {
+        const checkItems = checks.filter((x) => x.checked).map((x) => x.value);
+        const photoUrls = String(document.getElementById("photoInput").value || "").split(",").map((x) => x.trim()).filter(Boolean);
+        const hasAbnormal = ["是", "y", "yes", "true", "1"].includes(String(document.getElementById("abnormalInput").value || "").trim().toLowerCase());
+        const hazardNote = document.getElementById("hazardInput").value;
+
+        tip("正在提交安检...");
+        const res = await submitSafetyByOrder(orderId, { checkItems, photoUrls, hasAbnormal, hazardNote });
+        if (!res.success) return tip(res.error || "安检提交失败", true);
+        if (res.data?.status === "completed") {
+          tip("安检上报成功，进入结果页");
+          window.setTimeout(() => (window.location.href = "./delivery-result.html"), 300);
+          return;
+        }
+        tip(`当前状态：${res.data?.status || "pending"}，请重试或稍后刷新`, true);
+      });
+
+      document.getElementById("retryBtn").addEventListener("click", async () => {
+        if (!currentSafety?.safetyId) return tip("当前无可重试记录", true);
+        tip("正在重试...");
+        const res = await retrySafetyReport(currentSafety.safetyId);
+        if (!res.success) return tip(res.error || "重试失败", true);
+        if (res.data?.status === "completed") {
+          tip("重试成功，进入结果页");
+          window.setTimeout(() => (window.location.href = "./delivery-result.html"), 300);
+          return;
+        }
+        tip(`当前状态：${res.data?.status || "pending"}，可继续重试`, true);
+      });
+
+      void loadSafety();
+    </script>
+  </body>
+</html>

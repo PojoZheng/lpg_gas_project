@@ -592,7 +592,7 @@
 
       function handleAction(order) {
         if (order.orderStatus === "pending_delivery") {
-          navigateWithListScroll(`./delivery-complete.html?orderId=${order.orderId}`, "order-list");
+          navigateWithListScroll(`./pending-delivery-list.html?orderId=${order.orderId}`, "order-list");
         } else {
           navigateWithListScroll(`./order-detail.html?orderId=${order.orderId}`, "order-list");
         }
