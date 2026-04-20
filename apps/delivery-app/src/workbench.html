@@ -481,7 +481,7 @@
         </div>
       </section>
 
-      <section class="next-delivery-section" aria-label="待配送概览">
+      <section class="next-delivery-section" id="nextDeliverySection" aria-label="待配送概览">
         <div class="app-card next-delivery-card">
           <div class="next-customer-block">
             <div class="next-name-tags">
@@ -635,6 +635,7 @@
       const incomeDetailBtn = document.getElementById("incomeDetailBtn");
       const incomeToggleBtn = document.getElementById("incomeToggleBtn");
       const incomeExpandPanel = document.getElementById("incomeExpandPanel");
+      const nextDeliverySection = document.getElementById("nextDeliverySection");
       const nextCustomer = document.getElementById("nextCustomer");
       const nextTags = document.getElementById("nextTags");
       const nextAddress = document.getElementById("nextAddress");
@@ -899,6 +900,7 @@
       function renderNextDelivery(nextDelivery) {
         const hasTask = Boolean(nextDelivery?.orderId);
         if (!hasTask) {
+          nextDeliverySection.hidden = true;
           nextCustomer.textContent = "暂无待配送";
           renderCustomerTags(nextTags, []);
           nextAddress.textContent = "可前往快速开单创建新订单";
@@ -907,6 +909,7 @@
           nextAmount.className = "next-metric-value next-amount-brand";
           return;
         }
+        nextDeliverySection.hidden = false;
         nextCustomer.textContent = nextDelivery.customerName || "--";
         renderCustomerTags(nextTags, nextDelivery.customerTags);
         nextAddress.textContent = nextDelivery.address || "--";
