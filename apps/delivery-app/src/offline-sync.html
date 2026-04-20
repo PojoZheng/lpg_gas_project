@@ -144,7 +144,7 @@
           <button type="button" class="app-btn primary" id="submitAllBtn">手动提交</button>
           <button type="button" class="app-btn" id="backMyBtn">返回我的</button>
         </div>
-        <div class="state-block info" id="tip">正在读取离线数据...</div>
+        <div class="state-block info" id="tip" hidden></div>
       </section>
 
       <section class="app-card">
@@ -171,6 +171,19 @@
       const queueList = document.getElementById("queueList");
 
       let currentItems = [];
+
+      function setTip(text = "", level = "info") {
+        const message = String(text || "").trim();
+        if (!message) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = message;
+        tip.className = `state-block ${level}`;
+      }
 
       function goBackMy() {
         window.location.href = "./my.html";
@@ -223,13 +236,11 @@
 
       async function loadQueue(withTip = false) {
         if (withTip) {
-          tip.textContent = "正在刷新离线数据...";
-          tip.className = "state-block loading";
+          setTip("正在刷新离线数据...", "loading");
         }
         const res = await fetchOfflineQueue();
         if (!res.success) {
-          tip.textContent = res.error || "离线数据读取失败";
-          tip.className = "state-block error";
+          setTip(res.error || "离线数据读取失败", "error");
           return;
         }
         currentItems = Array.isArray(res.data.items) ? res.data.items : [];
@@ -237,14 +248,17 @@
         pendingCount.textContent = String(Number(stats.pending || 0));
         failedCount.textContent = String(Number(stats.failed || 0));
         renderList(currentItems);
-        tip.textContent = Number(stats.pending || 0) > 0 || Number(stats.failed || 0) > 0 ? "有离线数据待手动提交。" : "";
-        tip.className = "state-block info";
+        setTip(
+          Number(stats.pending || 0) > 0 || Number(stats.failed || 0) > 0
+            ? "有离线数据待手动提交。"
+            : "",
+          "info"
+        );
       }
 
       async function submitAll() {
         submitAllBtn.disabled = true;
-        tip.textContent = "正在手动提交离线数据...";
-        tip.className = "state-block loading";
+        setTip("正在手动提交离线数据...", "loading");
         const targetIds = currentItems
           .filter((item) => ["pending", "failed"].includes(String(item.syncStatus || "")))
           .map((item) => String(item.offlineId || "").trim())
@@ -252,13 +266,11 @@
         const result = await submitOfflineQueueBatch(targetIds);
         submitAllBtn.disabled = false;
         if (!result.success) {
-          tip.textContent = result.error || "手动提交失败";
-          tip.className = "state-block error";
+          setTip(result.error || "手动提交失败", "error");
           return;
         }
         const summary = result.data || {};
-        tip.textContent = `提交完成：成功 ${Number(summary.completed || 0)} 条，失败 ${Number(summary.failed || 0)} 条。`;
-        tip.className = "state-block success";
+        setTip(`提交完成：成功 ${Number(summary.completed || 0)} 条，失败 ${Number(summary.failed || 0)} 条。`, "success");
         await loadQueue(false);
       }
 

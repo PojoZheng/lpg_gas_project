@@ -533,7 +533,7 @@
           <span class="voice-entry-arrow" aria-hidden="true">›</span>
         </button>
       </section>
-      <div class="state-block info tip-block" id="tip">正在准备数据...</div>
+      <div class="state-block info tip-block" id="tip" hidden></div>
     </main>
 
     <div class="qo-overlay" id="qoOverlay" aria-hidden="true">
@@ -601,7 +601,7 @@
             <button type="button" class="app-btn primary" id="qoSubmitBtn" style="width: 100%; margin-top: 8px">
               确认开单
             </button>
-            <div class="state-block info qo-tip" id="qoTip"></div>
+            <div class="state-block info qo-tip" id="qoTip" hidden></div>
           </div>
         </div>
       </div>
@@ -679,6 +679,19 @@
       let qoSubmitting = false;
       let qoTouchStartY = 0;
 
+      function setMainTip(text = "", level = "info") {
+        const message = String(text || "").trim();
+        if (!message) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info tip-block";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = message;
+        tip.className = `state-block ${level} tip-block`;
+      }
+
       function qoLoadPrefs() {
         try {
           const parsed = JSON.parse(localStorage.getItem(QO_PREF_KEY) || "{}");
@@ -705,7 +718,15 @@
       }
 
       function qoSetTip(text, isError = false) {
-        qoTip.textContent = text;
+        const message = String(text || "").trim();
+        if (!message) {
+          qoTip.hidden = true;
+          qoTip.textContent = "";
+          qoTip.className = "state-block info qo-tip";
+          return;
+        }
+        qoTip.hidden = false;
+        qoTip.textContent = message;
         qoTip.className = isError ? "state-block error qo-tip" : "state-block info qo-tip";
       }
 
@@ -846,8 +867,7 @@
           localStorage.setItem(QO_PREF_KEY, JSON.stringify(next));
         } catch (_e) {}
         closeQoSheet();
-        tip.textContent = `开单成功，订单号 ${result.data.orderId}。`;
-        tip.className = "state-block success";
+        setMainTip(`开单成功，订单号 ${result.data.orderId}。`, "success");
         await loadData(true);
       }
 
@@ -906,8 +926,7 @@
       }
 
       function openVoiceOrderFallback(message, draft = "") {
-        tip.textContent = message;
-        tip.className = "state-block info";
+        setMainTip(message, "info");
         const text = String(draft || "").trim();
         if (text) {
           sessionStorage.setItem(VOICE_DRAFT_KEY, text);
@@ -927,8 +946,7 @@
         voiceRecognizing = true;
         voiceOrderBtn.disabled = true;
         voiceOrderBtn.setAttribute("aria-busy", "true");
-        tip.textContent = "请说出客户、规格和数量。";
-        tip.className = "state-block loading";
+        setMainTip("请说出客户、规格和数量。", "loading");
         const recognition = new SpeechRecognition();
         recognition.lang = "zh-CN";
         recognition.interimResults = false;
@@ -943,8 +961,7 @@
             recognized = true;
             settled = true;
             sessionStorage.setItem(VOICE_DRAFT_KEY, transcript);
-            tip.textContent = `已识别：${transcript}`;
-            tip.className = "state-block success";
+            setMainTip(`已识别：${transcript}`, "success");
             window.setTimeout(() => {
               window.location.href = `./quick-order.html?from=workbench&intent=voice&draft=${encodeURIComponent(transcript)}`;
             }, 450);
@@ -978,12 +995,10 @@
       }
 
       async function loadData(fromPull = false) {
-        tip.textContent = fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...";
-        tip.className = "state-block loading";
+        setMainTip(fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...", "loading");
         const res = await fetchWorkbenchOverview();
         if (!res.success) {
-          tip.textContent = res.error || "加载失败，请稍后重试";
-          tip.className = "state-block error";
+          setMainTip(res.error || "加载失败，请稍后重试", "error");
           return;
         }
         const { finance, nextDelivery } = res.data;
@@ -993,29 +1008,24 @@
         receivedToday.textContent = fmtCurrency(received);
         pendingToday.textContent = fmtCurrency(pending);
         if (received <= 0 && pending <= 0) {
-          tip.textContent = "今日暂无收款数据，可先去快速开单。";
-          tip.className = "state-block info";
+          setMainTip("今日暂无收款数据，可先去快速开单。", "info");
         }
         renderNextDelivery(nextDelivery);
 
         if (!navigator.onLine) {
-          tip.textContent = "当前网络不可用，已展示缓存信息";
-          tip.className = "state-block info";
+          setMainTip("当前网络不可用，已展示缓存信息", "info");
           return;
         }
         if (res.fromMock) {
-          tip.textContent = "当前使用模拟数据，后端接口预留中";
-          tip.className = "state-block info";
+          setMainTip("当前使用模拟数据，后端接口预留中", "info");
           return;
         }
         const pendingSync = Number(res.data?.sync?.pendingCount || 0);
         if (pendingSync > 0) {
-          tip.textContent = `有 ${pendingSync} 条离线数据，前往“我的-离线数据”手动提交。`;
-          tip.className = "state-block info";
+          setMainTip(`有 ${pendingSync} 条离线数据，前往“我的-离线数据”手动提交。`, "info");
           return;
         }
-        tip.textContent = "";
-        tip.className = "state-block info";
+        setMainTip("", "info");
       }
 
       quickOrderBtn.addEventListener("click", () => {
@@ -1089,12 +1099,10 @@
       });
 
       window.addEventListener("offline", () => {
-        tip.textContent = "当前网络不可用，已切换离线提示";
-        tip.className = "state-block info";
+        setMainTip("当前网络不可用，已切换离线提示", "info");
       });
       window.addEventListener("online", () => {
-        tip.textContent = "网络已恢复，可下拉刷新";
-        tip.className = "state-block info";
+        setMainTip("网络已恢复，可下拉刷新", "info");
       });
 
       let startY = 0;
@@ -1106,13 +1114,13 @@
       window.addEventListener("touchmove", (e) => {
         if (!canPull) return;
         const delta = (e.touches[0]?.clientY || 0) - startY;
-        if (delta > 60) tip.textContent = "松开即可刷新";
+        if (delta > 60) setMainTip("松开即可刷新", "info");
       });
       window.addEventListener("touchend", async (e) => {
         if (!canPull) return;
         const endY = e.changedTouches[0]?.clientY || 0;
         if (endY - startY > 60) {
-          tip.textContent = "正在刷新...";
+          setMainTip("正在刷新...", "loading");
           await loadData(true);
         }
       });
