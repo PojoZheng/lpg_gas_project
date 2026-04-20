@@ -303,7 +303,6 @@
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
       import { getCustomerDetail, listCustomerOrders, updateCustomer } from "./customer-client.js";
-      import { goBackOr } from "./app-shell.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
@@ -344,8 +343,8 @@
 
       function maskPhone(phone) {
         const text = String(phone || "");
-        if (!/^1\\d{10}$/.test(text)) return text;
-        return text.replace(/(\\d{3})\\d{4}(\\d{4})/, "$1****$2");
+        if (!/^1\d{10}$/.test(text)) return text;
+        return text.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
       }
 
       function formatDateTime(ts) {
@@ -494,7 +493,7 @@
 
       function bindEvents() {
         document.getElementById("backBtn").addEventListener("click", () => {
-          goBackOr("./customer-list.html");
+          window.location.href = "./customer-list.html";
         });
         document.getElementById("callBtn").addEventListener("click", () => {
           if (!currentCustomer?.phone) return;
@@ -563,31 +562,42 @@
       }
 
       async function init() {
-        bindEvents();
-        if (!customerId) {
-          setTip("缺少客户ID，无法加载详情", "error");
-          return;
-        }
-        setTip("正在加载客户信息...", "loading");
-        const [detailRes, ordersRes] = await Promise.all([
-          getCustomerDetail(customerId),
-          listCustomerOrders(customerId, { page: 1, size: 10 }),
-        ]);
+        try {
+          bindEvents();
+          if (!customerId) {
+            setTip("缺少客户ID，无法加载详情", "error");
+            return;
+          }
+          setTip("正在加载客户信息...", "loading");
+          const [detailRes, ordersRes] = await Promise.all([
+            getCustomerDetail(customerId),
+            listCustomerOrders(customerId, { page: 1, size: 10 }),
+          ]);
 
-        if (!detailRes?.success || !detailRes?.data) {
-          setTip(detailRes?.error || "客户详情加载失败", "error");
+          if (!detailRes?.success || !detailRes?.data) {
+            setTip(detailRes?.error || "客户详情加载失败", "error");
+            recentOrderList.innerHTML = '<div class="order-empty">暂无可展示订单</div>';
+            return;
+          }
+
+          currentCustomer = detailRes.data;
+          const orderItems =
+            ordersRes?.success && Array.isArray(ordersRes?.data?.items)
+              ? ordersRes.data.items
+              : ordersRes?.success && Array.isArray(ordersRes?.data?.list)
+                ? ordersRes.data.list
+                : [];
+          currentOrders = orderItems;
+          renderCustomer();
+          renderRecentOrders();
+          if (!ordersRes?.success) {
+            setTip("客户详情已加载，历史订单暂不可用", "info");
+          } else {
+            setTip("客户详情加载完成", "success");
+          }
+        } catch (err) {
+          setTip(`客户详情加载失败：${err?.message || "请稍后重试"}`, "error");
           recentOrderList.innerHTML = '<div class="order-empty">暂无可展示订单</div>';
-          return;
-        }
-
-        currentCustomer = detailRes.data;
-        currentOrders = ordersRes?.success && Array.isArray(ordersRes?.data?.items) ? ordersRes.data.items : [];
-        renderCustomer();
-        renderRecentOrders();
-        if (!ordersRes?.success) {
-          setTip("客户详情已加载，历史订单暂不可用", "info");
-        } else {
-          setTip("客户详情加载完成", "success");
         }
       }
 

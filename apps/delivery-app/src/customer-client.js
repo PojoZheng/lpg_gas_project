@@ -156,7 +156,11 @@ export async function listCustomers({ keyword = "", filter = "all", page = 1, si
   if (apiFilter !== "all") params.set("filter", apiFilter);
 
   const direct = await authFetchJson(`${API_BASE_URL}/customers?${params.toString()}`);
-  const directItems = Array.isArray(direct?.data?.items) ? direct.data.items : null;
+  const directItems = Array.isArray(direct?.data?.items)
+    ? direct.data.items
+    : Array.isArray(direct?.data?.list)
+      ? direct.data.list
+      : null;
   if (direct?.success && directItems) {
     const normalized = directItems.map(normalizeCustomerItem).filter((x) => x.id);
     const pagination = normalizePagination(direct?.data?.pagination, page, size, normalized.length);
@@ -229,6 +233,7 @@ export async function listCustomerOrders(customerId, { page = 1, size = 10 } = {
 function normalizeCustomerDetail(raw) {
   const customer = normalizeCustomerItem(raw);
   const ledger = raw?.ledger || raw?.account || {};
+  const summary = raw?.summary || {};
   const stats = raw?.stats || {};
   return {
     ...customer,
@@ -236,16 +241,24 @@ function normalizeCustomerDetail(raw) {
     ledger: {
       owedEmptyCount: Math.max(
         0,
-        toNumber(ledger?.owedEmptyCount, toNumber(ledger?.owedBottles, customer.owedEmptyCount))
+        toNumber(
+          ledger?.owedEmptyCount,
+          toNumber(ledger?.owedBottles, toNumber(summary?.owedEmptyCount, customer.owedEmptyCount))
+        )
       ),
       owedEmptySpec: trimText(ledger?.owedEmptySpec),
-      owedAmount: Number(toNumber(ledger?.owedAmount, customer.owedAmount).toFixed(2)),
+      owedAmount: Number(
+        toNumber(ledger?.owedAmount, toNumber(summary?.owedAmount, customer.owedAmount)).toFixed(2)
+      ),
       owedSince: toTimestamp(ledger?.owedSince || ledger?.debtSinceAt),
     },
     stats: {
-      totalOrders: Math.max(0, toNumber(stats?.totalOrders, toNumber(customer.stats.totalOrders, 0))),
+      totalOrders: Math.max(
+        0,
+        toNumber(stats?.totalOrders, toNumber(summary?.totalOrders, toNumber(customer.stats.totalOrders, 0)))
+      ),
       totalAmount: Number(toNumber(stats?.totalAmount, toNumber(customer.stats.totalAmount, 0)).toFixed(2)),
-      lastOrderAt: toTimestamp(stats?.lastOrderAt || customer.lastOrderAt),
+      lastOrderAt: toTimestamp(stats?.lastOrderAt || summary?.lastOrderAt || customer.lastOrderAt),
     },
     collectionHistory: Array.isArray(raw?.collectionHistory) ? raw.collectionHistory : [],
   };
