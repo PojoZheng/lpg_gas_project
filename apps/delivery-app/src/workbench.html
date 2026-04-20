@@ -112,7 +112,7 @@
       }
       .hero-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 8px;
         margin-top: 12px;
       }
@@ -450,23 +450,12 @@
         </div>
         <div class="hero-actions">
           <button type="button" class="app-btn" id="incomeDetailBtn">查看收入明细</button>
-          <button
-            type="button"
-            class="app-btn ghost income-toggle-btn"
-            id="incomeToggleBtn"
-            aria-expanded="false"
-            aria-controls="incomeExpandPanel"
-            aria-label="展开或收起毛利说明"
-          >
-            看毛利
-          </button>
         </div>
         <div
           id="incomeExpandPanel"
           class="income-expand-panel"
           role="region"
           aria-label="今日毛利与近 7 日趋势"
-          hidden
         >
           <div class="income-placeholder-block">
             <p class="income-placeholder-title">今日毛利</p>
@@ -633,7 +622,6 @@
       const pendingToday = document.getElementById("pendingToday");
       const totalToday = document.getElementById("totalToday");
       const incomeDetailBtn = document.getElementById("incomeDetailBtn");
-      const incomeToggleBtn = document.getElementById("incomeToggleBtn");
       const incomeExpandPanel = document.getElementById("incomeExpandPanel");
       const nextDeliverySection = document.getElementById("nextDeliverySection");
       const nextCustomer = document.getElementById("nextCustomer");
@@ -875,16 +863,7 @@
       const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
       let voiceRecognizing = false;
 
-      function setIncomeExpanded(open) {
-        incomeToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
-        incomeExpandPanel.hidden = !open;
-        incomeToggleBtn.textContent = open ? "收毛利" : "看毛利";
-      }
-
-      incomeToggleBtn.addEventListener("click", () => {
-        const open = incomeToggleBtn.getAttribute("aria-expanded") === "true";
-        setIncomeExpanded(!open);
-      });
+      incomeExpandPanel.hidden = false;
 
       function renderCustomerTags(container, tags) {
         container.innerHTML = "";
