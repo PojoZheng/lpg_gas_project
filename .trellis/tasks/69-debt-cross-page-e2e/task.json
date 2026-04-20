@@ -1,0 +1,27 @@
+{
+  "id": "69-debt-cross-page-e2e",
+  "title": "债务跨页联动 E2E：清单-详情-催收-还款全链路回归",
+  "status": "completed",
+  "depends_on": [
+    "48-debt-management",
+    "68-auth-expire-direct-login"
+  ],
+  "input_spec": [
+    "product/scenarios/48-debt-management-story.md",
+    "product/interaction/48-debt-management-flow.md",
+    ".trellis/spec/guides/story-testing-guide.md",
+    ".trellis/tasks/48-debt-management/completion.md"
+  ],
+  "acceptance": [
+    "新增债务跨页联动 E2E：覆盖债务列表 -> 客户明细 -> 催收记录 -> 还款入账 -> 列表/统计回写",
+    "E2E 覆盖催收动作（复制话术/拨号/短信）至少一种可自动校验路径",
+    "E2E 覆盖还款后金额、状态、记录条目同步变化，并验证结清客户从待催收列表移除",
+    "E2E 覆盖从我的页进入债务管理入口，并回退到上级页面的主路径",
+    "测试脚本可在本地预览服务（3100/5174）下独立运行并给出明确 pass/fail"
+  ],
+  "output_artifacts": [
+    ".trellis/tests/stories/story_customer_debt_cross_page_e2e.py",
+    ".trellis/tasks/test-commands.json",
+    ".trellis/tasks/69-debt-cross-page-e2e/completion.md"
+  ]
+}
