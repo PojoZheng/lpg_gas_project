@@ -244,6 +244,74 @@
       .action-spacer {
         height: 132px;
       }
+      .sheet-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .sheet-overlay.show {
+        display: flex;
+      }
+      .sheet-scrim {
+        position: absolute;
+        inset: 0;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: rgba(17, 24, 39, 0.36);
+      }
+      .sheet-panel {
+        position: relative;
+        width: 100%;
+        max-width: 460px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        padding: 14px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -10px 28px rgba(17, 24, 39, 0.16);
+        transform: translateY(100%);
+        transition: transform 180ms ease;
+      }
+      .sheet-overlay.show .sheet-panel {
+        transform: translateY(0);
+      }
+      .sheet-handle {
+        width: 40px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--border);
+        margin: 0 auto 10px;
+      }
+      .sheet-title {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .sheet-row {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .sheet-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .sheet-actions {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .sheet-hint {
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-height: 18px;
+      }
     </style>
   </head>
   <body>
@@ -302,6 +370,30 @@
       </div>
       <div class="action-spacer" aria-hidden="true"></div>
     </main>
+    <div class="sheet-overlay" id="actionSheetOverlay" aria-hidden="true">
+      <button class="sheet-scrim" id="actionSheetScrim" aria-label="关闭弹层"></button>
+      <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="actionSheetTitle">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <h3 class="sheet-title" id="actionSheetTitle">库存操作</h3>
+        <div class="sheet-row">
+          <label class="sheet-label" for="actionSpec">规格</label>
+          <select id="actionSpec" class="app-select">
+            <option value="10kg">10kg</option>
+            <option value="15kg">15kg</option>
+            <option value="50kg">50kg</option>
+          </select>
+        </div>
+        <div class="sheet-row">
+          <label class="sheet-label" for="actionQty" id="actionQtyLabel">数量</label>
+          <input id="actionQty" class="app-input" type="number" min="1" step="1" inputmode="numeric" />
+        </div>
+        <div class="sheet-hint" id="actionSheetHint"></div>
+        <div class="sheet-actions">
+          <button type="button" class="app-btn ghost" id="actionSheetCancelBtn">取消</button>
+          <button type="button" class="app-btn primary" id="actionSheetSubmitBtn">确认</button>
+        </div>
+      </section>
+    </div>
 
     <script type="module">
       import { ensureAuthenticatedPage, authFetchJson } from "./auth-client.js";
@@ -316,6 +408,17 @@
       const operationLogs = [];
       const inventoryAlertBySpec = new Map();
       const tip = document.getElementById("tip");
+      const actionSheetOverlay = document.getElementById("actionSheetOverlay");
+      const actionSheetScrim = document.getElementById("actionSheetScrim");
+      const actionSheetTitle = document.getElementById("actionSheetTitle");
+      const actionSpec = document.getElementById("actionSpec");
+      const actionQty = document.getElementById("actionQty");
+      const actionQtyLabel = document.getElementById("actionQtyLabel");
+      const actionSheetHint = document.getElementById("actionSheetHint");
+      const actionSheetCancelBtn = document.getElementById("actionSheetCancelBtn");
+      const actionSheetSubmitBtn = document.getElementById("actionSheetSubmitBtn");
+      let actionMode = "";
+      let actionSubmitting = false;
 
       function setTip(text = "", type = "info") {
         const msg = String(text || "").trim();
@@ -365,6 +468,37 @@
       function parsePositiveInt(input) {
         const n = Number(String(input || "").trim());
         return Number.isInteger(n) && n > 0 ? n : 0;
+      }
+
+      function openActionSheet(mode, defaults = {}) {
+        actionMode = mode;
+        if (mode === "purchase") {
+          actionSheetTitle.textContent = "采购入库";
+          actionQtyLabel.textContent = "采购数量";
+          actionSheetHint.textContent = "确认采购入库后会直接增加在库数量。";
+        } else if (mode === "refill") {
+          actionSheetTitle.textContent = "气瓶充装";
+          actionQtyLabel.textContent = "充装数量";
+          actionSheetHint.textContent = "充装完成后会直接增加在库数量。";
+        } else {
+          actionSheetTitle.textContent = "库存盘点";
+          actionQtyLabel.textContent = "盘点后在库数量";
+          actionSheetHint.textContent = "盘点会直接把在库数量更新为录入值。";
+        }
+        actionSpec.value = defaults.spec || "15kg";
+        actionQty.value = String(defaults.qty || (mode === "stocktake" ? 10 : 5));
+        actionSubmitting = false;
+        actionSheetSubmitBtn.disabled = false;
+        actionSheetOverlay.classList.add("show");
+        actionSheetOverlay.setAttribute("aria-hidden", "false");
+        setTimeout(() => actionQty.focus(), 80);
+      }
+
+      function closeActionSheet() {
+        if (actionSubmitting) return;
+        actionSheetOverlay.classList.remove("show");
+        actionSheetOverlay.setAttribute("aria-hidden", "true");
+        actionMode = "";
       }
 
       async function fetchInventorySnapshot() {
@@ -531,70 +665,68 @@
         );
       });
 
-      document.getElementById("purchaseBtn").addEventListener("click", async () => {
-        const spec = normalizeSpec(window.prompt("采购规格（10kg/15kg/50kg）", "15kg"));
-        if (!spec) {
-          setTip("规格不合法", "error");
-          return;
-        }
-        const qty = parsePositiveInt(window.prompt("采购数量（正整数）", "5"));
-        if (!qty) {
-          setTip("数量不合法", "error");
-          return;
-        }
-        setTip("正在提交采购入库...", "loading");
-        const result = await submitInventoryAction("/inventory/purchase", { spec, quantity: qty });
-        if (!result?.success) {
-          setTip(result?.error || "采购入库失败", "error");
-          return;
-        }
-        await reloadAll();
-        setTip(`已入库：${spec} × ${qty}`, "success");
+      document.getElementById("purchaseBtn").addEventListener("click", () => {
+        openActionSheet("purchase", { spec: "15kg", qty: 5 });
       });
 
-      document.getElementById("refillBtn").addEventListener("click", async () => {
-        const spec = normalizeSpec(window.prompt("充装规格（10kg/15kg/50kg）", "15kg"));
-        if (!spec) {
-          setTip("规格不合法", "error");
-          return;
-        }
-        const qty = parsePositiveInt(window.prompt("充装数量（正整数）", "3"));
-        if (!qty) {
-          setTip("数量不合法", "error");
-          return;
-        }
-        setTip("正在提交气瓶充装...", "loading");
-        const result = await submitInventoryAction("/inventory/refill", { spec, quantity: qty });
-        if (!result?.success) {
-          setTip(result?.error || "气瓶充装失败", "error");
-          return;
-        }
-        await reloadAll();
-        setTip(`已充装：${spec} × ${qty}`, "success");
+      document.getElementById("refillBtn").addEventListener("click", () => {
+        openActionSheet("refill", { spec: "15kg", qty: 3 });
       });
 
-      document.getElementById("checkBtn").addEventListener("click", async () => {
-        const spec = normalizeSpec(window.prompt("盘点规格（10kg/15kg/50kg）", "15kg"));
+      document.getElementById("checkBtn").addEventListener("click", () => {
+        openActionSheet("stocktake", { spec: "15kg", qty: 10 });
+      });
+
+      actionSheetScrim.addEventListener("click", closeActionSheet);
+      actionSheetCancelBtn.addEventListener("click", closeActionSheet);
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeActionSheet();
+      });
+      actionSheetSubmitBtn.addEventListener("click", async () => {
+        if (!actionMode || actionSubmitting) return;
+        const spec = normalizeSpec(actionSpec.value);
         if (!spec) {
           setTip("规格不合法", "error");
           return;
         }
-        const count = parsePositiveInt(window.prompt("盘点后在库数量（正整数）", "10"));
-        if (!count) {
-          setTip("盘点数量不合法", "error");
+        const qty = parsePositiveInt(actionQty.value);
+        if (!qty) {
+          setTip("数量必须为正整数", "error");
           return;
         }
-        setTip("正在提交库存盘点...", "loading");
-        const result = await submitInventoryAction("/inventory/stocktake", {
-          spec,
-          countedOnHand: count,
-        });
+        let route = "";
+        let payload = {};
+        let loadingText = "";
+        let successText = "";
+        if (actionMode === "purchase") {
+          route = "/inventory/purchase";
+          payload = { spec, quantity: qty };
+          loadingText = "正在提交采购入库...";
+          successText = `已入库：${spec} × ${qty}`;
+        } else if (actionMode === "refill") {
+          route = "/inventory/refill";
+          payload = { spec, quantity: qty };
+          loadingText = "正在提交气瓶充装...";
+          successText = `已充装：${spec} × ${qty}`;
+        } else {
+          route = "/inventory/stocktake";
+          payload = { spec, countedOnHand: qty };
+          loadingText = "正在提交库存盘点...";
+          successText = `盘点完成：${spec} 在库 ${qty}`;
+        }
+        actionSubmitting = true;
+        actionSheetSubmitBtn.disabled = true;
+        setTip(loadingText, "loading");
+        const result = await submitInventoryAction(route, payload);
+        actionSubmitting = false;
+        actionSheetSubmitBtn.disabled = false;
         if (!result?.success) {
-          setTip(result?.error || "库存盘点失败", "error");
+          setTip(result?.error || "库存操作失败", "error");
           return;
         }
+        closeActionSheet();
         await reloadAll();
-        setTip(`盘点完成：${spec} 在库 ${count}`, "success");
+        setTip(successText, "success");
       });
 
       // 初始化
