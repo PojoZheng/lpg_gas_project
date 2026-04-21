@@ -13,22 +13,32 @@
       .logout-btn { width: 100%; }
       .account-head {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+        align-items: center;
         gap: 12px;
-        flex-wrap: wrap;
       }
-      .account-label { font-size: 13px; color: var(--text-secondary); }
+      .account-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-title);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .account-main { min-width: 0; }
       .account-name {
-        margin-top: 4px;
+        margin-top: 0;
         font-size: 22px;
         line-height: 1.2;
         font-weight: 700;
         font-family: var(--font-title);
       }
       .account-sub { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
-      .account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-      .account-actions .app-btn { min-height: 44px; }
       .entry-btn {
         width: 100%;
         min-height: 68px;
@@ -60,12 +70,11 @@
     <main class="app-page page">
       <section class="app-card account-card">
         <div class="account-head">
-          <div>
-            <div class="account-label">账号与登录</div>
+          <div class="account-avatar" id="accountAvatar" aria-hidden="true">配</div>
+          <div class="account-main">
             <div class="account-name" id="accountName">当前账号</div>
             <div class="account-sub" id="accountSub" hidden></div>
           </div>
-          <div class="account-actions"></div>
         </div>
       </section>
 
@@ -145,6 +154,7 @@
       }
 
       const accountName = document.getElementById("accountName");
+      const accountAvatar = document.getElementById("accountAvatar");
       const accountSub = document.getElementById("accountSub");
       const doLogout = async () => {
         await logoutCurrentSession();
@@ -155,8 +165,9 @@
         if (node) node.addEventListener("click", handler);
       };
       const session = getCurrentSession() || {};
-      const accountLabel = session.nickname || session.name || session.phone || "当前已登录";
+      const accountLabel = String(session.nickname || session.name || session.phone || "配送员").trim();
       accountName.textContent = accountLabel;
+      accountAvatar.textContent = accountLabel.slice(0, 1) || "配";
       if (session.phone) {
         accountSub.hidden = false;
         accountSub.textContent = session.phone;
