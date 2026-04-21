@@ -474,6 +474,15 @@ function returnEmptyInventoryToOnHand(spec, quantity, orderId, type = "empty_ret
   return getInventoryState(spec);
 }
 
+function validateOrderEmptyCounts(quantity, recycledEmptyCount, owedEmptyCount) {
+  const orderQuantity = Number(quantity || 0);
+  const recycled = Number(recycledEmptyCount || 0);
+  const owed = Number(owedEmptyCount || 0);
+  if (orderQuantity > 0 && recycled + owed > orderQuantity) {
+    throw new Error(`回收空瓶与欠瓶合计不能超过配送数量（${orderQuantity} 瓶）`);
+  }
+}
+
 function appendOrderModifyLog(order, changes) {
   if (!changes || !Object.keys(changes).length) return;
   if (!Array.isArray(order.modifyLogs)) order.modifyLogs = [];
@@ -493,8 +502,10 @@ function processOrderReturn(orderId, payload) {
   if (hoursSinceComplete > 24) throw new Error("订单完成超过24小时，无法退货");
 
   const { reason, reasonDetail, bottleReturned, bottleBarcode, refundAmount, refundMethod, note } = payload;
+  const quantity = normalizePositiveInt(payload?.quantity ?? order.quantity, "退货数量", 2000);
   if (!reason) throw new Error("请选择退货原因");
   if (!bottleReturned) throw new Error("请确认已收回气瓶");
+  if (quantity !== Number(order.quantity || 0)) throw new Error("当前仅支持整单退货，请按原单数量退回");
   if (!Number.isFinite(refundAmount) || refundAmount < 0) throw new Error("退款金额不合法");
   if (!["cash", "original", "wechat", "alipay"].includes(refundMethod)) throw new Error("退款方式不合法");
 
@@ -505,7 +516,7 @@ function processOrderReturn(orderId, payload) {
     customerId: order.customerId,
     customerName: order.customerName,
     spec: order.spec,
-    quantity: order.quantity,
+    quantity,
     reason: reason || "",
     reasonDetail: reasonDetail || "",
     bottleReturned: Boolean(bottleReturned),
@@ -523,8 +534,8 @@ function processOrderReturn(orderId, payload) {
   order.returnedAt = Date.now();
   order.returnRecordId = recordId;
 
-  returnInventoryToOnHand(order.spec, order.quantity, orderId);
-  pushInventoryLog("order_return", order.spec, order.quantity, 0, orderId);
+  returnInventoryToOnHand(order.spec, quantity, orderId);
+  pushInventoryLog("order_return", order.spec, quantity, 0, orderId);
 
   const originalReceived = Number(order.receivedAmount || 0);
   if (originalReceived > 0) {
@@ -556,7 +567,7 @@ function processOrderReturn(orderId, payload) {
       },
       inventoryChange: {
         spec: order.spec,
-        delta: order.quantity,
+        delta: quantity,
       },
     },
   };
@@ -574,13 +585,17 @@ function processOrderExchange(orderId, payload) {
   if (minutesSinceComplete > 5) throw new Error("订单完成超过5分钟，无法快捷换货");
 
   const { reason, bottleReturned, newQuantity, priceDiff, diffHandling, note } = payload;
+  const newSpec = normalizeInventorySpec(payload?.newSpec || order.spec);
+  const newUnitPriceRaw = Number(payload?.newUnitPrice ?? order.unitPrice ?? 0);
   if (!reason) throw new Error("请选择换货原因");
   if (!bottleReturned) throw new Error("请确认已收回气瓶");
   if (!Number.isInteger(newQuantity) || newQuantity < 1) throw new Error("新单数量必须为正整数");
   if (!Number.isFinite(priceDiff)) throw new Error("差价金额不合法");
+  if (!Number.isFinite(newUnitPriceRaw) || newUnitPriceRaw < 0) throw new Error("新单价不合法");
   if (!["no_diff", "customer_pays", "refund_customer"].includes(diffHandling)) {
     throw new Error("差价处理方式不合法");
   }
+  const newUnitPrice = Number(newUnitPriceRaw.toFixed(2));
 
   const exchangeId = `EXC-${Date.now()}`;
   const now = Date.now();
@@ -592,6 +607,7 @@ function processOrderExchange(orderId, payload) {
     customerName: order.customerName,
     originalSpec: order.spec,
     originalQuantity: order.quantity,
+    newSpec,
     newQuantity,
     reason: reason || "",
     bottleReturned: Boolean(bottleReturned),
@@ -610,8 +626,7 @@ function processOrderExchange(orderId, payload) {
   moveToPendingInspection(order.spec, order.quantity, orderId);
 
   const newOrderId = `ORD-${now + 1}`;
-  const unitPrice = Number(order.unitPrice || 0);
-  const newAmount = Number((unitPrice * newQuantity).toFixed(2));
+  const newAmount = Number((newUnitPrice * newQuantity).toFixed(2));
   
   let actualReceivedAmount = 0;
   let paymentMethod = "";
@@ -628,9 +643,9 @@ function processOrderExchange(orderId, payload) {
     customerName: order.customerName,
     orderType: "immediate_complete",
     orderStatus: "completed",
-    spec: order.spec,
+    spec: newSpec,
     quantity: newQuantity,
-    unitPrice: unitPrice,
+    unitPrice: newUnitPrice,
     amount: newAmount,
     paymentStatus: actualReceivedAmount >= newAmount ? "paid" : (actualReceivedAmount > 0 ? "partial_paid" : "unpaid"),
     paymentMethod: paymentMethod,
@@ -652,7 +667,7 @@ function processOrderExchange(orderId, payload) {
     exchangeId: exchangeId,
   };
 
-  const inventoryResult = directConsumeInventory(order.spec, newQuantity, newOrderId);
+  const inventoryResult = directConsumeInventory(newSpec, newQuantity, newOrderId);
   if (!inventoryResult.success) {
     throw new Error(inventoryResult.error || "库存不足");
   }
@@ -687,6 +702,7 @@ function processOrderExchange(orderId, payload) {
       },
       newOrder: {
         orderId: newOrder.orderId,
+        spec: newOrder.spec,
         quantity: newOrder.quantity,
         amount: newOrder.amount,
         receivedAmount: newOrder.receivedAmount,
@@ -697,8 +713,9 @@ function processOrderExchange(orderId, payload) {
         diffHandling: exchangeRecord.diffHandling,
       },
       inventoryChange: {
-        spec: order.spec,
+        originalSpec: order.spec,
         originalToInspection: order.quantity,
+        newSpec,
         newConsumed: newQuantity,
       },
     },
@@ -2329,9 +2346,10 @@ function completeDeliveryOrder(order, payload) {
     err.code = "VALIDATION_400";
     throw err;
   }
-  const orderQuantity = Number(order.quantity || 0);
-  if (orderQuantity > 0 && recycledEmptyCount + owedEmptyCount > orderQuantity) {
-    const err = new Error(`回收空瓶与欠瓶合计不能超过配送数量（${orderQuantity} 瓶）`);
+  try {
+    validateOrderEmptyCounts(order.quantity, recycledEmptyCount, owedEmptyCount);
+  } catch (validationErr) {
+    const err = new Error(validationErr.message);
     err.code = "VALIDATION_400";
     throw err;
   }
@@ -2438,6 +2456,7 @@ function basicUpdateOrder(order, payload) {
   if (hasQuantity) {
     const nextQuantity = Number(payload.quantity);
     if (!Number.isInteger(nextQuantity) || nextQuantity <= 0) throw new Error("数量必须为正整数");
+    validateOrderEmptyCounts(nextQuantity, order.recycledEmptyCount, order.owedEmptyCount);
     const delta = nextQuantity - Number(order.quantity || 0);
     if (order.orderStatus === "pending_delivery") {
       if (delta > 0) {

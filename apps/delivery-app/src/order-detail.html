@@ -165,8 +165,9 @@
         </div>
 
         <div class="form-field">
-          <label class="form-label">退瓶数量 *</label>
-          <input type="number" class="form-input" id="returnQuantity" min="1" value="1" />
+          <label class="form-label">退货数量</label>
+          <input type="number" class="form-input" id="returnQuantity" min="1" value="1" readonly />
+          <div class="form-hint">当前仅支持整单退货</div>
         </div>
 
         <div class="form-field">
@@ -392,7 +393,7 @@
           if (canReturn(orderData)) {
             document.getElementById("returnBtn").style.display = "block";
             document.getElementById("refundAmount").value = orderData.receivedAmount || orderData.amount || 0;
-            document.getElementById("returnQuantity").max = orderData.quantity || 1;
+            document.getElementById("returnQuantity").value = orderData.quantity || 1;
           }
           if (canExchange(orderData)) {
             document.getElementById("exchangeBtn").style.display = "block";
@@ -499,6 +500,7 @@
         try {
           const result = await submitOrderReturn(orderId, {
             reason,
+            quantity,
             reasonDetail: "",
             bottleReturned,
             bottleBarcode: "",
@@ -550,7 +552,7 @@
         }
 
         // 检查新规格重瓶库存
-        const availableStock = checkHeavyInventory(newSpec);
+        const availableStock = await checkHeavyInventory(newSpec);
         if (availableStock < newQuantity) {
           showToast(`${newSpec}重瓶库存不足，当前可用 ${availableStock} 瓶`);
           return;
