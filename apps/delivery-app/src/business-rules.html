@@ -15,6 +15,14 @@
       .unit { font-size: 12px; color: var(--text-secondary); }
       .checks { display: flex; gap: 12px; flex-wrap: wrap; }
       .checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+      .group-block { border-top: 1px solid var(--border); padding-top: 10px; }
+      .group-block:first-child { border-top: none; padding-top: 0; }
+      .group-title {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: var(--font-title);
+      }
       .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .tip { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
       .tip.err { color: #b42318; }
@@ -31,78 +39,85 @@
       </header>
 
       <section class="app-card section">
-        <h2 class="app-card-title">开单默认单价</h2>
+        <h2 class="app-card-title">开单与价格</h2>
         <div class="grid">
-          <div class="row"><label>15kg单价</label><input id="orderPrice15" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
-          <div class="row"><label>10kg单价</label><input id="orderPrice10" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
-          <div class="row"><label>50kg单价</label><input id="orderPrice50" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
-        </div>
-      </section>
-
-      <section class="app-card section">
-        <h2 class="app-card-title">押金与租金</h2>
-        <div class="grid">
-          <div class="row"><label>15kg押金</label><input id="deposit15" type="number" min="0" /><span class="unit">元/瓶</span></div>
-          <div class="row"><label>10kg押金</label><input id="deposit10" type="number" min="0" /><span class="unit">元/瓶</span></div>
-          <div class="row"><label>50kg押金</label><input id="deposit50" type="number" min="0" /><span class="unit">元/瓶</span></div>
-          <div class="row"><label>月租金</label><input id="rentMonthly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/月</span></div>
-          <div class="row"><label>年租金</label><input id="rentYearly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/年</span></div>
-        </div>
-      </section>
-
-      <section class="app-card section">
-        <h2 class="app-card-title">残液处理</h2>
-        <div class="grid">
-          <div class="switch-row"><label for="residualEnabled">启用残液记录</label><input id="residualEnabled" type="checkbox" /></div>
-          <div class="row"><label>残液单价</label><input id="residualPrice" type="number" min="0" step="0.01" /><span class="unit">元/kg</span></div>
-          <div class="row">
-            <label>默认方式</label>
-            <select id="residualMode">
-              <option value="deduct">抵扣气款</option>
-              <option value="separate">单独收入</option>
-              <option value="ignore">忽略</option>
-            </select>
-            <span></span>
-          </div>
-        </div>
-      </section>
-
-      <section class="app-card section">
-        <h2 class="app-card-title">欠瓶管理</h2>
-        <div class="grid">
-          <div class="switch-row"><label for="owedEnabled">启用欠瓶跟踪</label><input id="owedEnabled" type="checkbox" /></div>
-          <div>
-            <div class="unit" style="margin-bottom:6px">提醒天数</div>
-            <div class="checks" id="owedDaysWrap">
-              <label><input type="checkbox" value="7" />7天</label>
-              <label><input type="checkbox" value="15" />15天</label>
-              <label><input type="checkbox" value="30" />30天</label>
+          <div class="group-block">
+            <h3 class="group-title">开单默认单价</h3>
+            <div class="grid">
+              <div class="row"><label>15kg单价</label><input id="orderPrice15" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
+              <div class="row"><label>10kg单价</label><input id="orderPrice10" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
+              <div class="row"><label>50kg单价</label><input id="orderPrice50" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
             </div>
           </div>
-          <div class="row"><label>最长欠瓶</label><input id="owedMaxDays" type="number" min="7" /><span class="unit">天</span></div>
-          <div class="row">
-            <label>超期处理</label>
-            <select id="owedAction">
-              <option value="convert">转为收入</option>
-              <option value="continue">继续欠着</option>
-            </select>
-            <span></span>
+          <div class="group-block">
+            <h3 class="group-title">押金与租金</h3>
+            <div class="grid">
+              <div class="row"><label>15kg押金</label><input id="deposit15" type="number" min="0" /><span class="unit">元/瓶</span></div>
+              <div class="row"><label>10kg押金</label><input id="deposit10" type="number" min="0" /><span class="unit">元/瓶</span></div>
+              <div class="row"><label>50kg押金</label><input id="deposit50" type="number" min="0" /><span class="unit">元/瓶</span></div>
+              <div class="row"><label>月租金</label><input id="rentMonthly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/月</span></div>
+              <div class="row"><label>年租金</label><input id="rentYearly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/年</span></div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">残液处理</h3>
+            <div class="grid">
+              <div class="switch-row"><label for="residualEnabled">启用残液记录</label><input id="residualEnabled" type="checkbox" /></div>
+              <div class="row"><label>残液单价</label><input id="residualPrice" type="number" min="0" step="0.01" /><span class="unit">元/kg</span></div>
+              <div class="row">
+                <label>默认方式</label>
+                <select id="residualMode">
+                  <option value="deduct">抵扣气款</option>
+                  <option value="separate">单独收入</option>
+                  <option value="ignore">忽略</option>
+                </select>
+                <span></span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="app-card section">
-        <h2 class="app-card-title">欠款管理</h2>
+        <h2 class="app-card-title">欠瓶与欠款</h2>
         <div class="grid">
-          <div class="switch-row"><label for="debtEnabled">启用欠款管理</label><input id="debtEnabled" type="checkbox" /></div>
-          <div class="row"><label>最大额度</label><input id="debtMaxAmount" type="number" min="0" /><span class="unit">元/客户</span></div>
-          <div class="row"><label>最长欠款</label><input id="debtMaxDays" type="number" min="7" /><span class="unit">天</span></div>
-          <div>
-            <div class="unit" style="margin-bottom:6px">提醒天数</div>
-            <div class="checks" id="debtDaysWrap">
-              <label><input type="checkbox" value="7" />7天</label>
-              <label><input type="checkbox" value="15" />15天</label>
-              <label><input type="checkbox" value="25" />25天</label>
+          <div class="group-block">
+            <h3 class="group-title">欠瓶管理</h3>
+            <div class="grid">
+              <div class="switch-row"><label for="owedEnabled">启用欠瓶跟踪</label><input id="owedEnabled" type="checkbox" /></div>
+              <div>
+                <div class="unit" style="margin-bottom:6px">提醒天数</div>
+                <div class="checks" id="owedDaysWrap">
+                  <label><input type="checkbox" value="7" />7天</label>
+                  <label><input type="checkbox" value="15" />15天</label>
+                  <label><input type="checkbox" value="30" />30天</label>
+                </div>
+              </div>
+              <div class="row"><label>最长欠瓶</label><input id="owedMaxDays" type="number" min="7" /><span class="unit">天</span></div>
+              <div class="row">
+                <label>超期处理</label>
+                <select id="owedAction">
+                  <option value="convert">转为收入</option>
+                  <option value="continue">继续欠着</option>
+                </select>
+                <span></span>
+              </div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">欠款管理</h3>
+            <div class="grid">
+              <div class="switch-row"><label for="debtEnabled">启用欠款管理</label><input id="debtEnabled" type="checkbox" /></div>
+              <div class="row"><label>最大额度</label><input id="debtMaxAmount" type="number" min="0" /><span class="unit">元/客户</span></div>
+              <div class="row"><label>最长欠款</label><input id="debtMaxDays" type="number" min="7" /><span class="unit">天</span></div>
+              <div>
+                <div class="unit" style="margin-bottom:6px">提醒天数</div>
+                <div class="checks" id="debtDaysWrap">
+                  <label><input type="checkbox" value="7" />7天</label>
+                  <label><input type="checkbox" value="15" />15天</label>
+                  <label><input type="checkbox" value="25" />25天</label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
