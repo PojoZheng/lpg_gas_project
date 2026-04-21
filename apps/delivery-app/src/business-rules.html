@@ -42,6 +42,22 @@
       .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .tip { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
       .tip.err { color: #b42318; }
+      .entry-list { display: grid; gap: 10px; }
+      .entry-btn {
+        width: 100%;
+        min-height: 60px;
+        border: 1px solid #d6e8ea;
+        border-radius: var(--radius-button);
+        background: #fff;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .entry-arrow { color: var(--text-secondary); }
       .switch-row { display: flex; justify-content: space-between; align-items: center; }
       .switch-row label { font-size: 14px; }
       .app-switch {
@@ -88,11 +104,26 @@
     <main class="app-page page">
       <header class="app-header">
         <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
-        <h1 class="app-title">业务规则</h1>
+        <h1 class="app-title" id="pageTitle">业务规则</h1>
         <div style="width:38px"></div>
       </header>
 
-      <section class="app-card section">
+      <section class="app-card section" id="rulesEntryCard">
+        <div class="entry-list">
+          <button class="entry-btn" type="button" data-section="pricing">
+            <span>开单与价格</span><span class="entry-arrow">›</span>
+          </button>
+          <button class="entry-btn" type="button" data-section="debt">
+            <span>欠瓶与欠款</span><span class="entry-arrow">›</span>
+          </button>
+          <button class="entry-btn" type="button" data-section="inventory">
+            <span>库存预警与推送</span><span class="entry-arrow">›</span>
+          </button>
+        </div>
+      </section>
+
+      <div id="rulesDetailWrap" hidden>
+      <section class="app-card section" data-rule-section="pricing">
         <h2 class="app-card-title">开单与价格</h2>
         <div class="grid">
           <div class="group-block">
@@ -138,7 +169,7 @@
         </div>
       </section>
 
-      <section class="app-card section">
+      <section class="app-card section" data-rule-section="debt">
         <h2 class="app-card-title">欠瓶与欠款</h2>
         <div class="grid">
           <div class="group-block">
@@ -195,7 +226,7 @@
         </div>
       </section>
 
-      <section class="app-card section">
+      <section class="app-card section" data-rule-section="inventory">
         <h2 class="app-card-title">库存预警</h2>
         <div class="grid">
           <div class="group-block">
@@ -248,6 +279,7 @@
         </div>
         <div class="tip" id="tip"></div>
       </section>
+      </div>
     </main>
 
     <script type="module">
@@ -258,7 +290,18 @@
       if (!ensureAuthenticatedPage()) throw new Error("未登录");
 
       const $ = (id) => document.getElementById(id);
+      const pageTitle = $("pageTitle");
+      const rulesEntryCard = $("rulesEntryCard");
+      const rulesDetailWrap = $("rulesDetailWrap");
       const tip = $("tip");
+      const qs = new URLSearchParams(window.location.search);
+      const sectionParam = String(qs.get("section") || "").trim();
+      const sectionTitleMap = {
+        pricing: "开单与价格",
+        debt: "欠瓶与欠款",
+        inventory: "库存预警与推送",
+      };
+      let activeSection = "";
 
       function setTip(text, isError = false) {
         tip.textContent = text || "";
@@ -403,7 +446,32 @@
         setTip("");
       }
 
-      $("backBtn").addEventListener("click", () => goBackOr("./my.html"));
+      function setSectionMode(section) {
+        const normalized = Object.prototype.hasOwnProperty.call(sectionTitleMap, section) ? section : "";
+        activeSection = normalized;
+        const isEntry = !normalized;
+        rulesEntryCard.hidden = !isEntry;
+        rulesDetailWrap.hidden = isEntry;
+        pageTitle.textContent = isEntry ? "业务规则" : sectionTitleMap[normalized];
+        document.querySelectorAll("[data-rule-section]").forEach((node) => {
+          node.hidden = normalized ? node.getAttribute("data-rule-section") !== normalized : true;
+        });
+      }
+
+      $("backBtn").addEventListener("click", () => {
+        if (activeSection) {
+          window.location.href = "./business-rules.html";
+          return;
+        }
+        goBackOr("./my.html");
+      });
+      document.querySelectorAll("[data-section]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const section = String(btn.getAttribute("data-section") || "").trim();
+          if (!section) return;
+          window.location.href = `./business-rules.html?section=${encodeURIComponent(section)}`;
+        });
+      });
       bindTagToggle("owedDaysWrap");
       bindTagToggle("debtDaysWrap");
       bindTagToggle("noticeTypeWrap");
@@ -422,6 +490,7 @@
         setTip("已恢复默认");
       });
 
+      setSectionMode(sectionParam);
       void load();
     </script>
   </body>
