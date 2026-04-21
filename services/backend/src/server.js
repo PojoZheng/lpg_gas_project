@@ -45,6 +45,11 @@ const policyVersions = [
 ];
 const policyAuditLogs = [];
 const DEFAULT_BUSINESS_RULES = {
+  orderPricing: {
+    kg15: 120,
+    kg10: 100,
+    kg50: 300,
+  },
   deposit: {
     kg15: 150,
     kg10: 100,
@@ -103,6 +108,9 @@ function normalizeRuleDays(v, fallback) {
 function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
   const src = payload || {};
   const out = deepClone(base);
+  if (!out.orderPricing || typeof out.orderPricing !== "object") {
+    out.orderPricing = deepClone(DEFAULT_BUSINESS_RULES.orderPricing);
+  }
   const toNum = (value, fallback, min, max) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
@@ -113,6 +121,10 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
     if (!Number.isInteger(n)) return fallback;
     return Math.min(max, Math.max(min, n));
   };
+
+  out.orderPricing.kg15 = toNum(src.orderPricing?.kg15, out.orderPricing.kg15, 0, 2000);
+  out.orderPricing.kg10 = toNum(src.orderPricing?.kg10, out.orderPricing.kg10, 0, 2000);
+  out.orderPricing.kg50 = toNum(src.orderPricing?.kg50, out.orderPricing.kg50, 0, 5000);
 
   out.deposit.kg15 = toNum(src.deposit?.kg15, out.deposit.kg15, 0, 1000);
   out.deposit.kg10 = toNum(src.deposit?.kg10, out.deposit.kg10, 0, 1000);
