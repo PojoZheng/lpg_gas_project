@@ -2629,13 +2629,24 @@ function createDailyClose(payload) {
   return record;
 }
 
+function buildVirtualCustomerPhone() {
+  const existing = new Set(mockCustomers.map((x) => String(x.phone || "").trim()).filter(Boolean));
+  for (let i = 0; i < 30; i += 1) {
+    const seed = String(Date.now() + i).slice(-8);
+    const candidate = `199${seed}`;
+    if (!existing.has(candidate)) return candidate;
+  }
+  return `199${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
+}
+
 function createCustomer(payload) {
   const name = String(payload.name || "").trim();
-  const phone = String(payload.phone || "").trim();
-  const address = String(payload.address || "").trim();
+  const rawPhone = String(payload.phone || "").trim();
+  const rawAddress = String(payload.address || "").trim();
   if (!name) throw new Error("客户姓名不能为空");
+  const phone = rawPhone || buildVirtualCustomerPhone();
+  const address = rawAddress || "待补充地址";
   if (!/^1\d{10}$/.test(phone)) throw new Error("手机号格式不正确");
-  if (!address) throw new Error("地址不能为空");
   if (mockCustomers.some((x) => x.phone === phone)) {
     throw new Error("该手机号已存在客户");
   }

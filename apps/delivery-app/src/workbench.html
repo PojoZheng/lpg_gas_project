@@ -362,19 +362,6 @@
         font-size: 13px;
         margin-top: 2px;
       }
-      .qo-links {
-        display: grid;
-        gap: 8px;
-        margin: 10px 0;
-      }
-      .qo-link {
-        font-size: 13px;
-        color: var(--brand);
-        text-decoration: none;
-      }
-      .qo-link:hover {
-        text-decoration: underline;
-      }
       .qo-row {
         display: flex;
         gap: 8px;
@@ -474,6 +461,12 @@
         padding: 10px;
         color: var(--text-secondary);
         font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .qo-suggest-wrap {
+        margin-bottom: 8px;
+      }
+      .qo-selected {
         margin-bottom: 8px;
       }
       .qo-tip {
@@ -588,12 +581,13 @@
               placeholder="搜索客户姓名、手机号或地址"
               autocomplete="off"
             />
-            <div id="qoCustomerList"></div>
-            <div class="qo-links">
-              <a class="qo-link" id="qoNewCustomerLink" href="./quick-order.html?from=workbench&amp;intent=newCustomer"
-                >添加新客户（跳转完整表单）</a>
-              <a class="qo-link" id="qoFullPageLink" href="./quick-order.html?from=workbench">更多字段与连续开单</a>
+            <div class="qo-suggest-wrap" id="qoSuggestWrap" hidden>
+              <div id="qoCustomerSuggest"></div>
             </div>
+            <div class="state-block info qo-selected" id="qoSelectedSummary" hidden></div>
+            <button type="button" class="app-btn ghost" id="qoCreateCustomerBtn" style="width: 100%; margin-top: 4px" hidden>
+              创建新客户
+            </button>
             <button type="button" class="app-btn primary" id="qoNextBtn" style="width: 100%; margin-top: 4px">下一步</button>
           </div>
           <div id="qoStepConfirm" hidden>
@@ -667,6 +661,7 @@
       import {
         fetchQuickCustomers,
         filterQuickCustomers,
+        createQuickCustomer,
         checkInventory,
         quickCreateOrder,
       } from "./quick-order-client.js";
@@ -708,7 +703,10 @@
       const qoStepPick = document.getElementById("qoStepPick");
       const qoStepConfirm = document.getElementById("qoStepConfirm");
       const qoSearch = document.getElementById("qoSearch");
-      const qoCustomerList = document.getElementById("qoCustomerList");
+      const qoSuggestWrap = document.getElementById("qoSuggestWrap");
+      const qoCustomerSuggest = document.getElementById("qoCustomerSuggest");
+      const qoSelectedSummary = document.getElementById("qoSelectedSummary");
+      const qoCreateCustomerBtn = document.getElementById("qoCreateCustomerBtn");
       const qoNextBtn = document.getElementById("qoNextBtn");
       const qoBackPickBtn = document.getElementById("qoBackPickBtn");
       const qoSubmitBtn = document.getElementById("qoSubmitBtn");
@@ -731,6 +729,7 @@
       let qoQuantity = 1;
       let qoOrderType = "later_delivery";
       let qoSubmitting = false;
+      let qoCreatingCustomer = false;
       let qoTouchStartY = 0;
 
       function setMainTip(text = "", level = "info") {
@@ -794,31 +793,49 @@
         qoTip.className = isError ? "state-block error qo-tip" : "state-block info qo-tip";
       }
 
-      function qoRenderList(list) {
-        qoCustomerList.innerHTML = "";
-        if (!list.length) {
-          qoCustomerList.innerHTML = '<div class="qo-empty">暂无匹配客户，请调整关键词或前往完整开单页添加。</div>';
-          qoSelectedId = "";
+      function qoSetSelectedCustomer(item) {
+        qoSelectedId = item?.id || "";
+        if (!qoSelectedId) {
+          qoSelectedSummary.hidden = true;
+          qoSelectedSummary.textContent = "";
           return;
         }
-        list.forEach((item) => {
+        const phoneText = item?.phone ? `｜${item.phone}` : "";
+        const addressText = item?.address ? `｜${item.address}` : "";
+        qoSelectedSummary.hidden = false;
+        qoSelectedSummary.textContent = `已选择：${item?.name || "-"}${phoneText}${addressText}`;
+      }
+
+      function qoRenderSuggest(list, keyword) {
+        const key = String(keyword || "").trim();
+        qoCustomerSuggest.innerHTML = "";
+        if (!key) {
+          qoSuggestWrap.hidden = true;
+          qoCreateCustomerBtn.hidden = true;
+          return;
+        }
+        if (!list.length) {
+          qoSuggestWrap.hidden = true;
+          qoCreateCustomerBtn.hidden = false;
+          qoCreateCustomerBtn.textContent = `新建客户“${key}”`;
+          return;
+        }
+        qoSuggestWrap.hidden = false;
+        qoCreateCustomerBtn.hidden = true;
+        list.slice(0, 6).forEach((item) => {
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className = "qo-list-btn";
           btn.dataset.customerId = item.id;
-          btn.innerHTML = `<div>${item.name}（${item.phone}）</div><div class="qo-line2">${item.address}</div>`;
+          const subLine = [item.phone, item.address].filter(Boolean).join("｜");
+          btn.innerHTML = `<div>${item.name}</div><div class="qo-line2">${subLine || "暂无手机号/地址"}</div>`;
           btn.addEventListener("click", () => {
-            qoSelectedId = item.id;
-            qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
+            qoSearch.value = item.name || "";
+            qoSetSelectedCustomer(item);
+            qoRenderSuggest([], "");
             qoSetTip(`已选择：${item.name}`);
           });
-          qoCustomerList.appendChild(btn);
-        });
-        if (!qoSelectedId && list.length) {
-          qoSelectedId = list[0].id;
-        }
-        [...qoCustomerList.querySelectorAll(".qo-list-btn")].forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.customerId === qoSelectedId);
+          qoCustomerSuggest.appendChild(btn);
         });
       }
 
@@ -828,23 +845,53 @@
         if (!res?.success) {
           qoAllCustomers = [];
           qoSelectedId = "";
-          qoRenderList([]);
+          qoSetSelectedCustomer(null);
+          qoRenderSuggest([], "");
           qoSetTip(res?.error || "客户加载失败，请稍后重试", true);
           return;
         }
         qoAllCustomers = res.data || [];
         qoSelectedId = "";
-        qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
-        qoSetTip("请选择客户后进入确认。");
+        qoSetSelectedCustomer(null);
+        qoRenderSuggest([], "");
+        qoSetTip("输入姓名、手机号或地址进行搜索。");
       }
 
       function qoResetToPick() {
         qoStepPick.hidden = false;
         qoStepConfirm.hidden = true;
         qoSearch.value = "";
+        qoSuggestWrap.hidden = true;
+        qoCreateCustomerBtn.hidden = true;
+        qoSetSelectedCustomer(null);
         qoQuantity = 1;
         qoQtyText.textContent = "1";
         qoLoadPrefs();
+      }
+
+      async function qoCreateCustomerByName() {
+        if (qoCreatingCustomer) return;
+        const name = String(qoSearch.value || "").trim();
+        if (!name) {
+          qoSetTip("请先输入客户名称。", true);
+          return;
+        }
+        qoCreatingCustomer = true;
+        qoCreateCustomerBtn.disabled = true;
+        qoSetTip("正在创建客户…");
+        const res = await createQuickCustomer({ name });
+        qoCreatingCustomer = false;
+        qoCreateCustomerBtn.disabled = false;
+        if (!res?.success || !res?.data?.id) {
+          qoSetTip(res?.error || "客户创建失败，请稍后重试。", true);
+          return;
+        }
+        const created = res.data;
+        qoAllCustomers.unshift(created);
+        qoSearch.value = created.name || name;
+        qoSetSelectedCustomer(created);
+        qoRenderSuggest([], "");
+        qoSetTip(`已创建并选择：${created.name}`);
       }
 
       function openQoSheet() {
@@ -1189,8 +1236,16 @@
         if (endY - qoTouchStartY > 72) closeQoSheet();
       });
       qoSearch.addEventListener("input", () => {
-        qoSelectedId = "";
-        qoRenderList(filterQuickCustomers(qoAllCustomers, qoSearch.value));
+        const keyword = String(qoSearch.value || "").trim();
+        const current = qoAllCustomers.find((x) => x.id === qoSelectedId);
+        if (!current || current.name !== keyword) {
+          qoSetSelectedCustomer(null);
+        }
+        const matched = filterQuickCustomers(qoAllCustomers, keyword);
+        qoRenderSuggest(matched, keyword);
+      });
+      qoCreateCustomerBtn.addEventListener("click", () => {
+        void qoCreateCustomerByName();
       });
       qoNextBtn.addEventListener("click", () => {
         if (!qoSelectedId) {
