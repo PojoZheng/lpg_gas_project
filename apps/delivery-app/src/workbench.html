@@ -402,18 +402,47 @@
         padding: 0 10px;
         font-size: 14px;
       }
-      .qo-type-btn {
-        flex: 1;
+      .qo-type-switch {
+        position: relative;
+        width: 100%;
         height: 48px;
         border: 1px solid var(--border);
         border-radius: var(--radius-button);
-        background: #fff;
-        cursor: pointer;
+        background: #f3f6f8;
+        padding: 3px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
       }
-      .qo-type-btn.active {
-        background: var(--brand);
-        color: #fff;
-        border-color: var(--brand);
+      .qo-type-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        height: calc(100% - 6px);
+        border-radius: calc(var(--radius-button) - 3px);
+        background: #fff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        transition: transform 180ms ease;
+      }
+      .qo-type-switch[data-active-type="immediate_complete"] .qo-type-thumb {
+        transform: translateX(100%);
+      }
+      .qo-type-option {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+      }
+      .qo-type-option.active {
+        color: var(--brand);
+        font-weight: 700;
       }
       .qo-step-btn {
         width: 48px;
@@ -570,8 +599,21 @@
           <div id="qoStepConfirm" hidden>
             <div class="state-block info" id="qoCustomerSummary" style="margin-bottom: 10px"></div>
             <div class="qo-row">
-              <button type="button" class="qo-type-btn active" data-qo-type="later_delivery">稍后配送</button>
-              <button type="button" class="qo-type-btn" data-qo-type="immediate_complete">当场完成</button>
+              <div class="qo-type-switch" id="qoTypeSwitch" role="tablist" aria-label="配送方式">
+                <div class="qo-type-thumb" aria-hidden="true"></div>
+                <div
+                  class="qo-type-option active"
+                  data-qo-type="later_delivery"
+                  role="tab"
+                  tabindex="0"
+                  aria-selected="true"
+                >
+                  稍后配送
+                </div>
+                <div class="qo-type-option" data-qo-type="immediate_complete" role="tab" tabindex="-1" aria-selected="false">
+                  当场完成
+                </div>
+              </div>
             </div>
             <div class="qo-row">
               <span class="qo-field-label">气瓶数量</span>
@@ -678,10 +720,11 @@
       const qoPrice = document.getElementById("qoPrice");
       const qoPayRow = document.getElementById("qoPayRow");
       const qoReceivedRow = document.getElementById("qoReceivedRow");
+      const qoTypeSwitch = document.getElementById("qoTypeSwitch");
       const qoPayMethod = document.getElementById("qoPayMethod");
       const qoReceived = document.getElementById("qoReceived");
       const qoTip = document.getElementById("qoTip");
-      const qoTypeBtns = [...document.querySelectorAll("[data-qo-type]")];
+      const qoTypeOptions = [...document.querySelectorAll(".qo-type-option")];
 
       let qoAllCustomers = [];
       let qoSelectedId = "";
@@ -713,8 +756,18 @@
           }
           if (parsed.paymentMethod) qoPayMethod.value = parsed.paymentMethod;
         } catch (_e) {}
-        qoTypeBtns.forEach((b) => b.classList.toggle("active", b.dataset.qoType === qoOrderType));
+        qoRenderTypeSwitch();
         qoSyncPayFields();
+      }
+
+      function qoRenderTypeSwitch() {
+        if (qoTypeSwitch) qoTypeSwitch.dataset.activeType = qoOrderType;
+        qoTypeOptions.forEach((opt) => {
+          const active = opt.dataset.qoType === qoOrderType;
+          opt.classList.toggle("active", active);
+          opt.setAttribute("aria-selected", active ? "true" : "false");
+          opt.tabIndex = active ? 0 : -1;
+        });
       }
 
       function qoSyncPayFields() {
@@ -1170,12 +1223,28 @@
       });
       qoSpec.addEventListener("change", qoSyncPayFields);
       qoPrice.addEventListener("change", qoSyncPayFields);
-      qoTypeBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          qoOrderType = btn.dataset.qoType;
-          qoTypeBtns.forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-          qoSyncPayFields();
+      function qoSetOrderType(type) {
+        if (type !== "later_delivery" && type !== "immediate_complete") return;
+        qoOrderType = type;
+        qoRenderTypeSwitch();
+        qoSyncPayFields();
+      }
+      qoTypeOptions.forEach((opt) => {
+        opt.addEventListener("click", () => {
+          qoSetOrderType(opt.dataset.qoType);
+        });
+        opt.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            qoSetOrderType(opt.dataset.qoType);
+            return;
+          }
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          e.preventDefault();
+          const nextType = e.key === "ArrowRight" ? "immediate_complete" : "later_delivery";
+          qoSetOrderType(nextType);
+          const target = qoTypeOptions.find((x) => x.dataset.qoType === nextType);
+          if (target) target.focus();
         });
       });
       qoSubmitBtn.addEventListener("click", () => {
