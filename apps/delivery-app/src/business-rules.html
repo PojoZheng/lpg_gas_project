@@ -467,7 +467,7 @@
           }
           return;
         }
-        goBackOr("./my.html");
+        window.location.href = "./my.html";
       });
       document.querySelectorAll("[data-section]").forEach((btn) => {
         btn.addEventListener("click", () => {
