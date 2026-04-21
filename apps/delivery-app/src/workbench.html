@@ -840,9 +840,8 @@
       }
 
       function qoSyncPayFields() {
-        const imm = qoOrderType === "immediate_complete";
-        qoCollectRow.hidden = !imm;
-        const shouldShowPayFields = imm && Boolean(qoCollectToggle?.checked);
+        qoCollectRow.hidden = false;
+        const shouldShowPayFields = Boolean(qoCollectToggle?.checked);
         qoPayRow.hidden = !shouldShowPayFields;
         qoReceivedRow.hidden = !shouldShowPayFields;
         if (shouldShowPayFields) {
