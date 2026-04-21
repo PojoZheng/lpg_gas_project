@@ -93,6 +93,28 @@
         color: var(--brand);
         font-weight: 600;
       }
+      .payment-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .payment-filter-btn {
+        min-width: 64px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid #d9e5e8;
+        background: #fff;
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+      .payment-filter-btn.active {
+        border-color: #cfe4e7;
+        background: #eef7f8;
+        color: var(--brand);
+        font-weight: 600;
+      }
       .detail-list { display: grid; gap: 8px; }
       .detail-item {
         border: 1px solid var(--border);
@@ -174,6 +196,15 @@
           <button class="flow-filter-btn" data-flow-filter="income">收入</button>
           <button class="flow-filter-btn" data-flow-filter="expense">退款</button>
         </div>
+        <div class="payment-filter">
+          <button class="payment-filter-btn active" data-payment-filter="all">全部方式</button>
+          <button class="payment-filter-btn" data-payment-filter="cash">现金</button>
+          <button class="payment-filter-btn" data-payment-filter="wechat">微信</button>
+          <button class="payment-filter-btn" data-payment-filter="alipay">支付宝</button>
+          <button class="payment-filter-btn" data-payment-filter="transfer">转账</button>
+          <button class="payment-filter-btn" data-payment-filter="credit">记账</button>
+          <button class="payment-filter-btn" data-payment-filter="other">其他</button>
+        </div>
         <div class="detail-list" id="detailList">
           <div class="state-block loading">加载中...</div>
         </div>
@@ -202,6 +233,7 @@
         startDate: "",
         endDate: "",
         flowFilter: "all",
+        paymentFilter: "all",
         lastList: [],
       };
 
@@ -282,19 +314,31 @@
       }
 
       function getFilteredList(list) {
+        let next = list;
         if (state.flowFilter === "income") {
-          return list.filter((item) => item.type === "income");
+          next = next.filter((item) => item.type === "income");
         }
         if (state.flowFilter === "expense") {
-          return list.filter((item) => item.type === "expense");
+          next = next.filter((item) => item.type === "expense");
         }
-        return list;
+        if (state.paymentFilter !== "all") {
+          next = next.filter((item) => (item.paymentMethod || "other") === state.paymentFilter);
+        }
+        return next;
       }
 
       function applyFlowFilter(filter) {
         state.flowFilter = filter;
         document.querySelectorAll("[data-flow-filter]").forEach((btn) => {
           btn.classList.toggle("active", btn.dataset.flowFilter === filter);
+        });
+        renderList(getFilteredList(state.lastList));
+      }
+
+      function applyPaymentFilter(filter) {
+        state.paymentFilter = filter;
+        document.querySelectorAll("[data-payment-filter]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.paymentFilter === filter);
         });
         renderList(getFilteredList(state.lastList));
       }
@@ -363,6 +407,9 @@
       document.querySelectorAll("[data-flow-filter]").forEach((btn) => {
         btn.addEventListener("click", () => applyFlowFilter(btn.dataset.flowFilter || "all"));
       });
+      document.querySelectorAll("[data-payment-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => applyPaymentFilter(btn.dataset.paymentFilter || "all"));
+      });
       document.getElementById("goDailyCloseBtn").addEventListener("click", () => {
         window.location.href = "./finance-daily-close.html";
       });
@@ -375,6 +422,7 @@
       endDateInput.value = today;
       setPreset("today");
       applyFlowFilter("all");
+      applyPaymentFilter("all");
       loadData();
     </script>
   </body>
