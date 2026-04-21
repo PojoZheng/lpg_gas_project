@@ -285,7 +285,7 @@
           <button class="section-link" id="viewAllOrdersBtn">查看全部订单</button>
         </div>
       </section>
-      <div class="state-block info" id="tip">正在加载客户信息...</div>
+      <div class="state-block info" id="tip" hidden></div>
     </main>
 
     <div class="mask" id="reminderMask"></div>
@@ -380,7 +380,15 @@
       }
 
       function setTip(message, type = "info") {
-        tip.textContent = message;
+        const text = String(message || "").trim();
+        if (!text) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = text;
         tip.className = `state-block ${type}`;
       }
 
@@ -568,7 +576,6 @@
             setTip("缺少客户ID，无法加载详情", "error");
             return;
           }
-          setTip("正在加载客户信息...", "loading");
           const [detailRes, ordersRes] = await Promise.all([
             getCustomerDetail(customerId),
             listCustomerOrders(customerId, { page: 1, size: 10 }),
@@ -591,9 +598,9 @@
           renderCustomer();
           renderRecentOrders();
           if (!ordersRes?.success) {
-            setTip("客户详情已加载，历史订单暂不可用", "info");
+            setTip("历史订单暂不可用", "info");
           } else {
-            setTip("客户详情加载完成", "success");
+            setTip("");
           }
         } catch (err) {
           setTip(`客户详情加载失败：${err?.message || "请稍后重试"}`, "error");
