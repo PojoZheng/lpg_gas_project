@@ -330,13 +330,13 @@
         </div>
       </div>
 
-      <!-- 过期预警 -->
+      <!-- 库存预警 -->
       <div class="alert-card" id="alertCard" style="display: none;">
         <div class="alert-header">
           <span class="alert-badge">!</span>
-          <span class="alert-title">过期预警</span>
+          <span class="alert-title">库存预警</span>
         </div>
-        <div class="alert-text" id="alertText">3个气瓶7天后过期，需送检</div>
+        <div class="alert-text" id="alertText">低库存请及时补货</div>
         <button class="alert-btn" id="alertBtn">查看详情</button>
       </div>
 
@@ -664,14 +664,6 @@
             <span class="log-time">${log.time}</span>
           </div>
         `).join("");
-      }
-
-      // 显示过期预警
-      function showAlert() {
-        const card = document.getElementById("alertCard");
-        if (card.style.display === "none") {
-          card.style.display = "block";
-        }
       }
 
       // 事件绑定
