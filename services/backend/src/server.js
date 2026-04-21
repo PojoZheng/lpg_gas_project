@@ -184,7 +184,7 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
   out.inventoryWarning.heavy.kg10 = toInt(src.inventoryWarning?.heavy?.kg10, out.inventoryWarning.heavy.kg10, 0, 200);
   out.inventoryWarning.heavy.kg50 = toInt(src.inventoryWarning?.heavy?.kg50, out.inventoryWarning.heavy.kg50, 0, 200);
   out.inventoryWarning.lockDays = toInt(src.inventoryWarning?.lockDays, out.inventoryWarning.lockDays, 1, 30);
-  out.inventoryWarning.expireDays = toInt(src.inventoryWarning?.expireDays, out.inventoryWarning.expireDays, 1, 365);
+  // 气瓶超期预警暂时下线：保持已有值，不再接受前端更新。
 
   out.notification.enabled =
     src.notification?.enabled === undefined ? out.notification.enabled : Boolean(src.notification.enabled);

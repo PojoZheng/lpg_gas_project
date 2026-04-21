@@ -212,7 +212,6 @@
               <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>超期锁定</label><input id="lockDays" type="number" min="1" /><span class="unit">天</span></div>
-              <div class="row"><label>过期提醒</label><input id="expireDays" type="number" min="1" /><span class="unit">天前</span></div>
             </div>
           </div>
           <div class="group-block">
@@ -328,7 +327,6 @@
         $("warn10").value = Number(data.inventoryWarning?.heavy?.kg10 || 3);
         $("warn50").value = Number(data.inventoryWarning?.heavy?.kg50 || 2);
         $("lockDays").value = Number(data.inventoryWarning?.lockDays || 3);
-        $("expireDays").value = Number(data.inventoryWarning?.expireDays || 30);
 
         $("noticeEnabled").checked = Boolean(data.notification?.enabled ?? true);
         $("noticeStart").value = String(data.notification?.startTime || "08:00");
@@ -381,7 +379,6 @@
               kg50: Number($("warn50").value || 0),
             },
             lockDays: Number($("lockDays").value || 3),
-            expireDays: Number($("expireDays").value || 30),
           },
           notification: {
             enabled: $("noticeEnabled").checked,
