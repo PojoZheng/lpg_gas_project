@@ -73,6 +73,26 @@
       }
       .list-title { margin: 0; font-size: 16px; font-family: var(--font-title); }
       .list-count { font-size: 12px; color: var(--text-secondary); }
+      .flow-filter {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .flow-filter-btn {
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .flow-filter-btn.active {
+        border-color: #cfe4e7;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-weight: 600;
+      }
       .detail-list { display: grid; gap: 8px; }
       .detail-item {
         border: 1px solid var(--border);
@@ -149,6 +169,11 @@
           <h2 class="list-title">资金流水</h2>
           <span class="list-count" id="listCount">0 条</span>
         </div>
+        <div class="flow-filter">
+          <button class="flow-filter-btn active" data-flow-filter="all">全部</button>
+          <button class="flow-filter-btn" data-flow-filter="income">收入</button>
+          <button class="flow-filter-btn" data-flow-filter="expense">退款</button>
+        </div>
         <div class="detail-list" id="detailList">
           <div class="state-block loading">加载中...</div>
         </div>
@@ -176,6 +201,8 @@
         preset: "today",
         startDate: "",
         endDate: "",
+        flowFilter: "all",
+        lastList: [],
       };
 
       const tip = document.getElementById("tip");
@@ -254,6 +281,24 @@
         });
       }
 
+      function getFilteredList(list) {
+        if (state.flowFilter === "income") {
+          return list.filter((item) => item.type === "income");
+        }
+        if (state.flowFilter === "expense") {
+          return list.filter((item) => item.type === "expense");
+        }
+        return list;
+      }
+
+      function applyFlowFilter(filter) {
+        state.flowFilter = filter;
+        document.querySelectorAll("[data-flow-filter]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.flowFilter === filter);
+        });
+        renderList(getFilteredList(state.lastList));
+      }
+
       function setPreset(preset) {
         state.preset = preset;
         document.querySelectorAll(".range-btn").forEach((btn) => {
@@ -284,8 +329,9 @@
           return;
         }
         renderSummary(res.data.summary);
-        renderList(res.data.list);
-        setTip(`已加载 ${res.data.list.length} 条资金流水`);
+        state.lastList = Array.isArray(res.data.list) ? res.data.list : [];
+        renderList(getFilteredList(state.lastList));
+        setTip(`已加载 ${state.lastList.length} 条资金流水`);
       }
 
       document.querySelectorAll(".range-btn").forEach((btn) => {
@@ -314,6 +360,9 @@
       });
 
       document.getElementById("refreshBtn").addEventListener("click", loadData);
+      document.querySelectorAll("[data-flow-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => applyFlowFilter(btn.dataset.flowFilter || "all"));
+      });
       document.getElementById("goDailyCloseBtn").addEventListener("click", () => {
         window.location.href = "./finance-daily-close.html";
       });
@@ -325,6 +374,7 @@
       startDateInput.value = today;
       endDateInput.value = today;
       setPreset("today");
+      applyFlowFilter("all");
       loadData();
     </script>
   </body>
