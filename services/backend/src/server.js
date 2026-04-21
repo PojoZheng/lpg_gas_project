@@ -1262,7 +1262,7 @@ function buildFinanceExpenseSummary(entries) {
   );
 }
 
-function buildPaymentSummary(orders) {
+function buildPaymentSummary(entries, orders) {
   const base = {
     cashAmount: 0,
     wechatAmount: 0,
@@ -1270,13 +1270,20 @@ function buildPaymentSummary(orders) {
     transferAmount: 0,
     creditAmount: 0,
   };
+  for (const entry of entries) {
+    if (entry.status !== "posted") continue;
+    const method = String(entry.paymentMethod || "").trim();
+    const signedAmount =
+      entry.type === "expense"
+        ? -Math.abs(Number(entry.amount || 0))
+        : Number(entry.amount || 0);
+    if (method === "cash") base.cashAmount += signedAmount;
+    if (method === "wechat") base.wechatAmount += signedAmount;
+    if (method === "alipay") base.alipayAmount += signedAmount;
+    if (method === "transfer") base.transferAmount += signedAmount;
+  }
   for (const order of orders) {
-    const method = String(order.paymentMethod || "").trim();
     const receivedAmount = Number(order.receivedAmount || 0);
-    if (method === "cash") base.cashAmount += receivedAmount;
-    if (method === "wechat") base.wechatAmount += receivedAmount;
-    if (method === "alipay") base.alipayAmount += receivedAmount;
-    if (method === "transfer") base.transferAmount += receivedAmount;
     base.creditAmount += Math.max(0, Number(order.amount || 0) - receivedAmount);
   }
   return Object.fromEntries(
@@ -1304,13 +1311,19 @@ function formatFinanceEntryTime(ts) {
 function buildFinanceIncomeResponse(range) {
   const entries = getFinanceEntriesInRange(range.startAt, range.endAt);
   const summary = buildFinanceIncomeSummary(entries);
+  const expenseSummary = buildFinanceExpenseSummary(entries);
   return {
     range: {
       preset: range.preset,
       start: formatLocalDateKey(range.startAt),
       end: formatLocalDateKey(range.endAt - 1),
     },
-    summary,
+    summary: {
+      ...summary,
+      refundExpense: expenseSummary.refundExpense,
+      totalExpense: expenseSummary.totalExpense,
+      netIncome: Number((summary.totalIncome - expenseSummary.totalExpense).toFixed(2)),
+    },
     items: entries.map((entry) => ({
       id: entry.id,
       orderId: entry.orderId,
@@ -1335,7 +1348,7 @@ function buildDailyClosePayload(dateValue) {
   const entries = getFinanceEntriesInRange(startAt, endAt);
   const incomeSummary = buildFinanceIncomeSummary(entries);
   const expenseSummary = buildFinanceExpenseSummary(entries);
-  const paymentSummary = buildPaymentSummary(orders);
+  const paymentSummary = buildPaymentSummary(entries, orders);
   const date = formatLocalDateKey(startAt);
   const latestClose =
     [...dailyCloseRecords].reverse().find((record) => record.date === date) || null;
@@ -1354,7 +1367,7 @@ function buildDailyClosePayload(dateValue) {
     depositIncome: incomeSummary.deposit,
     residualIncome: incomeSummary.residual,
     rentIncome: incomeSummary.other,
-    receivedToday: incomeSummary.totalIncome,
+    receivedToday: Number((incomeSummary.totalIncome - expenseSummary.totalExpense).toFixed(2)),
     pendingToday: paymentSummary.creditAmount,
     entryCount: entries.filter((entry) => entry.status === "posted").length,
     entries: entries.map((entry) => ({
