@@ -82,6 +82,18 @@ const DEFAULT_BUSINESS_RULES = {
     lockDays: 3,
     expireDays: 30,
   },
+  notification: {
+    enabled: true,
+    startTime: "08:00",
+    endTime: "20:00",
+    types: {
+      inventoryLow: true,
+      owedBottleOverdue: true,
+      debtOverdue: true,
+      dailyClose: true,
+      safetyDue: false,
+    },
+  },
   updatedAt: Date.now(),
 };
 const businessRulesStore = new Map();
@@ -111,6 +123,12 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
   if (!out.orderPricing || typeof out.orderPricing !== "object") {
     out.orderPricing = deepClone(DEFAULT_BUSINESS_RULES.orderPricing);
   }
+  if (!out.notification || typeof out.notification !== "object") {
+    out.notification = deepClone(DEFAULT_BUSINESS_RULES.notification);
+  }
+  if (!out.notification.types || typeof out.notification.types !== "object") {
+    out.notification.types = deepClone(DEFAULT_BUSINESS_RULES.notification.types);
+  }
   const toNum = (value, fallback, min, max) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
@@ -120,6 +138,15 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
     const n = Number(value);
     if (!Number.isInteger(n)) return fallback;
     return Math.min(max, Math.max(min, n));
+  };
+  const toTime = (value, fallback) => {
+    const text = String(value || "").trim();
+    if (!text) return fallback;
+    if (!/^\d{2}:\d{2}$/.test(text)) return fallback;
+    const [h, m] = text.split(":").map((x) => Number(x));
+    if (!Number.isInteger(h) || !Number.isInteger(m)) return fallback;
+    if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
   out.orderPricing.kg15 = toNum(src.orderPricing?.kg15, out.orderPricing.kg15, 0, 2000);
@@ -158,6 +185,31 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
   out.inventoryWarning.heavy.kg50 = toInt(src.inventoryWarning?.heavy?.kg50, out.inventoryWarning.heavy.kg50, 0, 200);
   out.inventoryWarning.lockDays = toInt(src.inventoryWarning?.lockDays, out.inventoryWarning.lockDays, 1, 30);
   out.inventoryWarning.expireDays = toInt(src.inventoryWarning?.expireDays, out.inventoryWarning.expireDays, 1, 365);
+
+  out.notification.enabled =
+    src.notification?.enabled === undefined ? out.notification.enabled : Boolean(src.notification.enabled);
+  out.notification.startTime = toTime(src.notification?.startTime, out.notification.startTime || "08:00");
+  out.notification.endTime = toTime(src.notification?.endTime, out.notification.endTime || "20:00");
+  out.notification.types.inventoryLow =
+    src.notification?.types?.inventoryLow === undefined
+      ? out.notification.types.inventoryLow
+      : Boolean(src.notification.types.inventoryLow);
+  out.notification.types.owedBottleOverdue =
+    src.notification?.types?.owedBottleOverdue === undefined
+      ? out.notification.types.owedBottleOverdue
+      : Boolean(src.notification.types.owedBottleOverdue);
+  out.notification.types.debtOverdue =
+    src.notification?.types?.debtOverdue === undefined
+      ? out.notification.types.debtOverdue
+      : Boolean(src.notification.types.debtOverdue);
+  out.notification.types.dailyClose =
+    src.notification?.types?.dailyClose === undefined
+      ? out.notification.types.dailyClose
+      : Boolean(src.notification.types.dailyClose);
+  out.notification.types.safetyDue =
+    src.notification?.types?.safetyDue === undefined
+      ? out.notification.types.safetyDue
+      : Boolean(src.notification.types.safetyDue);
   out.updatedAt = Date.now();
   return out;
 }

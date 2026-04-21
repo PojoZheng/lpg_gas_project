@@ -126,12 +126,35 @@
       <section class="app-card section">
         <h2 class="app-card-title">库存预警</h2>
         <div class="grid">
-          <div class="switch-row"><label for="invEnabled">启用库存预警</label><input id="invEnabled" type="checkbox" /></div>
-          <div class="row"><label>15kg重瓶</label><input id="warn15" type="number" min="0" /><span class="unit">瓶</span></div>
-          <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
-          <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
-          <div class="row"><label>超期锁定</label><input id="lockDays" type="number" min="1" /><span class="unit">天</span></div>
-          <div class="row"><label>过期提醒</label><input id="expireDays" type="number" min="1" /><span class="unit">天前</span></div>
+          <div class="group-block">
+            <h3 class="group-title">库存阈值</h3>
+            <div class="grid">
+              <div class="switch-row"><label for="invEnabled">启用库存预警</label><input id="invEnabled" type="checkbox" /></div>
+              <div class="row"><label>15kg重瓶</label><input id="warn15" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>超期锁定</label><input id="lockDays" type="number" min="1" /><span class="unit">天</span></div>
+              <div class="row"><label>过期提醒</label><input id="expireDays" type="number" min="1" /><span class="unit">天前</span></div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">推送提醒</h3>
+            <div class="grid">
+              <div class="switch-row"><label for="noticeEnabled">开启推送</label><input id="noticeEnabled" type="checkbox" /></div>
+              <div class="row"><label>开始时段</label><input id="noticeStart" type="time" /><span class="unit"></span></div>
+              <div class="row"><label>结束时段</label><input id="noticeEnd" type="time" /><span class="unit"></span></div>
+              <div>
+                <div class="unit" style="margin-bottom:6px">提醒类型</div>
+                <div class="checks" id="noticeTypeWrap">
+                  <label><input id="noticeInventoryLow" type="checkbox" />库存不足</label>
+                  <label><input id="noticeOwedBottle" type="checkbox" />欠瓶超期</label>
+                  <label><input id="noticeDebt" type="checkbox" />欠款超期</label>
+                  <label><input id="noticeDailyClose" type="checkbox" />日结提醒</label>
+                  <label><input id="noticeSafety" type="checkbox" />定期安检</label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -202,6 +225,15 @@
         $("warn50").value = Number(data.inventoryWarning?.heavy?.kg50 || 2);
         $("lockDays").value = Number(data.inventoryWarning?.lockDays || 3);
         $("expireDays").value = Number(data.inventoryWarning?.expireDays || 30);
+
+        $("noticeEnabled").checked = Boolean(data.notification?.enabled ?? true);
+        $("noticeStart").value = String(data.notification?.startTime || "08:00");
+        $("noticeEnd").value = String(data.notification?.endTime || "20:00");
+        $("noticeInventoryLow").checked = Boolean(data.notification?.types?.inventoryLow ?? true);
+        $("noticeOwedBottle").checked = Boolean(data.notification?.types?.owedBottleOverdue ?? true);
+        $("noticeDebt").checked = Boolean(data.notification?.types?.debtOverdue ?? true);
+        $("noticeDailyClose").checked = Boolean(data.notification?.types?.dailyClose ?? true);
+        $("noticeSafety").checked = Boolean(data.notification?.types?.safetyDue ?? false);
       }
 
       function buildPayload() {
@@ -246,6 +278,18 @@
             },
             lockDays: Number($("lockDays").value || 3),
             expireDays: Number($("expireDays").value || 30),
+          },
+          notification: {
+            enabled: $("noticeEnabled").checked,
+            startTime: String($("noticeStart").value || "08:00"),
+            endTime: String($("noticeEnd").value || "20:00"),
+            types: {
+              inventoryLow: $("noticeInventoryLow").checked,
+              owedBottleOverdue: $("noticeOwedBottle").checked,
+              debtOverdue: $("noticeDebt").checked,
+              dailyClose: $("noticeDailyClose").checked,
+              safetyDue: $("noticeSafety").checked,
+            },
           },
         };
       }
