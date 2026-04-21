@@ -368,6 +368,9 @@
         align-items: center;
         margin-bottom: 10px;
       }
+      .qo-row[hidden] {
+        display: none !important;
+      }
       .qo-row label {
         width: 72px;
         font-size: 14px;
@@ -1354,6 +1357,7 @@
       qoSpec.addEventListener("change", qoSyncPayFields);
       qoPrice.addEventListener("change", qoSyncPayFields);
       qoCollectToggle.addEventListener("change", qoSyncPayFields);
+      qoCollectToggle.addEventListener("input", qoSyncPayFields);
       function qoSetOrderType(type) {
         if (type !== "later_delivery" && type !== "immediate_complete") return;
         qoOrderType = type;
