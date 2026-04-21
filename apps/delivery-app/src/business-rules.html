@@ -15,6 +15,22 @@
       .unit { font-size: 12px; color: var(--text-secondary); }
       .checks { display: flex; gap: 12px; flex-wrap: wrap; }
       .checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+      .tag-options { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tag-option {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid #d6e8ea;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text-secondary);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .tag-option.active {
+        background: var(--brand-soft);
+        border-color: var(--brand);
+        color: var(--brand);
+      }
       .group-block { border-top: 1px solid var(--border); padding-top: 10px; }
       .group-block:first-child { border-top: none; padding-top: 0; }
       .group-title {
@@ -28,6 +44,44 @@
       .tip.err { color: #b42318; }
       .switch-row { display: flex; justify-content: space-between; align-items: center; }
       .switch-row label { font-size: 14px; }
+      .app-switch {
+        position: relative;
+        width: 44px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+      }
+      .app-switch input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .app-switch-track {
+        width: 100%;
+        height: 100%;
+        border-radius: 999px;
+        background: #d8e6e9;
+        transition: background 160ms ease;
+        display: inline-flex;
+        align-items: center;
+        padding: 2px;
+      }
+      .app-switch-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(17, 17, 17, 0.15);
+        transition: transform 160ms ease;
+      }
+      .app-switch input:checked + .app-switch-track {
+        background: var(--brand);
+      }
+      .app-switch input:checked + .app-switch-track .app-switch-thumb {
+        transform: translateX(18px);
+      }
     </style>
   </head>
   <body>
@@ -62,7 +116,13 @@
           <div class="group-block">
             <h3 class="group-title">残液处理</h3>
             <div class="grid">
-              <div class="switch-row"><label for="residualEnabled">启用残液记录</label><input id="residualEnabled" type="checkbox" /></div>
+              <div class="switch-row">
+                <label for="residualEnabled">启用残液记录</label>
+                <label class="app-switch" for="residualEnabled">
+                  <input id="residualEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
               <div class="row"><label>残液单价</label><input id="residualPrice" type="number" min="0" step="0.01" /><span class="unit">元/kg</span></div>
               <div class="row">
                 <label>默认方式</label>
@@ -84,13 +144,19 @@
           <div class="group-block">
             <h3 class="group-title">欠瓶管理</h3>
             <div class="grid">
-              <div class="switch-row"><label for="owedEnabled">启用欠瓶跟踪</label><input id="owedEnabled" type="checkbox" /></div>
+              <div class="switch-row">
+                <label for="owedEnabled">启用欠瓶跟踪</label>
+                <label class="app-switch" for="owedEnabled">
+                  <input id="owedEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
               <div>
                 <div class="unit" style="margin-bottom:6px">提醒天数</div>
-                <div class="checks" id="owedDaysWrap">
-                  <label><input type="checkbox" value="7" />7天</label>
-                  <label><input type="checkbox" value="15" />15天</label>
-                  <label><input type="checkbox" value="30" />30天</label>
+                <div class="tag-options" id="owedDaysWrap">
+                  <button type="button" class="tag-option" data-value="7" aria-pressed="false">7天</button>
+                  <button type="button" class="tag-option" data-value="15" aria-pressed="false">15天</button>
+                  <button type="button" class="tag-option" data-value="30" aria-pressed="false">30天</button>
                 </div>
               </div>
               <div class="row"><label>最长欠瓶</label><input id="owedMaxDays" type="number" min="7" /><span class="unit">天</span></div>
@@ -107,15 +173,21 @@
           <div class="group-block">
             <h3 class="group-title">欠款管理</h3>
             <div class="grid">
-              <div class="switch-row"><label for="debtEnabled">启用欠款管理</label><input id="debtEnabled" type="checkbox" /></div>
+              <div class="switch-row">
+                <label for="debtEnabled">启用欠款管理</label>
+                <label class="app-switch" for="debtEnabled">
+                  <input id="debtEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
               <div class="row"><label>最大额度</label><input id="debtMaxAmount" type="number" min="0" /><span class="unit">元/客户</span></div>
               <div class="row"><label>最长欠款</label><input id="debtMaxDays" type="number" min="7" /><span class="unit">天</span></div>
               <div>
                 <div class="unit" style="margin-bottom:6px">提醒天数</div>
-                <div class="checks" id="debtDaysWrap">
-                  <label><input type="checkbox" value="7" />7天</label>
-                  <label><input type="checkbox" value="15" />15天</label>
-                  <label><input type="checkbox" value="25" />25天</label>
+                <div class="tag-options" id="debtDaysWrap">
+                  <button type="button" class="tag-option" data-value="7" aria-pressed="false">7天</button>
+                  <button type="button" class="tag-option" data-value="15" aria-pressed="false">15天</button>
+                  <button type="button" class="tag-option" data-value="25" aria-pressed="false">25天</button>
                 </div>
               </div>
             </div>
@@ -129,7 +201,13 @@
           <div class="group-block">
             <h3 class="group-title">库存阈值</h3>
             <div class="grid">
-              <div class="switch-row"><label for="invEnabled">启用库存预警</label><input id="invEnabled" type="checkbox" /></div>
+              <div class="switch-row">
+                <label for="invEnabled">启用库存预警</label>
+                <label class="app-switch" for="invEnabled">
+                  <input id="invEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
               <div class="row"><label>15kg重瓶</label><input id="warn15" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
@@ -140,17 +218,23 @@
           <div class="group-block">
             <h3 class="group-title">推送提醒</h3>
             <div class="grid">
-              <div class="switch-row"><label for="noticeEnabled">开启推送</label><input id="noticeEnabled" type="checkbox" /></div>
+              <div class="switch-row">
+                <label for="noticeEnabled">开启推送</label>
+                <label class="app-switch" for="noticeEnabled">
+                  <input id="noticeEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
               <div class="row"><label>开始时段</label><input id="noticeStart" type="time" /><span class="unit"></span></div>
               <div class="row"><label>结束时段</label><input id="noticeEnd" type="time" /><span class="unit"></span></div>
               <div>
                 <div class="unit" style="margin-bottom:6px">提醒类型</div>
-                <div class="checks" id="noticeTypeWrap">
-                  <label><input id="noticeInventoryLow" type="checkbox" />库存不足</label>
-                  <label><input id="noticeOwedBottle" type="checkbox" />欠瓶超期</label>
-                  <label><input id="noticeDebt" type="checkbox" />欠款超期</label>
-                  <label><input id="noticeDailyClose" type="checkbox" />日结提醒</label>
-                  <label><input id="noticeSafety" type="checkbox" />定期安检</label>
+                <div class="tag-options" id="noticeTypeWrap">
+                  <button type="button" class="tag-option" id="noticeInventoryLow" aria-pressed="false">库存不足</button>
+                  <button type="button" class="tag-option" id="noticeOwedBottle" aria-pressed="false">欠瓶超期</button>
+                  <button type="button" class="tag-option" id="noticeDebt" aria-pressed="false">欠款超期</button>
+                  <button type="button" class="tag-option" id="noticeDailyClose" aria-pressed="false">日结提醒</button>
+                  <button type="button" class="tag-option" id="noticeSafety" aria-pressed="false">定期安检</button>
                 </div>
               </div>
             </div>
@@ -182,14 +266,34 @@
         tip.className = `tip ${isError ? "err" : ""}`;
       }
 
+      function setTagActive(node, active) {
+        if (!node) return;
+        node.classList.toggle("active", Boolean(active));
+        node.setAttribute("aria-pressed", active ? "true" : "false");
+      }
+
+      function isTagActive(id) {
+        return document.getElementById(id)?.classList.contains("active") || false;
+      }
+
       function readCheckedDays(wrapId) {
-        return [...document.querySelectorAll(`#${wrapId} input[type=checkbox]:checked`)].map((x) => Number(x.value));
+        return [...document.querySelectorAll(`#${wrapId} .tag-option.active`)].map((x) => Number(x.dataset.value));
       }
 
       function writeCheckedDays(wrapId, days = []) {
         const set = new Set((days || []).map((x) => Number(x)));
-        [...document.querySelectorAll(`#${wrapId} input[type=checkbox]`)].forEach((x) => {
-          x.checked = set.has(Number(x.value));
+        [...document.querySelectorAll(`#${wrapId} .tag-option`)].forEach((x) => {
+          setTagActive(x, set.has(Number(x.dataset.value)));
+        });
+      }
+
+      function bindTagToggle(wrapId) {
+        const wrap = $(wrapId);
+        if (!wrap) return;
+        wrap.addEventListener("click", (event) => {
+          const btn = event.target.closest(".tag-option");
+          if (!btn || !wrap.contains(btn)) return;
+          setTagActive(btn, !btn.classList.contains("active"));
         });
       }
 
@@ -229,11 +333,11 @@
         $("noticeEnabled").checked = Boolean(data.notification?.enabled ?? true);
         $("noticeStart").value = String(data.notification?.startTime || "08:00");
         $("noticeEnd").value = String(data.notification?.endTime || "20:00");
-        $("noticeInventoryLow").checked = Boolean(data.notification?.types?.inventoryLow ?? true);
-        $("noticeOwedBottle").checked = Boolean(data.notification?.types?.owedBottleOverdue ?? true);
-        $("noticeDebt").checked = Boolean(data.notification?.types?.debtOverdue ?? true);
-        $("noticeDailyClose").checked = Boolean(data.notification?.types?.dailyClose ?? true);
-        $("noticeSafety").checked = Boolean(data.notification?.types?.safetyDue ?? false);
+        setTagActive($("noticeInventoryLow"), Boolean(data.notification?.types?.inventoryLow ?? true));
+        setTagActive($("noticeOwedBottle"), Boolean(data.notification?.types?.owedBottleOverdue ?? true));
+        setTagActive($("noticeDebt"), Boolean(data.notification?.types?.debtOverdue ?? true));
+        setTagActive($("noticeDailyClose"), Boolean(data.notification?.types?.dailyClose ?? true));
+        setTagActive($("noticeSafety"), Boolean(data.notification?.types?.safetyDue ?? false));
       }
 
       function buildPayload() {
@@ -284,11 +388,11 @@
             startTime: String($("noticeStart").value || "08:00"),
             endTime: String($("noticeEnd").value || "20:00"),
             types: {
-              inventoryLow: $("noticeInventoryLow").checked,
-              owedBottleOverdue: $("noticeOwedBottle").checked,
-              debtOverdue: $("noticeDebt").checked,
-              dailyClose: $("noticeDailyClose").checked,
-              safetyDue: $("noticeSafety").checked,
+              inventoryLow: isTagActive("noticeInventoryLow"),
+              owedBottleOverdue: isTagActive("noticeOwedBottle"),
+              debtOverdue: isTagActive("noticeDebt"),
+              dailyClose: isTagActive("noticeDailyClose"),
+              safetyDue: isTagActive("noticeSafety"),
             },
           },
         };
@@ -303,6 +407,9 @@
       }
 
       $("backBtn").addEventListener("click", () => goBackOr("./my.html"));
+      bindTagToggle("owedDaysWrap");
+      bindTagToggle("debtDaysWrap");
+      bindTagToggle("noticeTypeWrap");
       $("saveBtn").addEventListener("click", async () => {
         setTip("保存中...");
         const res = await saveBusinessRules(buildPayload());
