@@ -386,6 +386,12 @@
         font-size: 14px;
         color: var(--text-secondary);
       }
+      .qo-field-label {
+        width: 72px;
+        font-size: 14px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+      }
       .qo-row input,
       .qo-row select {
         flex: 1;
@@ -417,6 +423,14 @@
         border-radius: var(--radius-button);
         background: #fff;
         cursor: pointer;
+      }
+      .qo-qty-control {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
       }
       .qo-qty {
         min-width: 52px;
@@ -559,10 +573,13 @@
               <button type="button" class="qo-type-btn active" data-qo-type="later_delivery">稍后配送</button>
               <button type="button" class="qo-type-btn" data-qo-type="immediate_complete">当场完成</button>
             </div>
-            <div class="qo-row" style="justify-content: center">
-              <button type="button" class="qo-step-btn" id="qoMinusBtn">-</button>
-              <div class="qo-qty" id="qoQtyText">1</div>
-              <button type="button" class="qo-step-btn" id="qoPlusBtn">+</button>
+            <div class="qo-row">
+              <span class="qo-field-label">气瓶数量</span>
+              <div class="qo-qty-control">
+                <button type="button" class="qo-step-btn" id="qoMinusBtn" aria-label="减少气瓶数量">-</button>
+                <div class="qo-qty" id="qoQtyText" aria-live="polite">1</div>
+                <button type="button" class="qo-step-btn" id="qoPlusBtn" aria-label="增加气瓶数量">+</button>
+              </div>
             </div>
             <div class="qo-row">
               <label for="qoSpec">规格</label>
