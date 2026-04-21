@@ -19,6 +19,39 @@
         padding: 14px;
         margin-bottom: 12px;
       }
+      .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .overview-metric {
+        background: linear-gradient(180deg, #f8fbfb 0%, #f0f6f7 100%);
+        border: 1px solid #dbe8ea;
+        border-radius: 14px;
+        padding: 12px 10px;
+      }
+      .overview-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+      }
+      .overview-value {
+        font-size: 22px;
+        line-height: 1;
+        font-weight: 700;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+      }
+      .overview-note {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+      }
+      .inventory-list {
+        display: grid;
+        gap: 10px;
+      }
       .overview-title {
         font-size: 16px;
         font-weight: 600;
@@ -27,67 +60,84 @@
         color: var(--text-primary);
       }
       .inventory-item {
+        border: 1px solid #dce6e8;
+        border-radius: 16px;
+        padding: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fcfc 100%);
+      }
+      .inventory-head {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--border);
-      }
-      .inventory-item:last-child {
-        border-bottom: none;
-      }
-      .inventory-info {
-        flex: 1;
+        gap: 10px;
+        margin-bottom: 12px;
       }
       .inventory-name {
-        font-size: 15px;
-        font-weight: 500;
+        font-size: 16px;
+        font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 4px;
+      }
+      .inventory-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary);
       }
       .inventory-status {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        justify-content: center;
+        min-width: 72px;
+        padding: 5px 10px;
+        border-radius: 999px;
         font-size: 12px;
+        font-weight: 600;
+        border: 1px solid transparent;
       }
       .status-safe {
-        color: var(--success);
+        color: #0f766e;
+        background: #ecfdf5;
+        border-color: #a7f3d0;
       }
       .status-warning {
-        color: var(--warning);
+        color: #b45309;
+        background: #fffbeb;
+        border-color: #fde68a;
       }
       .status-danger {
-        color: var(--error);
+        color: #b91c1c;
+        background: #fef2f2;
+        border-color: #fecaca;
       }
-      .inventory-controls {
+      .inventory-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .metric-chip {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f5f8f9;
+        border: 1px solid #e1eaec;
+      }
+      .metric-chip strong {
         display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .inventory-count {
-        font-size: 18px;
-        font-weight: 600;
-        font-family: var(--font-title);
+        font-size: 17px;
+        line-height: 1.1;
         color: var(--text-primary);
-        min-width: 40px;
-        text-align: center;
+        font-family: var(--font-title);
+        margin-bottom: 4px;
       }
-      .control-btn {
-        width: 32px;
-        height: 32px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: #fff;
-        color: var(--brand);
-        font-size: 18px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .metric-chip span {
+        font-size: 12px;
+        color: var(--text-secondary);
       }
-      .control-btn:active {
-        background: var(--brand-soft);
+      .metric-chip.highlight {
+        background: #f0f9ff;
+        border-color: #bae6fd;
+      }
+      .metric-chip.warning {
+        background: #fff7ed;
+        border-color: #fdba74;
       }
 
       /* 预警卡片 */
@@ -312,6 +362,25 @@
         color: var(--text-secondary);
         min-height: 18px;
       }
+      .sheet-toggle-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .sheet-toggle {
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid #d7e4e7;
+        background: #f8fbfb;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .sheet-toggle.active {
+        color: var(--brand);
+        border-color: #93c5cf;
+        background: #eef7f8;
+      }
     </style>
   </head>
   <body>
@@ -325,7 +394,9 @@
       <!-- 库存概览 -->
       <div class="inventory-overview">
         <h2 class="overview-title">库存概览</h2>
-        <div id="inventoryList">
+        <div class="overview-grid" id="overviewGrid"></div>
+        <div class="overview-note">锁定表示已被待配送订单占用，暂时不能再次开单。</div>
+        <div id="inventoryList" class="inventory-list">
           <!-- 动态生成 -->
         </div>
       </div>
@@ -399,6 +470,13 @@
             placeholder="请输入本次充装总重量"
           />
         </div>
+        <div class="sheet-row" id="actionStockTypeRow" hidden>
+          <div class="sheet-label">盘点对象</div>
+          <div class="sheet-toggle-group">
+            <button type="button" class="sheet-toggle active" data-stock-type="heavy" id="stockTypeHeavyBtn">重瓶在库</button>
+            <button type="button" class="sheet-toggle" data-stock-type="empty" id="stockTypeEmptyBtn">空瓶在库</button>
+          </div>
+        </div>
         <div class="sheet-hint" id="actionSheetHint"></div>
         <div class="sheet-actions">
           <button type="button" class="app-btn ghost" id="actionSheetCancelBtn">取消</button>
@@ -428,10 +506,13 @@
       const actionQtyLabel = document.getElementById("actionQtyLabel");
       const actionWeightRow = document.getElementById("actionWeightRow");
       const actionWeight = document.getElementById("actionWeight");
+      const actionStockTypeRow = document.getElementById("actionStockTypeRow");
       const actionSheetHint = document.getElementById("actionSheetHint");
       const actionSheetCancelBtn = document.getElementById("actionSheetCancelBtn");
       const actionSheetSubmitBtn = document.getElementById("actionSheetSubmitBtn");
+      const stockTypeButtons = Array.from(document.querySelectorAll("[data-stock-type]"));
       let actionMode = "";
+      let actionStockType = "heavy";
       let actionSubmitting = false;
 
       function setTip(text = "", type = "info") {
@@ -466,6 +547,8 @@
           lock: "库存锁定",
           release: "释放锁定",
           order_return: "订单退货",
+          delivery_empty_return: "回收空瓶",
+          undo_empty_return: "撤销回收",
           to_inspection: "送检登记",
         };
         return map[String(type || "").trim()] || "库存变更";
@@ -484,6 +567,11 @@
         return Number.isInteger(n) && n > 0 ? n : 0;
       }
 
+      function parseNonNegativeInt(input) {
+        const n = Number(String(input || "").trim());
+        return Number.isInteger(n) && n >= 0 ? n : -1;
+      }
+
       function parsePositiveDecimal(input) {
         const n = Number(String(input || "").trim());
         if (!Number.isFinite(n) || n <= 0) return 0;
@@ -492,23 +580,31 @@
 
       function openActionSheet(mode, defaults = {}) {
         actionMode = mode;
+        actionStockType = defaults.stockType === "empty" ? "empty" : "heavy";
+        syncStockTypeButtons();
         if (mode === "purchase") {
+          actionQty.min = "1";
           actionSheetTitle.textContent = "采购入库";
           actionQtyLabel.textContent = "采购数量";
           actionSheetHint.textContent = "确认采购入库后会直接增加在库数量。";
           actionWeightRow.hidden = true;
+          actionStockTypeRow.hidden = true;
           actionWeight.value = "";
         } else if (mode === "refill") {
+          actionQty.min = "1";
           actionSheetTitle.textContent = "气瓶充装";
           actionQtyLabel.textContent = "充装数量";
-          actionSheetHint.textContent = "请填写充装数量与本次充装总重量。";
+          actionSheetHint.textContent = "充装会消耗对应规格空瓶，并增加重瓶在库。";
           actionWeightRow.hidden = false;
+          actionStockTypeRow.hidden = true;
           actionWeight.value = String(defaults.weight || 0);
         } else {
+          actionQty.min = "0";
           actionSheetTitle.textContent = "库存盘点";
-          actionQtyLabel.textContent = "盘点后在库数量";
-          actionSheetHint.textContent = "盘点会直接把在库数量更新为录入值。";
+          actionQtyLabel.textContent = actionStockType === "empty" ? "盘点后空瓶数量" : "盘点后重瓶数量";
+          actionSheetHint.textContent = "盘点会直接把对应库存更新为录入值。";
           actionWeightRow.hidden = true;
+          actionStockTypeRow.hidden = false;
           actionWeight.value = "";
         }
         actionSpec.value = defaults.spec || "15kg";
@@ -518,6 +614,16 @@
         actionSheetOverlay.classList.add("show");
         actionSheetOverlay.setAttribute("aria-hidden", "false");
         setTimeout(() => actionQty.focus(), 80);
+      }
+
+      function syncStockTypeButtons() {
+        stockTypeButtons.forEach((btn) => {
+          const active = btn.dataset.stockType === actionStockType;
+          btn.classList.toggle("active", active);
+        });
+        if (actionMode === "stocktake") {
+          actionQtyLabel.textContent = actionStockType === "empty" ? "盘点后空瓶数量" : "盘点后重瓶数量";
+        }
       }
 
       function closeActionSheet() {
@@ -559,6 +665,7 @@
           inventoryData.push({
             spec: item.spec,
             onHand: Number(item.onHand || 0),
+            emptyOnHand: Number(item.emptyOnHand || 0),
             locked: Number(item.locked || 0),
             pendingInspection: Number(item.pendingInspection || 0),
             available: Number(item.available || 0),
@@ -569,9 +676,12 @@
         logs.slice(0, 8).forEach((x) => {
           operationLogs.push({
             type: logTypeLabel(x.type),
-            detail: `${x.spec || "--"} 在库${x.deltaOnHand > 0 ? "+" : ""}${Number(x.deltaOnHand || 0)} 锁定${
-              x.deltaLocked > 0 ? "+" : ""
-            }${Number(x.deltaLocked || 0)}`,
+            detail: [
+              `${x.spec || "--"}`,
+              `重瓶${x.deltaOnHand > 0 ? "+" : ""}${Number(x.deltaOnHand || 0)}`,
+              `空瓶${x.deltaEmptyOnHand > 0 ? "+" : ""}${Number(x.deltaEmptyOnHand || 0)}`,
+              `锁定${x.deltaLocked > 0 ? "+" : ""}${Number(x.deltaLocked || 0)}`,
+            ].join(" "),
             time: formatTime(x.createdAt),
           });
         });
@@ -596,56 +706,61 @@
 
       // 渲染库存列表
       function renderInventory() {
+        const overviewGrid = document.getElementById("overviewGrid");
         const listEl = document.getElementById("inventoryList");
+        const totalHeavy = inventoryData.reduce((sum, item) => sum + item.onHand, 0);
+        const totalEmpty = inventoryData.reduce((sum, item) => sum + item.emptyOnHand, 0);
+        const totalLocked = inventoryData.reduce((sum, item) => sum + item.locked, 0);
+        overviewGrid.innerHTML = `
+          <div class="overview-metric">
+            <div class="overview-label">重瓶在库</div>
+            <div class="overview-value">${totalHeavy}</div>
+          </div>
+          <div class="overview-metric">
+            <div class="overview-label">空瓶在库</div>
+            <div class="overview-value">${totalEmpty}</div>
+          </div>
+          <div class="overview-metric">
+            <div class="overview-label">已锁定</div>
+            <div class="overview-value">${totalLocked}</div>
+          </div>
+        `;
         listEl.innerHTML = inventoryData.map((item, index) => {
           const alertMeta = inventoryAlertBySpec.get(item.spec);
           const threshold = Number(alertMeta?.threshold || 0);
           const isLow = Boolean(alertMeta?.isLow);
-          const statusClass = isLow ? "status-warning" : "status-safe";
-          const statusText = isLow
-            ? `不足（阈值${threshold}）`
-            : `正常（可用${item.available} 锁定${item.locked} 待检${item.pendingInspection}）`;
+          const statusClass = item.available <= 0 ? "status-danger" : isLow ? "status-warning" : "status-safe";
+          const statusText = item.available <= 0 ? "缺货" : isLow ? `偏紧（阈值${threshold}）` : "充足";
           return `
             <div class="inventory-item">
-              <div class="inventory-info">
-                <div class="inventory-name">${item.spec}重瓶</div>
+              <div class="inventory-head">
+                <div>
+                  <div class="inventory-name">${item.spec}</div>
+                  <div class="inventory-subtitle">可配送 ${item.available} 瓶，待检 ${item.pendingInspection} 瓶</div>
+                </div>
                 <div class="inventory-status ${statusClass}">${statusText}</div>
               </div>
-              <div class="inventory-controls">
-                <button class="control-btn" data-index="${index}" data-action="minus">-</button>
-                <span class="inventory-count">${item.onHand}</span>
-                <button class="control-btn" data-index="${index}" data-action="plus">+</button>
+              <div class="inventory-metrics">
+                <div class="metric-chip highlight">
+                  <strong>${item.onHand}</strong>
+                  <span>重瓶在库</span>
+                </div>
+                <div class="metric-chip">
+                  <strong>${item.emptyOnHand}</strong>
+                  <span>空瓶在库</span>
+                </div>
+                <div class="metric-chip ${item.locked > 0 ? "warning" : ""}">
+                  <strong>${item.locked}</strong>
+                  <span>锁定待送</span>
+                </div>
+                <div class="metric-chip">
+                  <strong>${item.available}</strong>
+                  <span>当前可用</span>
+                </div>
               </div>
             </div>
           `;
         }).join("");
-
-        // 绑定加减按钮
-        document.querySelectorAll(".control-btn").forEach(btn => {
-          btn.addEventListener("click", async (e) => {
-            const index = parseInt(e.target.dataset.index);
-            const action = e.target.dataset.action;
-            const row = inventoryData[index];
-            if (!row) return;
-            const next = action === "plus" ? row.onHand + 1 : Math.max(0, row.onHand - 1);
-            if (next <= 0) {
-              setTip("盘点数量必须大于 0", "error");
-              return;
-            }
-            setTip("正在提交盘点...", "loading");
-            const result = await submitInventoryAction("/inventory/stocktake", {
-              spec: row.spec,
-              countedOnHand: next,
-              note: "页面快捷盘点调整",
-            });
-            if (!result?.success) {
-              setTip(result?.error || "盘点失败", "error");
-              return;
-            }
-            await reloadAll();
-            setTip(`${row.spec}盘点已更新为 ${next}`, "success");
-          });
-        });
       }
 
       // 渲染操作日志
@@ -678,7 +793,7 @@
           return;
         }
         setTip(
-          `预警明细：${lowList.map((x) => `${x.spec}库存${x.onHand}/阈值${x.threshold}`).join("；")}`,
+          `预警明细：${lowList.map((x) => `${x.spec}可用${x.available}/阈值${x.threshold}`).join("；")}`,
           "warning"
         );
       });
@@ -697,6 +812,12 @@
 
       actionSheetScrim.addEventListener("click", closeActionSheet);
       actionSheetCancelBtn.addEventListener("click", closeActionSheet);
+      stockTypeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          actionStockType = btn.dataset.stockType === "empty" ? "empty" : "heavy";
+          syncStockTypeButtons();
+        });
+      });
       window.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeActionSheet();
       });
@@ -707,21 +828,26 @@
           setTip("规格不合法", "error");
           return;
         }
-        const qty = parsePositiveInt(actionQty.value);
-        if (!qty) {
-          setTip("数量必须为正整数", "error");
-          return;
-        }
         let route = "";
         let payload = {};
         let loadingText = "";
         let successText = "";
         if (actionMode === "purchase") {
+          const qty = parsePositiveInt(actionQty.value);
+          if (!qty) {
+            setTip("数量必须为正整数", "error");
+            return;
+          }
           route = "/inventory/purchase";
           payload = { spec, quantity: qty };
           loadingText = "正在提交采购入库...";
           successText = `已入库：${spec} × ${qty}`;
         } else if (actionMode === "refill") {
+          const qty = parsePositiveInt(actionQty.value);
+          if (!qty) {
+            setTip("数量必须为正整数", "error");
+            return;
+          }
           const refillWeightKg = parsePositiveDecimal(actionWeight.value);
           if (!refillWeightKg) {
             setTip("请填写有效的充装重量（kg）", "error");
@@ -732,10 +858,15 @@
           loadingText = "正在提交气瓶充装...";
           successText = `已充装：${spec} × ${qty}（${refillWeightKg}kg）`;
         } else {
+          const qty = parseNonNegativeInt(actionQty.value);
+          if (qty < 0) {
+            setTip("盘点数量必须为非负整数", "error");
+            return;
+          }
           route = "/inventory/stocktake";
-          payload = { spec, countedOnHand: qty };
+          payload = { spec, countedOnHand: qty, stockType: actionStockType };
           loadingText = "正在提交库存盘点...";
-          successText = `盘点完成：${spec} 在库 ${qty}`;
+          successText = `盘点完成：${spec}${actionStockType === "empty" ? "空瓶" : "重瓶"} ${qty}`;
         }
         actionSubmitting = true;
         actionSheetSubmitBtn.disabled = true;

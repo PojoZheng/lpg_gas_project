@@ -20,9 +20,9 @@ const mockCustomers = [
   { id: "CUST-003", name: "东港小区李阿姨", phone: "13800000003", address: "东港小区 2 栋 301", tags: [] },
 ];
 const inventoryBySpec = {
-  "10kg": { onHand: 8, locked: 0, pendingInspection: 0 },
-  "15kg": { onHand: 12, locked: 0, pendingInspection: 0 },
-  "50kg": { onHand: 3, locked: 0, pendingInspection: 0 },
+  "10kg": { onHand: 8, emptyOnHand: 3, locked: 0, pendingInspection: 0 },
+  "15kg": { onHand: 12, emptyOnHand: 6, locked: 0, pendingInspection: 0 },
+  "50kg": { onHand: 3, emptyOnHand: 1, locked: 0, pendingInspection: 0 },
 };
 const quickOrders = [];
 const inventoryLogs = [];
@@ -237,10 +237,11 @@ function resetBusinessRules(dealerId = "default") {
 function getInventoryState(spec) {
   if (!inventoryBySpec[spec]) throw new Error("气瓶规格不支持");
   const onHand = Number(inventoryBySpec[spec].onHand || 0);
+  const emptyOnHand = Number(inventoryBySpec[spec].emptyOnHand || 0);
   const locked = Number(inventoryBySpec[spec].locked || 0);
   const pendingInspection = Number(inventoryBySpec[spec].pendingInspection || 0);
   const available = Math.max(0, onHand - locked);
-  return { spec, onHand, locked, pendingInspection, available };
+  return { spec, onHand, emptyOnHand, locked, pendingInspection, available };
 }
 
 function moveToPendingInspection(spec, quantity, orderId) {
@@ -256,6 +257,7 @@ function pushInventoryLog(type, spec, deltaOnHand, deltaLocked, orderId, extra =
     type,
     spec,
     deltaOnHand,
+    deltaEmptyOnHand: Number(extra.deltaEmptyOnHand || 0),
     deltaLocked,
     orderId,
     createdAt: Date.now(),
@@ -280,6 +282,14 @@ function normalizePositiveInt(value, fieldName = "数量", max = 2000) {
   return Math.min(max, num);
 }
 
+function normalizeNonNegativeInt(value, fieldName = "数量", max = 5000) {
+  const num = Number(value);
+  if (!Number.isInteger(num) || num < 0) {
+    throw new Error(`${fieldName}必须为非负整数`);
+  }
+  return Math.min(max, num);
+}
+
 function buildInventoryAlertSnapshot() {
   const rules = getBusinessRules("default");
   const warningEnabled = Boolean(rules?.inventoryWarning?.enabled);
@@ -291,12 +301,14 @@ function buildInventoryAlertSnapshot() {
   const items = Object.keys(inventoryBySpec).map((spec) => {
     const state = getInventoryState(spec);
     const threshold = Math.max(0, Number(thresholds[spec] || 0));
-    const isLow = warningEnabled && threshold > 0 && state.onHand < threshold;
+    const isLow = warningEnabled && threshold > 0 && state.available < threshold;
     return {
       spec,
       onHand: state.onHand,
+      emptyOnHand: state.emptyOnHand,
       locked: state.locked,
       pendingInspection: state.pendingInspection,
+      available: state.available,
       threshold,
       isLow,
     };
@@ -309,7 +321,7 @@ function buildInventoryAlertSnapshot() {
     lowItems,
     message: lowItems.length
       ? `低库存预警：${lowItems
-          .map((x) => `${x.spec}库存${x.onHand}（阈值${x.threshold}）`)
+          .map((x) => `${x.spec}可用${x.available}（阈值${x.threshold}）`)
           .join("；")}`
       : "当前无低库存预警",
   };
@@ -335,8 +347,13 @@ function applyInventoryRefill(payload) {
   }
   const refillWeightKg = Number(refillWeightRaw.toFixed(2));
   const state = getInventoryState(spec);
+  if (state.emptyOnHand < quantity) {
+    throw new Error(`空瓶不足：${spec} 当前空瓶 ${state.emptyOnHand} 瓶`);
+  }
   inventoryBySpec[spec].onHand = state.onHand + quantity;
+  inventoryBySpec[spec].emptyOnHand = state.emptyOnHand - quantity;
   pushInventoryLog("refill_in", spec, quantity, 0, String(payload?.refId || ""), {
+    deltaEmptyOnHand: -quantity,
     note: String(payload?.note || "").trim().slice(0, 120),
     refillWeightKg,
   });
@@ -348,11 +365,19 @@ function applyInventoryRefill(payload) {
 
 function applyInventoryStocktake(payload) {
   const spec = normalizeInventorySpec(payload?.spec);
-  const countedOnHand = normalizePositiveInt(payload?.countedOnHand, "盘点数量", 5000);
+  const countedOnHand = normalizeNonNegativeInt(payload?.countedOnHand, "盘点数量", 5000);
   const state = getInventoryState(spec);
-  const delta = countedOnHand - state.onHand;
-  inventoryBySpec[spec].onHand = countedOnHand;
-  pushInventoryLog("stocktake_adjust", spec, delta, 0, String(payload?.refId || ""), {
+  const stockType = String(payload?.stockType || "heavy").trim() === "empty" ? "empty" : "heavy";
+  const before = stockType === "empty" ? state.emptyOnHand : state.onHand;
+  const delta = countedOnHand - before;
+  if (stockType === "empty") {
+    inventoryBySpec[spec].emptyOnHand = countedOnHand;
+  } else {
+    inventoryBySpec[spec].onHand = countedOnHand;
+  }
+  pushInventoryLog("stocktake_adjust", spec, stockType === "heavy" ? delta : 0, 0, String(payload?.refId || ""), {
+    deltaEmptyOnHand: stockType === "empty" ? delta : 0,
+    stockType,
     note: String(payload?.note || "").trim().slice(0, 120),
   });
   return getInventoryState(spec);
@@ -406,6 +431,15 @@ function returnInventoryToOnHand(spec, quantity, orderId) {
   const state = getInventoryState(spec);
   inventoryBySpec[spec].onHand = state.onHand + quantity;
   pushInventoryLog("modify_return", spec, quantity, 0, orderId);
+  return getInventoryState(spec);
+}
+
+function returnEmptyInventoryToOnHand(spec, quantity, orderId, type = "empty_return") {
+  const qty = Number(quantity || 0);
+  if (!Number.isInteger(qty) || qty <= 0) return getInventoryState(spec);
+  const state = getInventoryState(spec);
+  inventoryBySpec[spec].emptyOnHand = state.emptyOnHand + qty;
+  pushInventoryLog(type, spec, 0, 0, orderId, { deltaEmptyOnHand: qty });
   return getInventoryState(spec);
 }
 
@@ -2289,7 +2323,11 @@ function completeDeliveryOrder(order, payload) {
   order.owedEmptyCount = owedEmptyCount;
   order.paymentStatus =
     receivedAmount <= 0 ? "unpaid" : receivedAmount < order.amount ? "partial_paid" : "paid";
-  const inventoryAfter = consumeInventoryFromLock(order.spec, Number(order.quantity || 0), order.orderId);
+  consumeInventoryFromLock(order.spec, Number(order.quantity || 0), order.orderId);
+  if (recycledEmptyCount > 0) {
+    returnEmptyInventoryToOnHand(order.spec, recycledEmptyCount, order.orderId, "delivery_empty_return");
+  }
+  const inventoryAfter = getInventoryState(order.spec);
   order.debtRecordedAmount = Number(Math.max(0, order.amount - receivedAmount).toFixed(2));
   order.debtRecordedEmptyCount = owedEmptyCount;
   order.completedAt = Date.now();
@@ -2466,13 +2504,27 @@ function undoOrderAction(order) {
     const state = getInventoryState(order.spec);
     inventoryBySpec[order.spec].onHand = state.onHand + Number(order.quantity || 0);
     inventoryBySpec[order.spec].locked = state.locked + Number(order.quantity || 0);
+    const recycledEmptyCount = Number(order.recycledEmptyCount || 0);
+    if (recycledEmptyCount > 0) {
+      if (state.emptyOnHand < recycledEmptyCount) {
+        throw new Error("撤销失败：空瓶库存不足，需人工处理");
+      }
+      inventoryBySpec[order.spec].emptyOnHand = state.emptyOnHand - recycledEmptyCount;
+    }
     pushInventoryLog("undo_complete", order.spec, Number(order.quantity || 0), Number(order.quantity || 0), order.orderId);
+    if (recycledEmptyCount > 0) {
+      pushInventoryLog("undo_empty_return", order.spec, 0, 0, order.orderId, {
+        deltaEmptyOnHand: -recycledEmptyCount,
+      });
+    }
     order.orderStatus = order.lastActionSnapshot.orderStatus;
     order.paymentStatus = order.lastActionSnapshot.paymentStatus;
     order.receivedAmount = 0;
     order.paymentMethod = "";
     order.completedAt = 0;
     order.inventoryStage = "locked";
+    order.recycledEmptyCount = 0;
+    order.owedEmptyCount = 0;
     adjustCustomerDebt(
       order,
       -Number(order.debtRecordedAmount || 0),
