@@ -8,7 +8,6 @@
     <style>
       .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
       .entry-list { display: grid; gap: 10px; }
-      .section-subtitle { margin: 0 0 10px; font-size: 13px; color: var(--text-secondary); }
       .account-card { margin-bottom: 12px; }
       .logout-card { margin-top: 12px; }
       .logout-btn { width: 100%; }
@@ -54,7 +53,6 @@
       .entry-icon .nav-icon { width: 18px; height: 18px; }
       .entry-text { min-width: 0; }
       .entry-title { font-size: 15px; font-weight: 600; font-family: var(--font-title); }
-      .sub { margin-top: 2px; color: var(--text-secondary); font-size: 12px; }
       .entry-arrow { color: var(--text-secondary); }
     </style>
   </head>
@@ -65,7 +63,7 @@
           <div>
             <div class="account-label">账号与登录</div>
             <div class="account-name" id="accountName">当前账号</div>
-            <div class="account-sub" id="accountSub">查看当前登录状态。</div>
+            <div class="account-sub" id="accountSub" hidden></div>
           </div>
           <div class="account-actions"></div>
         </div>
@@ -73,14 +71,12 @@
 
       <section class="app-card">
         <h2 class="app-card-title">经营管理</h2>
-        <p class="section-subtitle">低频但关键的管理能力统一收敛到这里。</p>
         <div class="entry-list">
           <button class="app-btn entry-btn" id="inventoryBtn">
             <span class="entry-main">
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg></span>
               <span class="entry-text">
                 <div class="entry-title">库存管理</div>
-                <div class="sub">查看空重瓶、盘点与补录库存</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -90,7 +86,6 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" /></svg></span>
               <span class="entry-text">
                 <div class="entry-title">订单历史</div>
-                <div class="sub">历史订单与退货换货</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -100,7 +95,6 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16V8h12v8M9 12h6" /></svg></span>
               <span class="entry-text">
                 <div class="entry-title">财务记账与日结</div>
-                <div class="sub">低频财务能力统一收敛在“我的”</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -110,7 +104,6 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h12M4 17h9" /><path d="M18 14v6M15 17h6" /></svg></span>
               <span class="entry-text">
                 <div class="entry-title">债务管理</div>
-                <div class="sub">欠款统计、催款状态维护与还款登记</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -120,7 +113,6 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.8-5.6M20 12a8 8 0 0 1-13.8 5.6M17 4v3h-3M7 20v-3h3" /></svg></span>
               <span class="entry-text">
                 <div class="entry-title">离线数据</div>
-                <div class="sub">查看离线记录并手动提交同步</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -130,7 +122,6 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h12" /><path d="M18 4v6M15 7h6" /></svg></span>
               <span class="entry-text">
                 <div class="entry-title">业务规则</div>
-                <div class="sub">押金租金、残液、欠瓶欠款与库存预警</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -166,9 +157,13 @@
       const session = getCurrentSession() || {};
       const accountLabel = session.nickname || session.name || session.phone || "当前已登录";
       accountName.textContent = accountLabel;
-      accountSub.textContent = session.phone
-        ? `当前手机号：${session.phone}，登录相关操作只在这里处理。`
-        : "当前登录状态有效，登录相关操作只在这里处理。";
+      if (session.phone) {
+        accountSub.hidden = false;
+        accountSub.textContent = session.phone;
+      } else {
+        accountSub.hidden = true;
+        accountSub.textContent = "";
+      }
 
       bindClick("inventoryBtn", () => (window.location.href = "./inventory.html"));
       bindClick("ordersBtn", () => (window.location.href = "./order-list.html"));
