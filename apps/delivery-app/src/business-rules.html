@@ -460,7 +460,11 @@
 
       $("backBtn").addEventListener("click", () => {
         if (activeSection) {
-          window.location.href = "./business-rules.html";
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = "./business-rules.html";
+          }
           return;
         }
         goBackOr("./my.html");
