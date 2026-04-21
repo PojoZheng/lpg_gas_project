@@ -727,16 +727,30 @@
         `;
         listEl.innerHTML = inventoryData.map((item, index) => {
           const alertMeta = inventoryAlertBySpec.get(item.spec);
-          const threshold = Number(alertMeta?.threshold || 0);
+          const heavyLow = Boolean(alertMeta?.heavyLow);
+          const emptyLow = Boolean(alertMeta?.emptyLow);
           const isLow = Boolean(alertMeta?.isLow);
           const statusClass = item.available <= 0 ? "status-danger" : isLow ? "status-warning" : "status-safe";
-          const statusText = item.available <= 0 ? "缺货" : isLow ? `偏紧（阈值${threshold}）` : "充足";
+          let statusText = "充足";
+          if (item.available <= 0) {
+            statusText = "缺货";
+          } else if (heavyLow && emptyLow) {
+            statusText = "双预警";
+          } else if (heavyLow) {
+            statusText = "重瓶偏紧";
+          } else if (emptyLow) {
+            statusText = "空瓶偏紧";
+          }
+          const subtitleParts = [`可配送 ${item.available} 瓶`];
+          if (item.pendingInspection > 0) subtitleParts.push(`待检 ${item.pendingInspection} 瓶`);
+          if (heavyLow) subtitleParts.push(`重瓶阈值 ${Number(alertMeta?.heavyThreshold || 0)}`);
+          if (emptyLow) subtitleParts.push(`空瓶阈值 ${Number(alertMeta?.emptyThreshold || 0)}`);
           return `
             <div class="inventory-item">
               <div class="inventory-head">
                 <div>
                   <div class="inventory-name">${item.spec}</div>
-                  <div class="inventory-subtitle">可配送 ${item.available} 瓶，待检 ${item.pendingInspection} 瓶</div>
+                  <div class="inventory-subtitle">${subtitleParts.join("，")}</div>
                 </div>
                 <div class="inventory-status ${statusClass}">${statusText}</div>
               </div>
@@ -793,7 +807,7 @@
           return;
         }
         setTip(
-          `预警明细：${lowList.map((x) => `${x.spec}可用${x.available}/阈值${x.threshold}`).join("；")}`,
+          `预警明细：${lowList.map((x) => `${x.spec}${x.warningText}`).join("；")}`,
           "warning"
         );
       });

@@ -240,8 +240,11 @@
                 </label>
               </div>
               <div class="row"><label>15kg重瓶</label><input id="warn15" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>15kg空瓶</label><input id="warnEmpty15" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>10kg空瓶</label><input id="warnEmpty10" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>50kg空瓶</label><input id="warnEmpty50" type="number" min="0" /><span class="unit">瓶</span></div>
               <div class="row"><label>超期锁定</label><input id="lockDays" type="number" min="1" /><span class="unit">天</span></div>
             </div>
           </div>
@@ -367,8 +370,11 @@
 
         $("invEnabled").checked = Boolean(data.inventoryWarning?.enabled);
         $("warn15").value = Number(data.inventoryWarning?.heavy?.kg15 || 5);
+        $("warnEmpty15").value = Number(data.inventoryWarning?.empty?.kg15 || 3);
         $("warn10").value = Number(data.inventoryWarning?.heavy?.kg10 || 3);
+        $("warnEmpty10").value = Number(data.inventoryWarning?.empty?.kg10 || 2);
         $("warn50").value = Number(data.inventoryWarning?.heavy?.kg50 || 2);
+        $("warnEmpty50").value = Number(data.inventoryWarning?.empty?.kg50 || 1);
         $("lockDays").value = Number(data.inventoryWarning?.lockDays || 3);
 
         $("noticeEnabled").checked = Boolean(data.notification?.enabled ?? true);
@@ -420,6 +426,11 @@
               kg15: Number($("warn15").value || 0),
               kg10: Number($("warn10").value || 0),
               kg50: Number($("warn50").value || 0),
+            },
+            empty: {
+              kg15: Number($("warnEmpty15").value || 0),
+              kg10: Number($("warnEmpty10").value || 0),
+              kg50: Number($("warnEmpty50").value || 0),
             },
             lockDays: Number($("lockDays").value || 3),
           },

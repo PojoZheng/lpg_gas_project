@@ -79,6 +79,7 @@ const DEFAULT_BUSINESS_RULES = {
   inventoryWarning: {
     enabled: true,
     heavy: { kg15: 5, kg10: 3, kg50: 2 },
+    empty: { kg15: 3, kg10: 2, kg50: 1 },
     lockDays: 3,
     expireDays: 30,
   },
@@ -128,6 +129,15 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
   }
   if (!out.notification.types || typeof out.notification.types !== "object") {
     out.notification.types = deepClone(DEFAULT_BUSINESS_RULES.notification.types);
+  }
+  if (!out.inventoryWarning || typeof out.inventoryWarning !== "object") {
+    out.inventoryWarning = deepClone(DEFAULT_BUSINESS_RULES.inventoryWarning);
+  }
+  if (!out.inventoryWarning.heavy || typeof out.inventoryWarning.heavy !== "object") {
+    out.inventoryWarning.heavy = deepClone(DEFAULT_BUSINESS_RULES.inventoryWarning.heavy);
+  }
+  if (!out.inventoryWarning.empty || typeof out.inventoryWarning.empty !== "object") {
+    out.inventoryWarning.empty = deepClone(DEFAULT_BUSINESS_RULES.inventoryWarning.empty);
   }
   const toNum = (value, fallback, min, max) => {
     const n = Number(value);
@@ -183,6 +193,9 @@ function normalizeBusinessRules(payload = {}, base = DEFAULT_BUSINESS_RULES) {
   out.inventoryWarning.heavy.kg15 = toInt(src.inventoryWarning?.heavy?.kg15, out.inventoryWarning.heavy.kg15, 0, 200);
   out.inventoryWarning.heavy.kg10 = toInt(src.inventoryWarning?.heavy?.kg10, out.inventoryWarning.heavy.kg10, 0, 200);
   out.inventoryWarning.heavy.kg50 = toInt(src.inventoryWarning?.heavy?.kg50, out.inventoryWarning.heavy.kg50, 0, 200);
+  out.inventoryWarning.empty.kg15 = toInt(src.inventoryWarning?.empty?.kg15, out.inventoryWarning.empty.kg15, 0, 200);
+  out.inventoryWarning.empty.kg10 = toInt(src.inventoryWarning?.empty?.kg10, out.inventoryWarning.empty.kg10, 0, 200);
+  out.inventoryWarning.empty.kg50 = toInt(src.inventoryWarning?.empty?.kg50, out.inventoryWarning.empty.kg50, 0, 200);
   out.inventoryWarning.lockDays = toInt(src.inventoryWarning?.lockDays, out.inventoryWarning.lockDays, 1, 30);
   // 气瓶超期预警暂时下线：保持已有值，不再接受前端更新。
 
@@ -294,14 +307,28 @@ function buildInventoryAlertSnapshot() {
   const rules = getBusinessRules("default");
   const warningEnabled = Boolean(rules?.inventoryWarning?.enabled);
   const thresholds = {
-    "15kg": Number(rules?.inventoryWarning?.heavy?.kg15 || 0),
-    "10kg": Number(rules?.inventoryWarning?.heavy?.kg10 || 0),
-    "50kg": Number(rules?.inventoryWarning?.heavy?.kg50 || 0),
+    "15kg": {
+      heavy: Number(rules?.inventoryWarning?.heavy?.kg15 || 0),
+      empty: Number(rules?.inventoryWarning?.empty?.kg15 || 0),
+    },
+    "10kg": {
+      heavy: Number(rules?.inventoryWarning?.heavy?.kg10 || 0),
+      empty: Number(rules?.inventoryWarning?.empty?.kg10 || 0),
+    },
+    "50kg": {
+      heavy: Number(rules?.inventoryWarning?.heavy?.kg50 || 0),
+      empty: Number(rules?.inventoryWarning?.empty?.kg50 || 0),
+    },
   };
   const items = Object.keys(inventoryBySpec).map((spec) => {
     const state = getInventoryState(spec);
-    const threshold = Math.max(0, Number(thresholds[spec] || 0));
-    const isLow = warningEnabled && threshold > 0 && state.available < threshold;
+    const heavyThreshold = Math.max(0, Number(thresholds[spec]?.heavy || 0));
+    const emptyThreshold = Math.max(0, Number(thresholds[spec]?.empty || 0));
+    const heavyLow = warningEnabled && heavyThreshold > 0 && state.available < heavyThreshold;
+    const emptyLow = warningEnabled && emptyThreshold > 0 && state.emptyOnHand < emptyThreshold;
+    const warnings = [];
+    if (heavyLow) warnings.push(`重瓶可用${state.available}（阈值${heavyThreshold}）`);
+    if (emptyLow) warnings.push(`空瓶${state.emptyOnHand}（阈值${emptyThreshold}）`);
     return {
       spec,
       onHand: state.onHand,
@@ -309,8 +336,12 @@ function buildInventoryAlertSnapshot() {
       locked: state.locked,
       pendingInspection: state.pendingInspection,
       available: state.available,
-      threshold,
-      isLow,
+      heavyThreshold,
+      emptyThreshold,
+      heavyLow,
+      emptyLow,
+      isLow: heavyLow || emptyLow,
+      warningText: warnings.join("；"),
     };
   });
   const lowItems = items.filter((x) => x.isLow);
@@ -321,7 +352,7 @@ function buildInventoryAlertSnapshot() {
     lowItems,
     message: lowItems.length
       ? `低库存预警：${lowItems
-          .map((x) => `${x.spec}可用${x.available}（阈值${x.threshold}）`)
+          .map((x) => `${x.spec}${x.warningText}`)
           .join("；")}`
       : "当前无低库存预警",
   };
