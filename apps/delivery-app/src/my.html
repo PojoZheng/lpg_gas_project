@@ -20,14 +20,9 @@
         width: 52px;
         height: 52px;
         border-radius: 999px;
-        background: var(--brand-soft);
-        color: var(--brand);
-        font-size: 18px;
-        font-weight: 700;
-        font-family: var(--font-title);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        border: 1px solid #d6e8ea;
+        object-fit: cover;
+        display: block;
         flex-shrink: 0;
       }
       .account-main { min-width: 0; }
@@ -70,7 +65,7 @@
     <main class="app-page page">
       <section class="app-card account-card">
         <div class="account-head">
-          <div class="account-avatar" id="accountAvatar" aria-hidden="true">配</div>
+          <img class="account-avatar" id="accountAvatar" src="./default-avatar.svg" alt="头像" />
           <div class="account-main">
             <div class="account-name" id="accountName">当前账号</div>
             <div class="account-sub" id="accountSub" hidden></div>
@@ -165,16 +160,11 @@
         if (node) node.addEventListener("click", handler);
       };
       const session = getCurrentSession() || {};
-      const accountLabel = String(session.nickname || session.name || session.phone || "配送员").trim();
+      const accountLabel = String(session.nickname || session.name || "郑老板").trim();
       accountName.textContent = accountLabel;
-      accountAvatar.textContent = accountLabel.slice(0, 1) || "配";
-      if (session.phone) {
-        accountSub.hidden = false;
-        accountSub.textContent = session.phone;
-      } else {
-        accountSub.hidden = true;
-        accountSub.textContent = "";
-      }
+      accountAvatar.src = "./default-avatar.svg";
+      accountSub.hidden = true;
+      accountSub.textContent = "";
 
       bindClick("inventoryBtn", () => (window.location.href = "./inventory.html"));
       bindClick("ordersBtn", () => (window.location.href = "./order-list.html"));
