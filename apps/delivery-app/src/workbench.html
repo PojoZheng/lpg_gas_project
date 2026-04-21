@@ -473,6 +473,15 @@
         margin-top: 8px;
         font-size: 13px;
       }
+      .qo-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .qo-actions .app-btn {
+        width: 100%;
+      }
     </style>
   </head>
   <body>
@@ -638,14 +647,18 @@
                 <option value="transfer">转账</option>
               </select>
             </div>
+            <div class="qo-row" id="qoCollectRow" hidden>
+              <label for="qoCollectToggle">收款录入</label>
+              <input id="qoCollectToggle" type="checkbox" />
+            </div>
             <div class="qo-row" id="qoReceivedRow" hidden>
               <label for="qoReceived">实收</label>
               <input id="qoReceived" type="number" min="0" step="0.01" placeholder="实收金额（元）" />
             </div>
-            <button type="button" class="app-btn ghost" id="qoBackPickBtn" style="width: 100%; margin-top: 4px">返选客户</button>
-            <button type="button" class="app-btn primary" id="qoSubmitBtn" style="width: 100%; margin-top: 8px">
-              确认开单
-            </button>
+            <div class="qo-actions">
+              <button type="button" class="app-btn ghost" id="qoBackPickBtn">返回</button>
+              <button type="button" class="app-btn primary" id="qoSubmitBtn">确认开单</button>
+            </div>
             <div class="state-block info qo-tip" id="qoTip" hidden></div>
           </div>
         </div>
@@ -716,6 +729,8 @@
       const qoPlusBtn = document.getElementById("qoPlusBtn");
       const qoSpec = document.getElementById("qoSpec");
       const qoPrice = document.getElementById("qoPrice");
+      const qoCollectRow = document.getElementById("qoCollectRow");
+      const qoCollectToggle = document.getElementById("qoCollectToggle");
       const qoPayRow = document.getElementById("qoPayRow");
       const qoReceivedRow = document.getElementById("qoReceivedRow");
       const qoTypeSwitch = document.getElementById("qoTypeSwitch");
@@ -771,9 +786,11 @@
 
       function qoSyncPayFields() {
         const imm = qoOrderType === "immediate_complete";
-        qoPayRow.hidden = !imm;
-        qoReceivedRow.hidden = !imm;
-        if (imm) {
+        qoCollectRow.hidden = !imm;
+        const shouldShowPayFields = imm && Boolean(qoCollectToggle?.checked);
+        qoPayRow.hidden = !shouldShowPayFields;
+        qoReceivedRow.hidden = !shouldShowPayFields;
+        if (shouldShowPayFields) {
           const unit = Number(qoPrice.value || 0);
           const amt = Number((unit * qoQuantity).toFixed(2));
           if (!qoReceived.value) qoReceived.value = String(amt);
@@ -864,6 +881,7 @@
         qoSuggestWrap.hidden = true;
         qoCreateCustomerBtn.hidden = true;
         qoSetSelectedCustomer(null);
+        qoCollectToggle.checked = false;
         qoQuantity = 1;
         qoQtyText.textContent = "1";
         qoLoadPrefs();
@@ -927,6 +945,7 @@
           return null;
         }
         const amount = Number((unitPrice * qoQuantity).toFixed(2));
+        const collectNow = Boolean(qoCollectToggle?.checked);
         const payAmount =
           qoOrderType === "immediate_complete"
             ? Number(qoReceived.value || amount)
@@ -941,6 +960,10 @@
           receivedAmount: payAmount,
         };
         if (qoOrderType === "immediate_complete") {
+          if (!collectNow) {
+            qoSetTip("收款信息默认收起；当场完成请先开启收款录入。", true);
+            return null;
+          }
           if (!Number.isFinite(payAmount) || payAmount < 0) {
             qoSetTip("当场完成需填写有效实收金额。", true);
             return null;
@@ -1258,8 +1281,9 @@
           : "已选择客户";
         qoStepPick.hidden = true;
         qoStepConfirm.hidden = false;
+        qoCollectToggle.checked = false;
         qoLoadPrefs();
-        qoSetTip("确认规格与配送方式后提交。");
+        qoSetTip("");
       });
       qoBackPickBtn.addEventListener("click", () => {
         qoStepConfirm.hidden = true;
@@ -1278,6 +1302,7 @@
       });
       qoSpec.addEventListener("change", qoSyncPayFields);
       qoPrice.addEventListener("change", qoSyncPayFields);
+      qoCollectToggle.addEventListener("change", qoSyncPayFields);
       function qoSetOrderType(type) {
         if (type !== "later_delivery" && type !== "immediate_complete") return;
         qoOrderType = type;
