@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>同步队列与冲突处理</title>
+    <link rel="stylesheet" href="./platform-design-system.css" />
+    <style>
+      .page-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .page-toolbar-copy h2 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .page-toolbar-copy p {
+        margin: 4px 0 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .queue-layout {
+        display: grid;
+        grid-template-columns: 300px minmax(520px, 1fr) 380px;
+        gap: 12px;
+        align-items: start;
+      }
+      .column-stack {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+      .panel-sticky {
+        position: sticky;
+        top: 18px;
+      }
+      .section-head,
+      .queue-head,
+      .detail-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+      .panel-muted,
+      .queue-meta,
+      .detail-meta,
+      .mini-note {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+      .summary-grid,
+      .detail-grid,
+      .detail-actions,
+      .filter-stack,
+      .utility-grid,
+      .queue-list {
+        display: grid;
+        gap: 8px;
+      }
+      .summary-card,
+      .detail-card,
+      .utility-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        background: #fff;
+      }
+      .summary-card strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 20px;
+      }
+      .summary-card span {
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .filter-chip,
+      .status-pill,
+      .entity-pill,
+      .tag-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-size: 12px;
+      }
+      .filter-chip {
+        cursor: pointer;
+      }
+      .filter-chip.active {
+        border-color: var(--brand);
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+      .status-pill.pending {
+        background: #f8fafc;
+        border-color: #dbe3ee;
+        color: #475569;
+      }
+      .status-pill.syncing {
+        background: #eef6ff;
+        border-color: #bfdbfe;
+        color: #2563eb;
+      }
+      .status-pill.failed {
+        background: #fff1f2;
+        border-color: #fecdd3;
+        color: #be123c;
+      }
+      .status-pill.completed {
+        background: #eff8f1;
+        border-color: #cfe7d5;
+        color: #20804f;
+      }
+      .entity-pill,
+      .tag-pill {
+        min-height: 28px;
+        padding: 0 10px;
+      }
+      .entity-pill {
+        background: #f5f7fa;
+        color: #475569;
+      }
+      .tag-pill.manual {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #b45309;
+      }
+      .tag-pill.conflict {
+        background: #fff3e8;
+        border-color: #fdba74;
+        color: #c2410c;
+      }
+      .queue-card {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 12px;
+        background: #fff;
+        text-align: left;
+        cursor: pointer;
+      }
+      .queue-card.active {
+        border-color: var(--brand);
+        box-shadow: 0 8px 20px rgba(71, 153, 160, 0.08);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%);
+      }
+      .queue-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .queue-sub {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .queue-body {
+        margin-top: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .queue-line,
+      .detail-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .queue-line strong,
+      .detail-line strong {
+        color: var(--text-primary);
+        text-align: right;
+      }
+      .queue-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .queue-actions .btn,
+      .detail-actions .btn,
+      .page-toolbar .btn {
+        min-width: 0;
+      }
+      .detail-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .payload-box {
+        margin-top: 8px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #f7f9fb;
+        padding: 10px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #334155;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .empty-block {
+        border: 1px dashed var(--border);
+        border-radius: 18px;
+        padding: 20px;
+        text-align: center;
+        color: var(--text-secondary);
+        background: #fff;
+      }
+      .switch-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .switch-line label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      @media (max-width: 1380px) {
+        .queue-layout {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+        .panel-sticky {
+          position: static;
+        }
+      }
+      @media (max-width: 980px) {
+        .queue-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="platform-app">
+      <div id="platformSidebar"></div>
+
+      <div class="content-wrap">
+        <div id="platformTopBar"></div>
+
+        <main class="page-content">
+          <div class="page-toolbar">
+            <div class="page-toolbar-copy">
+              <h2>同步队列</h2>
+              <p>按异常状态筛查离线记录，查看冲突明细，并执行批量同步或人工介入。</p>
+            </div>
+            <div class="btn-row">
+              <button class="btn secondary" id="batchBtn">批量同步</button>
+              <button class="btn ghost" id="refreshBtn">刷新列表</button>
+            </div>
+          </div>
+
+          <div class="queue-layout">
+            <div class="column-stack">
+              <section class="card">
+                <div class="section-head" style="margin-bottom: 10px;">
+                  <strong>筛选与范围</strong>
+                  <span class="panel-muted" id="filterHitText">0 条命中</span>
+                </div>
+                <div class="filter-stack">
+                  <input id="keywordFilter" placeholder="搜索离线 ID、错误原因、对象 ID" />
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>状态</label>
+                    <select id="statusFilter">
+                      <option value="all">全部状态</option>
+                      <option value="pending">待同步</option>
+                      <option value="syncing">同步中</option>
+                      <option value="failed">同步失败</option>
+                      <option value="completed">已完成</option>
+                    </select>
+                  </div>
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>实体类型</label>
+                    <select id="entityFilter">
+                      <option value="all">全部实体</option>
+                      <option value="order">订单</option>
+                      <option value="inventory">库存</option>
+                      <option value="customer">客户</option>
+                      <option value="safety">安检</option>
+                    </select>
+                  </div>
+                  <div class="chip-row" id="quickFilterWrap">
+                    <button class="filter-chip active" data-mode="all">全部</button>
+                    <button class="filter-chip" data-mode="failed">失败优先</button>
+                    <button class="filter-chip" data-mode="manual">人工处理</button>
+                    <button class="filter-chip" data-mode="conflict">冲突记录</button>
+                  </div>
+                  <div class="switch-line">
+                    <label><input type="checkbox" id="manualOnlyFilter" /> 仅看人工处理</label>
+                    <label><input type="checkbox" id="conflictOnlyFilter" /> 仅看冲突</label>
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn secondary" id="filterBtn">应用筛选</button>
+                    <button class="btn ghost" id="resetBtn">重置</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="section-head" style="margin-bottom: 10px;">
+                  <strong>待处理摘要</strong>
+                  <span class="panel-muted">仅保留处理相关指标</span>
+                </div>
+                <div class="summary-grid" id="stats"></div>
+                <p class="tip" id="batchTip"></p>
+              </section>
+
+              <section class="card">
+                <div class="section-head" style="margin-bottom: 10px;">
+                  <div>
+                    <strong>补录离线记录</strong>
+                    <div class="mini-note">用于人工补录漏采集记录，不作为主操作入口。</div>
+                  </div>
+                </div>
+                <div class="utility-grid">
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>实体类型</label>
+                    <select id="entitySelect">
+                      <option value="order">订单</option>
+                      <option value="inventory">库存</option>
+                      <option value="customer">客户</option>
+                      <option value="safety">安检</option>
+                    </select>
+                  </div>
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>动作</label>
+                    <input id="actionInput" value="update" />
+                  </div>
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>关联 ID / 规格</label>
+                    <input id="refIdInput" placeholder="如：ORD-202604-01 或 15kg" />
+                  </div>
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>本地状态</label>
+                    <input id="localStatusInput" placeholder="如：pending_delivery / completed" />
+                  </div>
+                  <div class="field" style="margin-bottom: 0;">
+                    <label>库存基线</label>
+                    <input id="baseOnHandInput" type="number" placeholder="仅库存同步填写" />
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn primary" id="enqueueBtn">加入队列</button>
+                  </div>
+                  <p class="tip" id="enqueueTip"></p>
+                </div>
+              </section>
+            </div>
+
+            <div class="column-stack">
+              <section class="card">
+                <div class="queue-head" style="margin-bottom: 10px;">
+                  <div>
+                    <strong>队列记录</strong>
+                    <div class="queue-meta">按更新时间倒序，点击任一记录查看详情与处理动作。</div>
+                  </div>
+                  <span class="panel-muted" id="queueCountText">0 条记录</span>
+                </div>
+                <div class="queue-list" id="queueList"></div>
+              </section>
+            </div>
+
+            <div class="column-stack panel-sticky">
+              <section class="card">
+                <div class="detail-head" style="margin-bottom: 10px;">
+                  <div>
+                    <div class="detail-title">记录详情</div>
+                    <div class="detail-meta">查看对象、冲突、重试与同步负载。</div>
+                  </div>
+                  <span class="panel-muted" id="detailTime">--</span>
+                </div>
+                <div class="detail-grid" id="detailPanel">
+                  <div class="empty-block">从左侧列表选择一条同步记录</div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        fetchSyncQueue,
+        enqueueSyncItem,
+        batchSubmitSync,
+        retrySyncItem,
+        markSyncManual,
+      } from "./sync-queue-client.js";
+      import { mountPlatformChrome } from "./platform-shell.js";
+
+      const entitySelect = document.getElementById("entitySelect");
+      const actionInput = document.getElementById("actionInput");
+      const refIdInput = document.getElementById("refIdInput");
+      const localStatusInput = document.getElementById("localStatusInput");
+      const baseOnHandInput = document.getElementById("baseOnHandInput");
+      const enqueueBtn = document.getElementById("enqueueBtn");
+      const enqueueTip = document.getElementById("enqueueTip");
+      const stats = document.getElementById("stats");
+      const batchBtn = document.getElementById("batchBtn");
+      const batchTip = document.getElementById("batchTip");
+      const queueList = document.getElementById("queueList");
+      const queueCountText = document.getElementById("queueCountText");
+      const filterHitText = document.getElementById("filterHitText");
+      const detailPanel = document.getElementById("detailPanel");
+      const detailTime = document.getElementById("detailTime");
+      const statusFilter = document.getElementById("statusFilter");
+      const entityFilter = document.getElementById("entityFilter");
+      const keywordFilter = document.getElementById("keywordFilter");
+      const manualOnlyFilter = document.getElementById("manualOnlyFilter");
+      const conflictOnlyFilter = document.getElementById("conflictOnlyFilter");
+      const filterBtn = document.getElementById("filterBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const quickFilterWrap = document.getElementById("quickFilterWrap");
+
+      const state = {
+        items: [],
+        selectedOfflineId: "",
+        quickMode: "all",
+      };
+
+      function setTip(el, text, isError = false) {
+        el.textContent = text;
+        el.className = isError ? "tip err" : "tip";
+      }
+
+      function formatDate(value) {
+        if (!value) return "--";
+        const date = new Date(Number(value));
+        if (Number.isNaN(date.getTime())) return "--";
+        return date.toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function getFilteredHitCount(filteredStats = {}) {
+        return ["pending", "syncing", "failed", "completed"]
+          .map((key) => Number(filteredStats[key] || 0))
+          .reduce((sum, value) => sum + value, 0);
+      }
+
+      function renderStats(data = {}, filteredStats = {}) {
+        stats.innerHTML = "";
+        const rows = [
+          ["失败待处理", data.failed || 0, "优先处理同步失败记录"],
+          ["人工介入", data.manualRequired || 0, "达到上限或已转人工"],
+          ["等待重试", data.waitingRetry || 0, "指数退避中的记录"],
+          ["冲突记录", filteredStats.conflict || data.conflict || 0, "当前筛选范围内的冲突"],
+        ];
+        rows.forEach(([label, value, note]) => {
+          const el = document.createElement("div");
+          el.className = "summary-card";
+          el.innerHTML = `<span>${label}</span><strong>${value}</strong><span>${note}</span>`;
+          stats.appendChild(el);
+        });
+        filterHitText.textContent = `${getFilteredHitCount(filteredStats)} 条命中`;
+      }
+
+      function renderDetail(item) {
+        if (!item) {
+          detailTime.textContent = "--";
+          detailPanel.innerHTML = '<div class="empty-block">从左侧列表选择一条同步记录</div>';
+          return;
+        }
+        detailTime.textContent = formatDate(item.updatedAt || item.createdAt);
+        const canRetry = !item.manualRequired;
+        detailPanel.innerHTML = `
+          <div class="detail-card">
+            <div class="detail-head" style="margin-bottom: 10px;">
+              <div>
+                <div class="detail-title">${item.offlineId}</div>
+                <div class="detail-meta">${item.entityType} / ${item.action}</div>
+              </div>
+              <span class="status-pill ${item.syncStatus}">${item.syncStatus}</span>
+            </div>
+            <div class="chip-row" style="margin-bottom: 10px;">
+              <span class="entity-pill">${item.entityType}</span>
+              ${item.manualRequired ? '<span class="tag-pill manual">人工处理</span>' : ""}
+              ${item.conflictType ? `<span class="tag-pill conflict">${item.conflictType}</span>` : ""}
+            </div>
+            <div class="detail-grid">
+              <div class="detail-line"><span>重试次数</span><strong>${item.retryCount || 0}</strong></div>
+              <div class="detail-line"><span>下次重试</span><strong>${item.nextRetryAt ? formatDate(item.nextRetryAt) : "可立即执行"}</strong></div>
+              <div class="detail-line"><span>创建时间</span><strong>${formatDate(item.createdAt)}</strong></div>
+              <div class="detail-line"><span>更新时间</span><strong>${formatDate(item.updatedAt)}</strong></div>
+            </div>
+          </div>
+          <div class="detail-card">
+            <strong>处理结果</strong>
+            <div class="payload-box">${item.resultSummary || item.lastError || "待处理"}</div>
+          </div>
+          <div class="detail-card">
+            <strong>错误与冲突</strong>
+            <div class="payload-box">${item.lastError || item.conflictType || "当前无错误信息"}</div>
+          </div>
+          <div class="detail-card">
+            <strong>同步负载</strong>
+            <div class="payload-box">${JSON.stringify(item.payload || {}, null, 2)}</div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn primary" id="detailRetryBtn" ${canRetry ? "" : "disabled"}>立即重试</button>
+            <button class="btn secondary" id="detailManualBtn">转人工处理</button>
+          </div>
+        `;
+
+        const detailRetryBtn = document.getElementById("detailRetryBtn");
+        const detailManualBtn = document.getElementById("detailManualBtn");
+
+        if (detailRetryBtn) {
+          detailRetryBtn.addEventListener("click", async () => {
+            await handleRetry(item.offlineId);
+          });
+        }
+        if (detailManualBtn) {
+          detailManualBtn.addEventListener("click", async () => {
+            await handleManual(item.offlineId);
+          });
+        }
+      }
+
+      function renderList(items = []) {
+        queueList.innerHTML = "";
+        queueCountText.textContent = `${items.length} 条记录`;
+        if (!items.length) {
+          renderDetail(null);
+          queueList.innerHTML = '<div class="empty-block">当前筛选范围内没有同步记录</div>';
+          return;
+        }
+
+        const selectedId = state.selectedOfflineId || items[0].offlineId;
+        const activeItem = items.find((item) => item.offlineId === selectedId) || items[0];
+        state.selectedOfflineId = activeItem.offlineId;
+
+        items.forEach((item) => {
+          const box = document.createElement("button");
+          box.type = "button";
+          box.className = item.offlineId === state.selectedOfflineId ? "queue-card active" : "queue-card";
+          box.innerHTML = `
+            <div class="queue-head">
+              <div>
+                <div class="queue-title">${item.offlineId}</div>
+                <div class="queue-sub">${item.entityType} / ${item.action}</div>
+              </div>
+              <span class="status-pill ${item.syncStatus}">${item.syncStatus}</span>
+            </div>
+            <div class="queue-body">
+              <div class="chip-row">
+                <span class="entity-pill">${item.entityType}</span>
+                ${item.manualRequired ? '<span class="tag-pill manual">人工处理</span>' : ""}
+                ${item.conflictType ? `<span class="tag-pill conflict">${item.conflictType}</span>` : ""}
+              </div>
+              <div class="queue-line"><span>对象</span><strong>${getReferenceValue(item)}</strong></div>
+              <div class="queue-line"><span>重试 / 下次</span><strong>${item.retryCount || 0} / ${item.nextRetryAt ? formatDate(item.nextRetryAt) : "立即"}</strong></div>
+              <div class="queue-sub">${item.resultSummary || item.lastError || "待同步"}</div>
+            </div>
+            <div class="queue-actions">
+              <span class="btn secondary action-retry" data-id="${item.offlineId}">重试</span>
+              <span class="btn ghost action-manual" data-id="${item.offlineId}">转人工</span>
+            </div>
+          `;
+          box.addEventListener("click", (event) => {
+            const retryEl = event.target.closest(".action-retry");
+            const manualEl = event.target.closest(".action-manual");
+            if (retryEl) {
+              event.stopPropagation();
+              handleRetry(retryEl.dataset.id);
+              return;
+            }
+            if (manualEl) {
+              event.stopPropagation();
+              handleManual(manualEl.dataset.id);
+              return;
+            }
+            state.selectedOfflineId = item.offlineId;
+            renderList(state.items);
+          });
+          queueList.appendChild(box);
+        });
+
+        renderDetail(activeItem);
+      }
+
+      function getReferenceValue(item) {
+        const payload = item.payload || {};
+        return payload.orderId || payload.customerId || payload.spec || payload.checkId || "--";
+      }
+
+      async function handleRetry(offlineId) {
+        const res = await retrySyncItem(offlineId);
+        if (!res.success) {
+          setTip(batchTip, res.error || "重试失败", true);
+          return;
+        }
+        setTip(batchTip, `记录 ${offlineId} 已执行重试`);
+        await loadQueue();
+      }
+
+      async function handleManual(offlineId) {
+        const res = await markSyncManual(offlineId);
+        if (!res.success) {
+          setTip(batchTip, res.error || "转人工失败", true);
+          return;
+        }
+        setTip(batchTip, `记录 ${offlineId} 已转人工处理`);
+        await loadQueue();
+      }
+
+      function applyQuickMode(mode) {
+        state.quickMode = mode;
+        [...quickFilterWrap.querySelectorAll(".filter-chip")].forEach((chip) => {
+          chip.classList.toggle("active", chip.dataset.mode === mode);
+        });
+        if (mode === "all") {
+          manualOnlyFilter.checked = false;
+          conflictOnlyFilter.checked = false;
+          statusFilter.value = "all";
+        }
+        if (mode === "failed") {
+          manualOnlyFilter.checked = false;
+          conflictOnlyFilter.checked = false;
+          statusFilter.value = "failed";
+        }
+        if (mode === "manual") {
+          manualOnlyFilter.checked = true;
+          conflictOnlyFilter.checked = false;
+        }
+        if (mode === "conflict") {
+          manualOnlyFilter.checked = false;
+          conflictOnlyFilter.checked = true;
+        }
+      }
+
+      async function loadQueue() {
+        const res = await fetchSyncQueue({
+          status: statusFilter.value,
+          entityType: entityFilter.value,
+          keyword: keywordFilter.value,
+          manualOnly: manualOnlyFilter.checked ? "1" : "0",
+          conflictOnly: conflictOnlyFilter.checked ? "1" : "0",
+        });
+        if (!res.success) {
+          setTip(batchTip, res.error || "队列加载失败，请稍后重试", true);
+          return;
+        }
+        const data = res.data || {};
+        state.items = Array.isArray(data.items) ? data.items : [];
+        if (!state.items.some((item) => item.offlineId === state.selectedOfflineId)) {
+          state.selectedOfflineId = state.items[0]?.offlineId || "";
+        }
+        renderStats(data.stats || {}, data.filteredStats || {});
+        renderList(state.items);
+      }
+
+      enqueueBtn.addEventListener("click", async () => {
+        const entityType = entitySelect.value;
+        const action = String(actionInput.value || "").trim();
+        const refId = String(refIdInput.value || "").trim();
+        const localStatus = String(localStatusInput.value || "").trim();
+        const baseOnHandText = String(baseOnHandInput.value || "").trim();
+        const baseOnHand = Number(baseOnHandText);
+        const payload = {};
+
+        if (entityType === "order") {
+          payload.orderId = refId;
+          payload.orderStatus = localStatus;
+        } else if (entityType === "inventory") {
+          payload.spec = refId || "15kg";
+          if (baseOnHandText && Number.isFinite(baseOnHand)) payload.baseOnHand = baseOnHand;
+        } else if (entityType === "customer") {
+          payload.customerId = refId;
+        } else {
+          payload.checkId = refId;
+          payload.localStatus = localStatus;
+        }
+
+        setTip(enqueueTip, "正在写入离线队列...");
+        const res = await enqueueSyncItem({ entityType, action, payload });
+        if (!res.success) {
+          setTip(enqueueTip, res.error || "入队失败，请检查后重试", true);
+          return;
+        }
+        setTip(enqueueTip, "离线记录已加入队列");
+        refIdInput.value = "";
+        localStatusInput.value = "";
+        baseOnHandInput.value = "";
+        await loadQueue();
+      });
+
+      batchBtn.addEventListener("click", async () => {
+        setTip(batchTip, "正在批量同步...");
+        const res = await batchSubmitSync({});
+        if (!res.success) {
+          setTip(batchTip, res.error || "批量同步失败，请稍后重试", true);
+          return;
+        }
+        const data = res.data || {};
+        setTip(batchTip, `批量同步完成：成功 ${data.completed || 0} 条，失败 ${data.failed || 0} 条`);
+        await loadQueue();
+      });
+
+      filterBtn.addEventListener("click", () => loadQueue());
+      refreshBtn.addEventListener("click", () => loadQueue());
+      resetBtn.addEventListener("click", () => {
+        keywordFilter.value = "";
+        statusFilter.value = "all";
+        entityFilter.value = "all";
+        applyQuickMode("all");
+        loadQueue();
+      });
+      manualOnlyFilter.addEventListener("change", () => loadQueue());
+      conflictOnlyFilter.addEventListener("change", () => loadQueue());
+      keywordFilter.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") loadQueue();
+      });
+      quickFilterWrap.addEventListener("click", (event) => {
+        const chip = event.target.closest(".filter-chip");
+        if (!chip) return;
+        applyQuickMode(chip.dataset.mode || "all");
+        loadQueue();
+      });
+
+      mountPlatformChrome({
+        active: "sync",
+        breadcrumb: "同步队列",
+        title: "同步队列",
+        actions: [{ label: "返回平台入口", href: "./index.html", variant: "secondary" }],
+      });
+
+      loadQueue();
+    </script>
+  </body>
+</html>
