@@ -376,6 +376,14 @@
             return;
           }
 
+          if (orderData.orderStatus === "pending_delivery") {
+            showToast("待配送订单进入完单录入");
+            window.setTimeout(() => {
+              window.location.href = `./pending-delivery-list.html?orderId=${encodeURIComponent(orderData.orderId)}`;
+            }, 250);
+            return;
+          }
+
           document.getElementById("customerName").textContent = orderData.customerName || "-";
           document.getElementById("address").textContent = orderData.address || "-";
           document.getElementById("orderId").textContent = orderData.orderId || "-";

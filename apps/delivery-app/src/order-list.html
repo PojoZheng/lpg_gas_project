@@ -587,6 +587,10 @@
 
       // 操作处理函数
       function handleOrderClick(order) {
+        if (order.orderStatus === "pending_delivery") {
+          navigateWithListScroll(`./pending-delivery-list.html?orderId=${order.orderId}`, "order-list");
+          return;
+        }
         navigateWithListScroll(`./order-detail.html?orderId=${order.orderId}`, "order-list");
       }
 
