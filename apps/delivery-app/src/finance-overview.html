@@ -30,6 +30,9 @@
       }
       .custom-range.show { display: grid; }
       .custom-actions { grid-column: span 2; }
+      .search-row {
+        margin-top: 10px;
+      }
       .summary-main {
         margin: 0;
         display: flex;
@@ -165,6 +168,9 @@
             <button class="app-btn soft" id="applyCustomBtn" style="width: 100%;">应用自定义范围</button>
           </div>
         </div>
+        <div class="search-row">
+          <input class="app-input" id="customerKeyword" type="search" placeholder="搜索客户名称" />
+        </div>
         <p class="app-tip" id="rangeTip">当前范围：今日</p>
       </section>
 
@@ -234,6 +240,7 @@
         endDate: "",
         flowFilter: "all",
         paymentFilter: "all",
+        customerKeyword: "",
         lastList: [],
       };
 
@@ -242,6 +249,7 @@
       const customRange = document.getElementById("customRange");
       const startDateInput = document.getElementById("startDate");
       const endDateInput = document.getElementById("endDate");
+      const customerKeywordInput = document.getElementById("customerKeyword");
       const totalIncome = document.getElementById("totalIncome");
       const refundExpense = document.getElementById("refundExpense");
       const netIncome = document.getElementById("netIncome");
@@ -324,6 +332,10 @@
         if (state.paymentFilter !== "all") {
           next = next.filter((item) => (item.paymentMethod || "other") === state.paymentFilter);
         }
+        const keyword = String(state.customerKeyword || "").trim().toLowerCase();
+        if (keyword) {
+          next = next.filter((item) => String(item.customerName || "").toLowerCase().includes(keyword));
+        }
         return next;
       }
 
@@ -404,6 +416,10 @@
       });
 
       document.getElementById("refreshBtn").addEventListener("click", loadData);
+      customerKeywordInput.addEventListener("input", () => {
+        state.customerKeyword = String(customerKeywordInput.value || "").trim();
+        renderList(getFilteredList(state.lastList));
+      });
       document.querySelectorAll("[data-flow-filter]").forEach((btn) => {
         btn.addEventListener("click", () => applyFlowFilter(btn.dataset.flowFilter || "all"));
       });
