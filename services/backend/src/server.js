@@ -33,9 +33,37 @@ const policyVersions = [
     version: "v1.0.0",
     regionCode: "CN-DEFAULT",
     content: {
+      regionName: "全国默认区域",
+      template: "standard",
       safetyCheckRequired: true,
       maxRetry: 3,
       syncBatchSize: 20,
+      scan: {
+        enabled: true,
+        required: false,
+        mode: "qr_code",
+        scenes: ["delivery", "recovery"],
+      },
+      inspection: {
+        delivery: {
+          enabled: true,
+          mode: "manual",
+          aiItems: ["cylinder", "hose"],
+          requiredPhotos: ["cylinder", "environment"],
+        },
+        periodic: {
+          enabled: true,
+          cycleDays: 90,
+          autoTask: true,
+        },
+        aiEnabled: false,
+      },
+      reporting: {
+        mode: "hybrid",
+        batchInterval: "24h",
+        retryCount: 3,
+        syncBatchSize: 20,
+      },
     },
     status: "active",
     publishedAt: Date.now() - 24 * 60 * 60 * 1000,
