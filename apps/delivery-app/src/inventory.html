@@ -137,6 +137,10 @@
       .metric-chip.compact strong {
         justify-content: center;
       }
+      .metric-chip.compact span {
+        display: block;
+        line-height: 1.2;
+      }
       .metric-chip.highlight {
         background: #f0f9ff;
         border-color: #bae6fd;
@@ -753,7 +757,8 @@
           } else if (emptyLow) {
             statusText = "空瓶偏紧";
           }
-          const subtitleParts = [`可配送 ${item.available} 瓶`];
+          const subtitleParts = [];
+          subtitleParts.push(`可配送 ${item.available} 瓶`);
           if (item.pendingInspection > 0) subtitleParts.push(`待检 ${item.pendingInspection} 瓶`);
           if (heavyLow) subtitleParts.push(`重瓶阈值 ${Number(alertMeta?.heavyThreshold || 0)}`);
           if (emptyLow) subtitleParts.push(`空瓶阈值 ${Number(alertMeta?.emptyThreshold || 0)}`);
