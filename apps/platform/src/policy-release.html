@@ -340,7 +340,7 @@
           <div class="page-toolbar">
             <div class="page-toolbar-copy">
               <h2>策略配置</h2>
-              <p>按作用域管理平台下发配置。左侧看列表，中间编辑，右侧看当前详情、版本和审计。</p>
+              <p>按作用域管理平台下发配置。左侧看作用域，中间编辑规则，右侧只看当前生效信息。</p>
             </div>
             <span class="mini-tag">清晰管理后台</span>
           </div>
@@ -544,10 +544,6 @@
                   <button class="btn primary" id="saveDraftBtn">保存草稿</button>
                   <button class="btn secondary" id="publishBtn">发布选中版本</button>
                 </div>
-                <div class="field-grid" style="margin-top: 12px">
-                  <div class="field"><label>回滚版本</label><select id="rollbackVersionSelect"></select></div>
-                </div>
-                <button class="btn danger" id="rollbackBtn">回滚到该版本</button>
                 <p class="tip" id="opTip"></p>
               </section>
             </div>
@@ -563,18 +559,27 @@
 
               <section class="card">
                 <div class="summary-head" style="margin-bottom: 10px">
-                  <strong>版本记录</strong>
-                  <span class="panel-muted">切换版本</span>
+                  <strong>下发说明</strong>
+                  <span class="panel-muted">业务平台只保留必要信息</span>
                 </div>
-                <div class="list-stack" id="versionList"></div>
-              </section>
-
-              <section class="card">
-                <div class="summary-head" style="margin-bottom: 10px">
-                  <strong>审计日志</strong>
-                  <span class="panel-muted">按时间倒序</span>
+                <div class="summary-grid">
+                  <div class="summary-card">
+                    <h3>平台职责</h3>
+                    <div class="summary-list">
+                      <div class="summary-line"><span>业务配置</span><strong>作用域下发</strong></div>
+                      <div class="summary-line"><span>异常处理</span><strong>监控与同步页承接</strong></div>
+                      <div class="summary-line"><span>运维能力</span><strong>挂云上管理</strong></div>
+                    </div>
+                  </div>
+                  <div class="summary-card">
+                    <h3>当前操作说明</h3>
+                    <div class="summary-list">
+                      <div class="summary-line"><span>保存草稿</span><strong>保留当前编辑内容</strong></div>
+                      <div class="summary-line"><span>发布版本</span><strong>将选中配置下发到作用域</strong></div>
+                      <div class="summary-line"><span>异常回流</span><strong>监控与同步页继续处理</strong></div>
+                    </div>
+                  </div>
                 </div>
-                <div class="list-stack" id="auditList"></div>
               </section>
             </div>
           </div>
@@ -586,10 +591,8 @@
       import {
         fetchCurrentPolicy,
         fetchPolicyVersions,
-        fetchPolicyAuditLogs,
         editPolicyDraft,
         publishPolicyVersion,
-        rollbackPolicyVersion,
       } from "./policy-release-client.js";
       import { mountPlatformChrome } from "./platform-shell.js";
 
@@ -681,10 +684,6 @@
       const contentInput = document.getElementById("contentInput");
       const saveDraftBtn = document.getElementById("saveDraftBtn");
       const publishBtn = document.getElementById("publishBtn");
-      const rollbackBtn = document.getElementById("rollbackBtn");
-      const rollbackVersionSelect = document.getElementById("rollbackVersionSelect");
-      const versionList = document.getElementById("versionList");
-      const auditList = document.getElementById("auditList");
       const opTip = document.getElementById("opTip");
       const scopeListFilter = document.getElementById("scopeListFilter");
       const scopeListSearch = document.getElementById("scopeListSearch");
@@ -1049,9 +1048,6 @@
             renderCurrentPolicy(target);
             setTip(`已切换到作用域：${normalizeScopeMeta(target).scopeLabel}`);
             renderScopeList();
-            [...versionList.querySelectorAll(".version-item")].forEach((row) => {
-              row.classList.toggle("active", row.querySelector(".version-title")?.textContent === target.version);
-            });
           });
         });
       }
@@ -1071,61 +1067,10 @@
         if (!res.success) return;
         const list = res.data || [];
         allPolicyVersions = list;
-        versionList.innerHTML = "";
-        rollbackVersionSelect.innerHTML = "";
-        list.forEach((item, idx) => {
-          const scope = normalizeScopeMeta(item);
-          const row = document.createElement("div");
-          row.className = `version-item ${selectedVersion === item.version ? "active" : ""}`;
-          row.innerHTML = `
-            <div class="version-head">
-              <div class="version-title">${item.version}</div>
-              <span class="status-pill ${item.status}">${statusLabel(item.status)}</span>
-            </div>
-            <div class="version-meta">${scopeTypeLabel(scope.scopeType)}：${scope.scopeLabel} (${scope.scopeValue})<br/>区域：${scope.regionCode}<br/>发布时间：${formatTime(item.publishedAt)}<br/>发布人：${item.publishedBy || "未发布"}</div>
-          `;
-          row.addEventListener("click", () => {
-            selectedVersion = item.version;
-            applyPolicyToForm(item);
-            renderCurrentPolicy(item);
-            setTip(`已载入版本：${item.version}`);
-            [...versionList.querySelectorAll(".version-item")].forEach((node) => node.classList.remove("active"));
-            row.classList.add("active");
-            renderScopeList();
-          });
-          versionList.appendChild(row);
-
-          const opt = document.createElement("option");
-          opt.value = item.version;
-          opt.textContent = item.version;
-          if (idx === 0) opt.selected = true;
-          rollbackVersionSelect.appendChild(opt);
-        });
         if (!selectedVersion && list[0]) {
           selectedVersion = list[0].version;
         }
         renderScopeList();
-      }
-
-      async function loadAudit() {
-        const res = await fetchPolicyAuditLogs();
-        if (!res.success) return;
-        const list = res.data || [];
-        auditList.innerHTML = list.length
-          ? list
-              .map(
-                (x) => `
-                  <div class="summary-card">
-                    <div class="audit-head">
-                      <div class="audit-title">${x.action === "edit" ? "编辑草稿" : x.action === "publish" ? "发布策略" : "回滚策略"}</div>
-                      <span class="mini-tag">${formatTime(x.createdAt)}</span>
-                    </div>
-                    <div class="audit-meta">操作人：${x.operator}<br/>详情：${x.detail}</div>
-                  </div>
-                `,
-              )
-              .join("")
-          : '<p class="panel-muted">暂无审计日志</p>';
       }
 
       saveDraftBtn.addEventListener("click", async () => {
@@ -1143,7 +1088,6 @@
         selectedVersion = res.data.version;
         setTip(`草稿已保存：${res.data.version}`);
         await loadVersions();
-        await loadAudit();
       });
 
       publishBtn.addEventListener("click", async () => {
@@ -1157,23 +1101,6 @@
         setTip(`发布成功：${selectedVersion}`);
         await loadCurrent();
         await loadVersions();
-        await loadAudit();
-      });
-
-      rollbackBtn.addEventListener("click", async () => {
-        const toVersion = rollbackVersionSelect.value;
-        if (!toVersion) return setTip("请选择回滚版本", true);
-        setTip("正在执行回滚...");
-        const res = await rollbackPolicyVersion({
-          toVersion,
-          operator: operatorInput.value,
-        });
-        if (!res.success) return setTip(res.error || "回滚失败，请重试", true);
-        selectedVersion = toVersion;
-        setTip(`已回滚到版本：${toVersion}`);
-        await loadCurrent();
-        await loadVersions();
-        await loadAudit();
       });
 
       [
@@ -1230,7 +1157,6 @@
       syncScopeInputs();
       loadCurrent();
       loadVersions();
-      loadAudit();
     </script>
   </body>
 </html>
