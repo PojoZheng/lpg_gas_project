@@ -464,7 +464,7 @@
           <label class="sheet-label" for="actionQty" id="actionQtyLabel">数量</label>
           <input id="actionQty" class="app-input" type="number" min="1" step="1" inputmode="numeric" />
         </div>
-        <div class="sheet-row" id="actionWeightRow" hidden>
+        <div class="sheet-row" id="actionWeightRow" hidden style="display: none;">
           <label class="sheet-label" for="actionWeight">充装重量（kg）</label>
           <input
             id="actionWeight"
@@ -476,7 +476,7 @@
             placeholder="请输入本次充装总重量"
           />
         </div>
-        <div class="sheet-row" id="actionStockTypeRow" hidden>
+        <div class="sheet-row" id="actionStockTypeRow" hidden style="display: none;">
           <div class="sheet-label">盘点对象</div>
           <div class="sheet-toggle-group">
             <button type="button" class="sheet-toggle active" data-stock-type="heavy" id="stockTypeHeavyBtn">重瓶在库</button>
@@ -584,6 +584,12 @@
         return Number(n.toFixed(2));
       }
 
+      function toggleSheetRow(node, visible) {
+        if (!node) return;
+        node.hidden = !visible;
+        node.style.display = visible ? "grid" : "none";
+      }
+
       function openActionSheet(mode, defaults = {}) {
         actionMode = mode;
         actionStockType = defaults.stockType === "empty" ? "empty" : "heavy";
@@ -593,24 +599,24 @@
           actionSheetTitle.textContent = "采购入库";
           actionQtyLabel.textContent = "采购数量";
           actionSheetHint.textContent = "确认采购入库后会直接增加在库数量。";
-          actionWeightRow.hidden = true;
-          actionStockTypeRow.hidden = true;
+          toggleSheetRow(actionWeightRow, false);
+          toggleSheetRow(actionStockTypeRow, false);
           actionWeight.value = "";
         } else if (mode === "refill") {
           actionQty.min = "1";
           actionSheetTitle.textContent = "气瓶充装";
           actionQtyLabel.textContent = "充装数量";
           actionSheetHint.textContent = "充装会消耗对应规格空瓶，并增加重瓶在库。";
-          actionWeightRow.hidden = false;
-          actionStockTypeRow.hidden = true;
+          toggleSheetRow(actionWeightRow, true);
+          toggleSheetRow(actionStockTypeRow, false);
           actionWeight.value = String(defaults.weight || 0);
         } else {
           actionQty.min = "0";
           actionSheetTitle.textContent = "库存盘点";
           actionQtyLabel.textContent = actionStockType === "empty" ? "盘点后空瓶数量" : "盘点后重瓶数量";
           actionSheetHint.textContent = "盘点会直接把对应库存更新为录入值。";
-          actionWeightRow.hidden = true;
-          actionStockTypeRow.hidden = false;
+          toggleSheetRow(actionWeightRow, false);
+          toggleSheetRow(actionStockTypeRow, true);
           actionWeight.value = "";
         }
         actionSpec.value = defaults.spec || "15kg";
