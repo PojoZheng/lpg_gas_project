@@ -296,11 +296,12 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get("orderId") || urlParams.get("id");
+      const pageReady = Boolean(orderId);
 
-      if (!orderId) {
+      if (!pageReady) {
         showToast("订单ID不存在");
+        document.getElementById("bottomActions").hidden = true;
         setTimeout(() => goBackOr("./order-list.html"), 1500);
-        return;
       }
 
       let orderData = null;
@@ -420,210 +421,211 @@
         }
       }
 
-      document.getElementById("backBtn").addEventListener("click", () => {
-        goBackOr("./order-list.html");
-      });
+      if (pageReady) {
+        document.getElementById("backBtn").addEventListener("click", () => {
+          goBackOr("./order-list.html");
+        });
 
-      const returnModal = document.getElementById("returnModal");
-      document.getElementById("returnBtn").addEventListener("click", () => {
-        returnModal.classList.add("show");
-      });
+        const returnModal = document.getElementById("returnModal");
+        document.getElementById("returnBtn").addEventListener("click", () => {
+          returnModal.classList.add("show");
+        });
 
-      document.getElementById("closeModal").addEventListener("click", () => {
-        returnModal.classList.remove("show");
-      });
+        document.getElementById("closeModal").addEventListener("click", () => {
+          returnModal.classList.remove("show");
+        });
 
-      returnModal.addEventListener("click", (e) => {
-        if (e.target === returnModal) returnModal.classList.remove("show");
-      });
+        returnModal.addEventListener("click", (e) => {
+          if (e.target === returnModal) returnModal.classList.remove("show");
+        });
 
-      const exchangeModal = document.getElementById("exchangeModal");
-      const newSpecSelect = document.getElementById("newSpec");
-      const newQuantityInput = document.getElementById("newQuantity");
-      const originalUnitPriceInput = document.getElementById("originalUnitPrice");
-      const newUnitPriceInput = document.getElementById("newUnitPrice");
-      const priceDiffInput = document.getElementById("priceDiff");
+        const exchangeModal = document.getElementById("exchangeModal");
+        const newSpecSelect = document.getElementById("newSpec");
+        const newQuantityInput = document.getElementById("newQuantity");
+        const originalUnitPriceInput = document.getElementById("originalUnitPrice");
+        const newUnitPriceInput = document.getElementById("newUnitPrice");
+        const priceDiffInput = document.getElementById("priceDiff");
 
-      function calculatePriceDiff() {
-        const originalQty = parseInt(document.getElementById("originalQuantity").value) || 0;
-        const newQty = parseInt(newQuantityInput.value) || 0;
-        const originalPrice = parseFloat(originalUnitPriceInput.value) || 0;
-        const newPrice = parseFloat(newUnitPriceInput.value) || 0;
-        const diff = (newQty * newPrice) - (originalQty * originalPrice);
-        priceDiffInput.value = diff.toFixed(2);
-      }
-
-      document.getElementById("exchangeBtn").addEventListener("click", () => {
-        exchangeModal.classList.add("show");
-      });
-
-      document.getElementById("closeExchangeModal").addEventListener("click", () => {
-        exchangeModal.classList.remove("show");
-      });
-
-      exchangeModal.addEventListener("click", (e) => {
-        if (e.target === exchangeModal) exchangeModal.classList.remove("show");
-      });
-
-      newQuantityInput.addEventListener("input", calculatePriceDiff);
-      newUnitPriceInput.addEventListener("input", calculatePriceDiff);
-
-      document.getElementById("submitReturn").addEventListener("click", async () => {
-        const reason = document.getElementById("returnReason").value;
-        const quantity = parseInt(document.getElementById("returnQuantity").value);
-        const refundAmount = parseFloat(document.getElementById("refundAmount").value);
-        const refundMethod = document.getElementById("refundMethod").value;
-        const bottleReturned = document.getElementById("bottleReturned").checked;
-        const note = document.getElementById("returnNote").value;
-
-        if (!reason) {
-          showToast("请选择退货原因");
-          return;
-        }
-        if (!bottleReturned) {
-          showToast("请确认已收回气瓶");
-          return;
-        }
-        if (!quantity || quantity < 1) {
-          showToast("退瓶数量必须大于0");
-          return;
-        }
-        if (!Number.isFinite(refundAmount) || refundAmount < 0) {
-          showToast("退款金额不合法");
-          return;
+        function calculatePriceDiff() {
+          const originalQty = parseInt(document.getElementById("originalQuantity").value) || 0;
+          const newQty = parseInt(newQuantityInput.value) || 0;
+          const originalPrice = parseFloat(originalUnitPriceInput.value) || 0;
+          const newPrice = parseFloat(newUnitPriceInput.value) || 0;
+          const diff = (newQty * newPrice) - (originalQty * originalPrice);
+          priceDiffInput.value = diff.toFixed(2);
         }
 
-        const submitBtn = document.getElementById("submitReturn");
-        submitBtn.disabled = true;
-        submitBtn.textContent = "提交中...";
+        document.getElementById("exchangeBtn").addEventListener("click", () => {
+          exchangeModal.classList.add("show");
+        });
 
-        try {
-          const result = await submitOrderReturn(orderId, {
-            reason,
-            quantity,
-            reasonDetail: "",
-            bottleReturned,
-            bottleBarcode: "",
-            refundAmount,
-            refundMethod,
-            note,
-          });
+        document.getElementById("closeExchangeModal").addEventListener("click", () => {
+          exchangeModal.classList.remove("show");
+        });
 
-          if (result.success) {
-            showToast("退货申请成功");
-            setTimeout(() => {
-              goBackOr("./order-list.html");
-            }, 1500);
-          } else {
-            showToast(result.error || "退货失败");
+        exchangeModal.addEventListener("click", (e) => {
+          if (e.target === exchangeModal) exchangeModal.classList.remove("show");
+        });
+
+        newQuantityInput.addEventListener("input", calculatePriceDiff);
+        newUnitPriceInput.addEventListener("input", calculatePriceDiff);
+
+        document.getElementById("submitReturn").addEventListener("click", async () => {
+          const reason = document.getElementById("returnReason").value;
+          const quantity = parseInt(document.getElementById("returnQuantity").value);
+          const refundAmount = parseFloat(document.getElementById("refundAmount").value);
+          const refundMethod = document.getElementById("refundMethod").value;
+          const bottleReturned = document.getElementById("bottleReturned").checked;
+          const note = document.getElementById("returnNote").value;
+
+          if (!reason) {
+            showToast("请选择退货原因");
+            return;
+          }
+          if (!bottleReturned) {
+            showToast("请确认已收回气瓶");
+            return;
+          }
+          if (!quantity || quantity < 1) {
+            showToast("退瓶数量必须大于0");
+            return;
+          }
+          if (!Number.isFinite(refundAmount) || refundAmount < 0) {
+            showToast("退款金额不合法");
+            return;
+          }
+
+          const submitBtn = document.getElementById("submitReturn");
+          submitBtn.disabled = true;
+          submitBtn.textContent = "提交中...";
+
+          try {
+            const result = await submitOrderReturn(orderId, {
+              reason,
+              quantity,
+              reasonDetail: "",
+              bottleReturned,
+              bottleBarcode: "",
+              refundAmount,
+              refundMethod,
+              note,
+            });
+
+            if (result.success) {
+              showToast("退货申请成功");
+              setTimeout(() => {
+                goBackOr("./order-list.html");
+              }, 1500);
+            } else {
+              showToast(result.error || "退货失败");
+              submitBtn.disabled = false;
+              submitBtn.textContent = "确认退货";
+            }
+          } catch (err) {
+            showToast(err.message || "提交失败");
             submitBtn.disabled = false;
             submitBtn.textContent = "确认退货";
           }
-        } catch (err) {
-          showToast(err.message || "提交失败");
-          submitBtn.disabled = false;
-          submitBtn.textContent = "确认退货";
-        }
-      });
+        });
 
-      document.getElementById("submitExchange").addEventListener("click", async () => {
-        const reason = document.getElementById("exchangeReason").value;
-        const originalSpec = document.getElementById("originalSpec").value;
-        const newSpec = document.getElementById("newSpec").value;
-        const newQuantity = parseInt(document.getElementById("newQuantity").value);
-        const originalUnitPrice = parseFloat(document.getElementById("originalUnitPrice").value) || 0;
-        const newUnitPrice = parseFloat(document.getElementById("newUnitPrice").value) || 0;
-        const priceDiff = parseFloat(document.getElementById("priceDiff").value);
-        const diffHandling = document.getElementById("diffHandling").value;
-        const bottleReturned = document.getElementById("exchangeBottleReturned").checked;
-        const note = document.getElementById("exchangeNote").value;
+        document.getElementById("submitExchange").addEventListener("click", async () => {
+          const reason = document.getElementById("exchangeReason").value;
+          const originalSpec = document.getElementById("originalSpec").value;
+          const newSpec = document.getElementById("newSpec").value;
+          const newQuantity = parseInt(document.getElementById("newQuantity").value);
+          const originalUnitPrice = parseFloat(document.getElementById("originalUnitPrice").value) || 0;
+          const newUnitPrice = parseFloat(document.getElementById("newUnitPrice").value) || 0;
+          const priceDiff = parseFloat(document.getElementById("priceDiff").value);
+          const diffHandling = document.getElementById("diffHandling").value;
+          const bottleReturned = document.getElementById("exchangeBottleReturned").checked;
+          const note = document.getElementById("exchangeNote").value;
 
-        if (!reason) {
-          showToast("请选择换货原因");
-          return;
-        }
-        if (!bottleReturned) {
-          showToast("请确认已收回气瓶");
-          return;
-        }
-        if (!newQuantity || newQuantity < 1) {
-          showToast("新单数量必须大于0");
-          return;
-        }
+          if (!reason) {
+            showToast("请选择换货原因");
+            return;
+          }
+          if (!bottleReturned) {
+            showToast("请确认已收回气瓶");
+            return;
+          }
+          if (!newQuantity || newQuantity < 1) {
+            showToast("新单数量必须大于0");
+            return;
+          }
 
-        // 检查新规格重瓶库存
-        const availableStock = await checkHeavyInventory(newSpec);
-        if (availableStock < newQuantity) {
-          showToast(`${newSpec}重瓶库存不足，当前可用 ${availableStock} 瓶`);
-          return;
-        }
+          const availableStock = await checkHeavyInventory(newSpec);
+          if (availableStock < newQuantity) {
+            showToast(`${newSpec}重瓶库存不足，当前可用 ${availableStock} 瓶`);
+            return;
+          }
 
-        const submitBtn = document.getElementById("submitExchange");
-        submitBtn.disabled = true;
-        submitBtn.textContent = "提交中...";
+          const submitBtn = document.getElementById("submitExchange");
+          submitBtn.disabled = true;
+          submitBtn.textContent = "提交中...";
 
-        try {
-          const result = await submitOrderExchange(orderId, {
-            reason,
-            bottleReturned,
-            originalSpec,
-            newSpec,
-            newQuantity,
-            originalUnitPrice,
-            newUnitPrice,
-            priceDiff,
-            diffHandling,
-            note,
-          });
+          try {
+            const result = await submitOrderExchange(orderId, {
+              reason,
+              bottleReturned,
+              originalSpec,
+              newSpec,
+              newQuantity,
+              originalUnitPrice,
+              newUnitPrice,
+              priceDiff,
+              diffHandling,
+              note,
+            });
 
-          if (result.success) {
-            showToast("换货成功");
-            setTimeout(() => {
-              goBackOr("./order-list.html");
-            }, 1500);
-          } else {
-            showToast(result.error || "换货失败");
+            if (result.success) {
+              showToast("换货成功");
+              setTimeout(() => {
+                goBackOr("./order-list.html");
+              }, 1500);
+            } else {
+              showToast(result.error || "换货失败");
+              submitBtn.disabled = false;
+              submitBtn.textContent = "确认换货";
+            }
+          } catch (err) {
+            showToast(err.message || "提交失败");
             submitBtn.disabled = false;
             submitBtn.textContent = "确认换货";
           }
-        } catch (err) {
-          showToast(err.message || "提交失败");
-          submitBtn.disabled = false;
-          submitBtn.textContent = "确认换货";
-        }
-      });
+        });
 
-      document.getElementById("submitModifyBtn").addEventListener("click", async () => {
-        if (!orderData) return;
-        const payload = {
-          scheduleAt: document.getElementById("modifyScheduleAt").value.trim(),
-          address: document.getElementById("modifyAddress").value.trim(),
-          quantity: Number(document.getElementById("modifyQuantity").value || 0),
-          unitPrice: Number(document.getElementById("modifyUnitPrice").value || 0),
-        };
-        if (orderData.orderStatus === "completed") {
-          payload.receivedAmount = Number(document.getElementById("modifyReceivedAmount").value || 0);
-        }
-        const btn = document.getElementById("submitModifyBtn");
-        btn.disabled = true;
-        btn.textContent = "保存中...";
-        try {
-          const result = await updateOrderBasic(orderId, payload);
-          if (!result.success) {
-            showToast(result.error || "改单失败");
-            return;
+        document.getElementById("submitModifyBtn").addEventListener("click", async () => {
+          if (!orderData) return;
+          const payload = {
+            scheduleAt: document.getElementById("modifyScheduleAt").value.trim(),
+            address: document.getElementById("modifyAddress").value.trim(),
+            quantity: Number(document.getElementById("modifyQuantity").value || 0),
+            unitPrice: Number(document.getElementById("modifyUnitPrice").value || 0),
+          };
+          if (orderData.orderStatus === "completed") {
+            payload.receivedAmount = Number(document.getElementById("modifyReceivedAmount").value || 0);
           }
-          showToast("改单已保存");
-          await loadOrder();
-        } catch (err) {
-          showToast(err.message || "改单失败");
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "保存改单";
-        }
-      });
+          const btn = document.getElementById("submitModifyBtn");
+          btn.disabled = true;
+          btn.textContent = "保存中...";
+          try {
+            const result = await updateOrderBasic(orderId, payload);
+            if (!result.success) {
+              showToast(result.error || "改单失败");
+              return;
+            }
+            showToast("改单已保存");
+            await loadOrder();
+          } catch (err) {
+            showToast(err.message || "改单失败");
+          } finally {
+            btn.disabled = false;
+            btn.textContent = "保存改单";
+          }
+        });
 
-      loadOrder();
+        loadOrder();
+      }
     </script>
   </body>
 </html>
