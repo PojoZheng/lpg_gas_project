@@ -440,7 +440,6 @@
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { goBackOr } from "./app-shell.js";
       import {
         fetchCurrentPlatformPolicy,
         fetchSafetyByOrder,
@@ -657,7 +656,9 @@
         setTip("");
       }
 
-      document.getElementById("backBtn").addEventListener("click", () => goBackOr("./delivery-settlement.html"));
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./delivery-settlement.html";
+      });
       document.getElementById("backWorkbenchBtn").addEventListener("click", () => {
         window.location.href = "./delivery-result.html";
       });

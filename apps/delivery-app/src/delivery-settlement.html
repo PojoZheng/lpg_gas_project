@@ -75,7 +75,6 @@
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { goBackOr } from "./app-shell.js";
       import {
         completeOrder,
         cancelOrder,
@@ -167,7 +166,9 @@
         window.location.href = required ? "./delivery-safety.html" : "./delivery-result.html";
       }
 
-      document.getElementById("backBtn").addEventListener("click", () => goBackOr("./pending-delivery-list.html"));
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./pending-delivery-list.html";
+      });
       const goEdit = () => {
         const validated = validate();
         if (validated.ok) setSettlementDraft(validated.payload);

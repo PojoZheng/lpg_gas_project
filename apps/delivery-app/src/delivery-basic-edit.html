@@ -32,7 +32,6 @@
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { goBackOr } from "./app-shell.js";
       import { fetchOrderById, updateOrder } from "./delivery-complete-client.js";
       import { getFlowState, patchFlowState } from "./delivery-flow-state.js";
 
@@ -60,7 +59,9 @@
         document.getElementById("addressInput").value = order.address || "";
       }
 
-      document.getElementById("backBtn").addEventListener("click", () => goBackOr("./delivery-settlement.html"));
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./delivery-settlement.html";
+      });
       document.getElementById("saveBtn").addEventListener("click", async () => {
         const scheduleAt = document.getElementById("scheduleInput").value.trim();
         const address = document.getElementById("addressInput").value.trim();
