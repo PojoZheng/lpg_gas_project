@@ -11,7 +11,8 @@
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        margin-bottom: 12px;
+        margin-bottom: 18px;
+        padding: 2px 6px 0;
       }
       .page-toolbar-copy h2 {
         margin: 0;
@@ -24,25 +25,39 @@
       }
       .page-layout {
         display: grid;
-        grid-template-columns: 340px minmax(560px, 1fr) 360px;
-        gap: 12px;
+        grid-template-columns: minmax(280px, 308px) minmax(0, 1fr) minmax(260px, 320px);
+        gap: 18px;
         align-items: start;
       }
       .column-stack {
         display: grid;
-        gap: 12px;
+        gap: 16px;
         min-width: 0;
+      }
+      .column-stack > .card {
+        margin-bottom: 0;
       }
       .panel-sticky {
         position: sticky;
         top: 18px;
       }
+      .rail-card {
+        border-radius: 24px;
+        padding: 16px;
+        background: linear-gradient(180deg, #fcfdfe 0%, #ffffff 100%);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+      }
+      .editor-card {
+        border-radius: 28px;
+        padding: 20px;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.05);
+      }
       .config-section {
         border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 14px;
-        background: #fbfcfd;
-        margin-bottom: 12px;
+        border-radius: 24px;
+        padding: 16px;
+        background: linear-gradient(180deg, #fcfefe 0%, #f8fbfc 100%);
+        margin-bottom: 14px;
       }
       .config-section:last-child {
         margin-bottom: 0;
@@ -203,15 +218,20 @@
       .scope-card {
         width: 100%;
         border: 1px solid var(--border);
-        border-radius: 18px;
+        border-radius: 20px;
         padding: 12px;
         background: #fff;
         text-align: left;
         cursor: pointer;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
       }
       .scope-card.active {
         border-color: var(--brand);
-        box-shadow: 0 6px 18px rgba(71, 153, 160, 0.08);
+        box-shadow: 0 10px 22px rgba(71, 153, 160, 0.1);
+        transform: translateY(-1px);
       }
       .scope-card-head,
       .version-head,
@@ -246,8 +266,8 @@
       .scope-meta-tile,
       .summary-card {
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 10px;
+        border-radius: 18px;
+        padding: 12px;
         background: #fff;
       }
       .scope-meta-label {
@@ -300,7 +320,7 @@
         background: var(--brand-soft);
       }
       .json-preview {
-        min-height: 220px;
+        min-height: 240px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 12px;
         line-height: 1.55;
@@ -308,7 +328,7 @@
       }
       @media (max-width: 1400px) {
         .page-layout {
-          grid-template-columns: 320px minmax(0, 1fr);
+          grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
         }
         .panel-sticky {
           position: static;
@@ -347,7 +367,7 @@
 
           <div class="page-layout">
             <div class="column-stack">
-              <section class="card">
+              <section class="card rail-card">
                 <div class="scope-overview-head">
                   <div>
                     <h2 class="card-title" style="margin-bottom: 0">下发配置列表</h2>
@@ -369,7 +389,7 @@
             </div>
 
             <div class="column-stack">
-              <section class="card">
+              <section class="card editor-card">
                 <h2 class="card-title">策略编辑与发布</h2>
                 <div class="field-grid">
                   <div class="field"><label>操作人</label><input id="operatorInput" value="平台管理员" /></div>
@@ -549,7 +569,7 @@
             </div>
 
             <div class="column-stack panel-sticky">
-              <section class="card">
+              <section class="card rail-card">
                 <div class="summary-head" style="margin-bottom: 10px">
                   <strong>当前选中配置</strong>
                   <span class="panel-muted">详情面板</span>
@@ -557,7 +577,7 @@
                 <div id="currentPolicy"></div>
               </section>
 
-              <section class="card">
+              <section class="card rail-card">
                 <div class="summary-head" style="margin-bottom: 10px">
                   <strong>下发说明</strong>
                   <span class="panel-muted">业务平台只保留必要信息</span>
