@@ -13,6 +13,52 @@
       .row label { font-size: 13px; color: var(--text-secondary); }
       .row input, .row select { width: 100%; height: 42px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
       .unit { font-size: 12px; color: var(--text-secondary); }
+      .price-grid { display: grid; gap: 12px; }
+      .price-control {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid #d8e7ea;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%);
+      }
+      .price-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .price-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .price-value {
+        min-width: 86px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: #eef7f8;
+        color: var(--brand);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .price-slider {
+        width: 100%;
+        height: 28px;
+        margin: 0;
+        accent-color: var(--brand);
+      }
+      .price-scale {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
       .checks { display: flex; gap: 12px; flex-wrap: wrap; }
       .checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
       .tag-options { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -128,20 +174,76 @@
         <div class="grid">
           <div class="group-block">
             <h3 class="group-title">开单默认单价</h3>
-            <div class="grid">
-              <div class="row"><label>15kg单价</label><input id="orderPrice15" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
-              <div class="row"><label>10kg单价</label><input id="orderPrice10" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
-              <div class="row"><label>50kg单价</label><input id="orderPrice50" type="number" min="0" step="0.01" /><span class="unit">元/瓶</span></div>
+            <div class="price-grid">
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">15kg 单价</span>
+                  <span class="price-value" data-price-value-for="orderPrice15">￥120 / 瓶</span>
+                </div>
+                <input class="price-slider" id="orderPrice15" type="range" min="60" max="180" step="5" data-price-unit="元/瓶" />
+                <div class="price-scale"><span>￥60</span><span>￥180</span></div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">10kg 单价</span>
+                  <span class="price-value" data-price-value-for="orderPrice10">￥100 / 瓶</span>
+                </div>
+                <input class="price-slider" id="orderPrice10" type="range" min="40" max="160" step="5" data-price-unit="元/瓶" />
+                <div class="price-scale"><span>￥40</span><span>￥160</span></div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">50kg 单价</span>
+                  <span class="price-value" data-price-value-for="orderPrice50">￥300 / 瓶</span>
+                </div>
+                <input class="price-slider" id="orderPrice50" type="range" min="150" max="500" step="10" data-price-unit="元/瓶" />
+                <div class="price-scale"><span>￥150</span><span>￥500</span></div>
+              </div>
             </div>
           </div>
           <div class="group-block">
             <h3 class="group-title">押金与租金</h3>
-            <div class="grid">
-              <div class="row"><label>15kg押金</label><input id="deposit15" type="number" min="0" /><span class="unit">元/瓶</span></div>
-              <div class="row"><label>10kg押金</label><input id="deposit10" type="number" min="0" /><span class="unit">元/瓶</span></div>
-              <div class="row"><label>50kg押金</label><input id="deposit50" type="number" min="0" /><span class="unit">元/瓶</span></div>
-              <div class="row"><label>月租金</label><input id="rentMonthly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/月</span></div>
-              <div class="row"><label>年租金</label><input id="rentYearly" type="number" min="0" step="0.01" /><span class="unit">元/瓶/年</span></div>
+            <div class="price-grid">
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">15kg 押金</span>
+                  <span class="price-value" data-price-value-for="deposit15">￥150 / 瓶</span>
+                </div>
+                <input class="price-slider" id="deposit15" type="range" min="0" max="300" step="10" data-price-unit="元/瓶" />
+                <div class="price-scale"><span>￥0</span><span>￥300</span></div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">10kg 押金</span>
+                  <span class="price-value" data-price-value-for="deposit10">￥100 / 瓶</span>
+                </div>
+                <input class="price-slider" id="deposit10" type="range" min="0" max="240" step="10" data-price-unit="元/瓶" />
+                <div class="price-scale"><span>￥0</span><span>￥240</span></div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">50kg 押金</span>
+                  <span class="price-value" data-price-value-for="deposit50">￥400 / 瓶</span>
+                </div>
+                <input class="price-slider" id="deposit50" type="range" min="0" max="800" step="20" data-price-unit="元/瓶" />
+                <div class="price-scale"><span>￥0</span><span>￥800</span></div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">月租金</span>
+                  <span class="price-value" data-price-value-for="rentMonthly">￥5 / 瓶/月</span>
+                </div>
+                <input class="price-slider" id="rentMonthly" type="range" min="0" max="20" step="1" data-price-unit="元/瓶/月" />
+                <div class="price-scale"><span>￥0</span><span>￥20</span></div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">年租金</span>
+                  <span class="price-value" data-price-value-for="rentYearly">￥50 / 瓶/年</span>
+                </div>
+                <input class="price-slider" id="rentYearly" type="range" min="0" max="120" step="5" data-price-unit="元/瓶/年" />
+                <div class="price-scale"><span>￥0</span><span>￥120</span></div>
+              </div>
             </div>
           </div>
           <div class="group-block">
@@ -154,7 +256,14 @@
                   <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
                 </label>
               </div>
-              <div class="row"><label>残液单价</label><input id="residualPrice" type="number" min="0" step="0.01" /><span class="unit">元/kg</span></div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">残液单价</span>
+                  <span class="price-value" data-price-value-for="residualPrice">￥5 / kg</span>
+                </div>
+                <input class="price-slider" id="residualPrice" type="range" min="0" max="20" step="1" data-price-unit="元/kg" />
+                <div class="price-scale"><span>￥0</span><span>￥20</span></div>
+              </div>
               <div class="row">
                 <label>默认方式</label>
                 <select id="residualMode">
@@ -342,6 +451,22 @@
         });
       }
 
+      function updatePriceDisplay(input) {
+        if (!input) return;
+        const target = document.querySelector(`[data-price-value-for="${input.id}"]`);
+        if (!target) return;
+        const unit = String(input.dataset.priceUnit || "").trim();
+        const value = Number(input.value || 0);
+        target.textContent = `￥${value}${unit ? ` ${unit}` : ""}`;
+      }
+
+      function bindPriceSliders() {
+        document.querySelectorAll(".price-slider").forEach((input) => {
+          input.addEventListener("input", () => updatePriceDisplay(input));
+          updatePriceDisplay(input);
+        });
+      }
+
       function applyData(data) {
         if (!data) return;
         $("orderPrice15").value = Number(data.orderPricing?.kg15 || 120);
@@ -385,6 +510,7 @@
         setTagActive($("noticeDebt"), Boolean(data.notification?.types?.debtOverdue ?? true));
         setTagActive($("noticeDailyClose"), Boolean(data.notification?.types?.dailyClose ?? true));
         setTagActive($("noticeSafety"), Boolean(data.notification?.types?.safetyDue ?? false));
+        document.querySelectorAll(".price-slider").forEach(updatePriceDisplay);
       }
 
       function buildPayload() {
@@ -489,6 +615,7 @@
       });
       bindTagToggle("owedDaysWrap");
       bindTagToggle("debtDaysWrap");
+      bindPriceSliders();
       bindTagToggle("noticeTypeWrap");
       $("saveBtn").addEventListener("click", async () => {
         setTip("保存中...");
