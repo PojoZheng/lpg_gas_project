@@ -8,7 +8,21 @@
     <style>
       .page { padding: 18px 14px calc(228px + env(safe-area-inset-bottom, 0px)); }
       .next-delivery-section { margin-bottom: 12px; }
-      .next-delivery-card { margin-bottom: 10px; }
+      .next-delivery-card {
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .next-delivery-card:hover,
+      .next-delivery-card:focus-visible {
+        border-color: #cfe1e5;
+        box-shadow: 0 8px 20px rgba(53, 96, 101, 0.08);
+        transform: translateY(-1px);
+      }
+      .next-delivery-card:focus-visible {
+        outline: 2px solid #9ec8cc;
+        outline-offset: 2px;
+      }
       .section-kicker {
         display: inline-flex;
         align-items: center;
@@ -588,7 +602,7 @@
       </section>
 
       <section class="next-delivery-section" id="nextDeliverySection" aria-label="待配送概览">
-        <div class="app-card next-delivery-card">
+        <div class="app-card next-delivery-card" id="nextDeliveryCard" role="link" tabindex="0" aria-label="查看待配送订单详情">
           <div class="next-customer-block">
             <div class="next-name-tags">
               <span class="section-kicker">待配送</span>
@@ -773,6 +787,7 @@
       const incomeDetailBtn = document.getElementById("incomeDetailBtn");
       const incomeExpandPanel = document.getElementById("incomeExpandPanel");
       const nextDeliverySection = document.getElementById("nextDeliverySection");
+      const nextDeliveryCard = document.getElementById("nextDeliveryCard");
       const nextCustomer = document.getElementById("nextCustomer");
       const nextTags = document.getElementById("nextTags");
       const nextAddress = document.getElementById("nextAddress");
@@ -829,6 +844,7 @@
       let qoCreatingCustomer = false;
       let qoTouchStartY = 0;
       let qoPricingReady = false;
+      let currentNextDeliveryOrderId = "";
 
       function setMainTip(text = "", level = "info") {
         const message = String(text || "").trim();
@@ -1139,8 +1155,10 @@
 
       function renderNextDelivery(nextDelivery) {
         const hasTask = Boolean(nextDelivery?.orderId);
+        currentNextDeliveryOrderId = hasTask ? String(nextDelivery.orderId || "").trim() : "";
         if (!hasTask) {
           nextDeliverySection.hidden = true;
+          nextDeliveryCard.setAttribute("aria-disabled", "true");
           nextCustomer.textContent = "暂无待配送";
           renderCustomerTags(nextTags, []);
           nextAddress.textContent = "可前往快速开单创建新订单";
@@ -1150,6 +1168,7 @@
           return;
         }
         nextDeliverySection.hidden = false;
+        nextDeliveryCard.setAttribute("aria-disabled", "false");
         nextCustomer.textContent = nextDelivery.customerName || "--";
         renderCustomerTags(nextTags, nextDelivery.customerTags);
         nextAddress.textContent = nextDelivery.address || "--";
@@ -1166,6 +1185,11 @@
           nextAmount.textContent = "--";
         }
         nextAmount.className = "next-metric-value next-amount-brand";
+      }
+
+      function openNextDeliveryDetail() {
+        if (!currentNextDeliveryOrderId) return;
+        window.location.href = `./order-detail.html?orderId=${encodeURIComponent(currentNextDeliveryOrderId)}`;
       }
 
       function openVoiceOrderFallback(message, draft = "") {
@@ -1236,6 +1260,13 @@
 
         recognition.start();
       }
+
+      nextDeliveryCard.addEventListener("click", openNextDeliveryDetail);
+      nextDeliveryCard.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openNextDeliveryDetail();
+      });
 
       function formatTrendLabel(value, index) {
         const text = String(value || "").trim();
