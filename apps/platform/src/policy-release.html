@@ -23,6 +23,9 @@
         color: var(--text-secondary);
         font-size: 13px;
       }
+      .workspace-shell {
+        position: relative;
+      }
       .page-layout {
         display: grid;
         grid-template-columns: minmax(280px, 308px) minmax(0, 1fr) minmax(260px, 320px);
@@ -51,6 +54,47 @@
         border-radius: 28px;
         padding: 20px;
         box-shadow: 0 18px 44px rgba(15, 23, 42, 0.05);
+      }
+      .editor-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 16px;
+        padding: 2px 2px 18px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .editor-hero-copy h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .editor-hero-copy p {
+        margin: 6px 0 0;
+        max-width: 56ch;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .editor-hero-meta {
+        display: grid;
+        gap: 8px;
+        min-width: 220px;
+      }
+      .hero-meta-card {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 12px;
+        background: #f9fcfc;
+      }
+      .hero-meta-card span {
+        display: block;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .hero-meta-card strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 16px;
       }
       .config-section {
         border: 1px solid var(--border);
@@ -200,6 +244,27 @@
         gap: 10px;
         margin-bottom: 12px;
       }
+      .rail-intro {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .rail-intro-card {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 12px;
+        background: #f9fbfc;
+      }
+      .rail-intro-card span {
+        display: block;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .rail-intro-card strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 16px;
+      }
       .scope-overview-head p {
         margin: 4px 0 0;
         font-size: 12px;
@@ -288,6 +353,12 @@
         margin: 0 0 8px;
         font-size: 14px;
       }
+      .summary-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.6;
+      }
       .summary-list {
         display: grid;
         gap: 8px;
@@ -338,12 +409,21 @@
         .page-layout {
           grid-template-columns: 1fr;
         }
+        .editor-hero {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+        .editor-hero-meta {
+          min-width: 0;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
       @media (max-width: 860px) {
         .field-grid,
         .toggle-grid,
         .scope-filter-row,
-        .scope-card-meta {
+        .scope-card-meta,
+        .editor-hero-meta {
           grid-template-columns: 1fr;
         }
       }
@@ -365,9 +445,16 @@
             <span class="mini-tag">清晰管理后台</span>
           </div>
 
-          <div class="page-layout">
+          <div class="workspace-shell">
+            <div class="page-layout">
             <div class="column-stack">
               <section class="card rail-card">
+                <div class="rail-intro">
+                  <div class="rail-intro-card">
+                    <span>配置对象</span>
+                    <strong>按作用域选择</strong>
+                  </div>
+                </div>
                 <div class="scope-overview-head">
                   <div>
                     <h2 class="card-title" style="margin-bottom: 0">下发配置列表</h2>
@@ -390,28 +477,53 @@
 
             <div class="column-stack">
               <section class="card editor-card">
-                <h2 class="card-title">策略编辑与发布</h2>
-                <div class="field-grid">
-                  <div class="field"><label>操作人</label><input id="operatorInput" value="平台管理员" /></div>
-                  <div class="field">
-                    <label>下发层级</label>
-                    <select id="scopeTypeInput">
-                      <option value="region">地区</option>
-                      <option value="company">燃气公司</option>
-                      <option value="account">个人账号</option>
-                    </select>
+                <div class="editor-hero">
+                  <div class="editor-hero-copy">
+                    <h2>策略编辑与发布</h2>
+                    <p>先选作用域，再调整扫码、安检和上报规则。中间只负责编辑业务配置，不承载版本运维台。</p>
                   </div>
-                  <div class="field"><label>作用域标识</label><input id="scopeValueInput" value="CN-DEFAULT" /></div>
-                  <div class="field"><label>作用域名称</label><input id="scopeLabelInput" value="全国默认区域" /></div>
-                  <div class="field"><label>区域编码</label><input id="regionInput" value="CN-DEFAULT" /></div>
-                  <div class="field"><label>地区名称</label><input id="regionNameInput" value="全国默认区域" /></div>
-                  <div class="field">
-                    <label>合规模板</label>
-                    <select id="templateSelect">
-                      <option value="strict">严格</option>
-                      <option value="standard" selected>标准</option>
-                      <option value="loose">宽松</option>
-                    </select>
+                  <div class="editor-hero-meta">
+                    <div class="hero-meta-card">
+                      <span>工作方式</span>
+                      <strong>保存草稿后再发布</strong>
+                    </div>
+                    <div class="hero-meta-card">
+                      <span>异常承接</span>
+                      <strong>监控页 / 同步页处理</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="config-section">
+                  <div class="section-head">
+                    <div>
+                      <h3>作用域与模板</h3>
+                      <p>确定当前配置发给谁，以及采用哪套基础模板。</p>
+                    </div>
+                    <span class="mini-tag">基础</span>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field"><label>操作人</label><input id="operatorInput" value="平台管理员" /></div>
+                    <div class="field">
+                      <label>下发层级</label>
+                      <select id="scopeTypeInput">
+                        <option value="region">地区</option>
+                        <option value="company">燃气公司</option>
+                        <option value="account">个人账号</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>作用域标识</label><input id="scopeValueInput" value="CN-DEFAULT" /></div>
+                    <div class="field"><label>作用域名称</label><input id="scopeLabelInput" value="全国默认区域" /></div>
+                    <div class="field"><label>区域编码</label><input id="regionInput" value="CN-DEFAULT" /></div>
+                    <div class="field"><label>地区名称</label><input id="regionNameInput" value="全国默认区域" /></div>
+                    <div class="field">
+                      <label>合规模板</label>
+                      <select id="templateSelect">
+                        <option value="strict">严格</option>
+                        <option value="standard" selected>标准</option>
+                        <option value="loose">宽松</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -593,6 +705,7 @@
                   </div>
                   <div class="summary-card">
                     <h3>当前操作说明</h3>
+                    <p style="margin-bottom: 10px;">当前页只负责确认对象、调整规则和执行发布。</p>
                     <div class="summary-list">
                       <div class="summary-line"><span>保存草稿</span><strong>保留当前编辑内容</strong></div>
                       <div class="summary-line"><span>发布版本</span><strong>将选中配置下发到作用域</strong></div>
@@ -601,6 +714,7 @@
                   </div>
                 </div>
               </section>
+            </div>
             </div>
           </div>
         </main>
