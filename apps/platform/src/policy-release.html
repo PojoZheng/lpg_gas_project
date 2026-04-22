@@ -310,12 +310,12 @@
         <main class="page-content">
           <section class="page-hero">
             <h2 class="page-title">策略配置与版本管理</h2>
-            <p class="page-subtitle">按 requirement 收口为地区模板、扫码、安检、上报四块配置，并保留版本发布、回滚与审计追踪。</p>
+            <p class="page-subtitle">按地区、燃气公司、个人账号下发扫码、安检与离线补传规则，并保留版本发布、回滚与审计追踪。</p>
           </section>
 
           <section class="hero-strip">
             <div class="hero-kpi">
-              <div class="hero-kpi-label">当前地区</div>
+              <div class="hero-kpi-label">生效范围</div>
               <div class="hero-kpi-value" id="heroRegion">--</div>
               <div class="hero-kpi-note" id="heroTemplate">模板 --</div>
             </div>
@@ -332,7 +332,7 @@
             <div class="hero-kpi">
               <div class="hero-kpi-label">上报模式</div>
               <div class="hero-kpi-value" id="heroReporting">--</div>
-              <div class="hero-kpi-note" id="heroRetry">重试 --</div>
+              <div class="hero-kpi-note" id="heroRetry">补传 --</div>
             </div>
           </section>
 
@@ -342,6 +342,16 @@
                 <h2 class="card-title">策略编辑与发布</h2>
                 <div class="field-grid">
                   <div class="field"><label>操作人</label><input id="operatorInput" value="平台管理员" /></div>
+                  <div class="field">
+                    <label>下发层级</label>
+                    <select id="scopeTypeInput">
+                      <option value="region">地区</option>
+                      <option value="company">燃气公司</option>
+                      <option value="account">个人账号</option>
+                    </select>
+                  </div>
+                  <div class="field"><label>作用域标识</label><input id="scopeValueInput" value="CN-DEFAULT" /></div>
+                  <div class="field"><label>作用域名称</label><input id="scopeLabelInput" value="全国默认区域" /></div>
                   <div class="field"><label>区域编码</label><input id="regionInput" value="CN-DEFAULT" /></div>
                   <div class="field"><label>地区名称</label><input id="regionNameInput" value="全国默认区域" /></div>
                   <div class="field">
@@ -459,7 +469,7 @@
                   <div class="section-head">
                     <div>
                       <h3>数据上报配置</h3>
-                      <p>配置气贩子、燃企、政府之间的数据流向和重试参数。</p>
+                      <p>配置气贩子、燃企、政府之间的数据流向，以及离线补传的批量参数。</p>
                     </div>
                     <span class="mini-tag">上报 / 同步</span>
                   </div>
@@ -480,7 +490,7 @@
                         <option value="24h">24小时</option>
                       </select>
                     </div>
-                    <div class="field"><label>失败重试次数</label><input id="retryCountInput" type="number" min="0" max="9" value="3" /></div>
+                    <div class="field"><label>离线补传尝试上限</label><input id="retryCountInput" type="number" min="0" max="9" value="3" /></div>
                     <div class="field"><label>同步批量大小</label><input id="syncBatchSizeInput" type="number" min="1" max="1000" value="20" /></div>
                   </div>
                 </div>
@@ -639,6 +649,9 @@
       const operatorInput = document.getElementById("operatorInput");
       const regionInput = document.getElementById("regionInput");
       const regionNameInput = document.getElementById("regionNameInput");
+      const scopeTypeInput = document.getElementById("scopeTypeInput");
+      const scopeValueInput = document.getElementById("scopeValueInput");
+      const scopeLabelInput = document.getElementById("scopeLabelInput");
       const templateSelect = document.getElementById("templateSelect");
       const scanEnabledInput = document.getElementById("scanEnabledInput");
       const scanRequiredInput = document.getElementById("scanRequiredInput");
@@ -689,6 +702,30 @@
 
       function uniq(values = []) {
         return [...new Set((values || []).map((item) => String(item || "").trim()).filter(Boolean))];
+      }
+
+      function scopeTypeLabel(value) {
+        return ({ region: "地区", company: "燃气公司", account: "个人账号" })[value] || "地区";
+      }
+
+      function scopeDefaults(type) {
+        if (type === "company") return { value: "COMP-DEFAULT", label: "默认燃气公司" };
+        if (type === "account") return { value: "DEALER-DEFAULT", label: "默认配送账号" };
+        return { value: "CN-DEFAULT", label: "全国默认区域" };
+      }
+
+      function normalizeScopeMeta(policy = {}) {
+        const scopeType = ["region", "company", "account"].includes(String(policy.scopeType || "").trim())
+          ? String(policy.scopeType || "").trim()
+          : "region";
+        const fallback = scopeDefaults(scopeType);
+        const scopeValue = String(policy.scopeValue || policy.regionCode || fallback.value).trim() || fallback.value;
+        const scopeLabel = String(policy.scopeLabel || policy.regionName || fallback.label).trim() || fallback.label;
+        const regionCode =
+          scopeType === "region"
+            ? scopeValue
+            : String(policy.regionCode || regionInput.value || "CN-DEFAULT").trim() || "CN-DEFAULT";
+        return { scopeType, scopeValue, scopeLabel, regionCode };
       }
 
       function normalizePolicyContent(content = {}) {
@@ -785,6 +822,7 @@
 
       function buildPolicyContent() {
         const content = {
+          regionCode: String(regionInput.value || "CN-DEFAULT").trim() || "CN-DEFAULT",
           regionName: String(regionNameInput.value || DEFAULT_POLICY_CONTENT.regionName).trim() || DEFAULT_POLICY_CONTENT.regionName,
           template: String(templateSelect.value || "standard"),
           safetyCheckRequired: deliveryInspectionEnabledInput.checked,
@@ -820,6 +858,22 @@
         return normalizePolicyContent(content);
       }
 
+      function syncScopeInputs() {
+        const scopeType = String(scopeTypeInput.value || "region");
+        const fallback = scopeDefaults(scopeType);
+        if (scopeType === "region") {
+          scopeValueInput.value = String(regionInput.value || fallback.value).trim() || fallback.value;
+          scopeLabelInput.value = String(regionNameInput.value || fallback.label).trim() || fallback.label;
+          return;
+        }
+        if (!String(scopeValueInput.value || "").trim() || scopeValueInput.value === "CN-DEFAULT") {
+          scopeValueInput.value = fallback.value;
+        }
+        if (!String(scopeLabelInput.value || "").trim() || scopeLabelInput.value === "全国默认区域") {
+          scopeLabelInput.value = fallback.label;
+        }
+      }
+
       function syncContentPreview() {
         const content = buildPolicyContent();
         contentInput.value = JSON.stringify(content, null, 2);
@@ -850,7 +904,11 @@
 
       function applyPolicyToForm(policy) {
         const normalized = normalizePolicyContent(policy?.content || policy || {});
-        regionInput.value = policy?.regionCode || regionInput.value || "CN-DEFAULT";
+        const scope = normalizeScopeMeta(policy);
+        scopeTypeInput.value = scope.scopeType;
+        scopeValueInput.value = scope.scopeValue;
+        scopeLabelInput.value = scope.scopeLabel;
+        regionInput.value = scope.regionCode;
         regionNameInput.value = normalized.regionName;
         templateSelect.value = normalized.template;
         scanEnabledInput.checked = normalized.scan.enabled;
@@ -872,8 +930,19 @@
         syncContentPreview();
       }
 
-      function buildConfigRows(content) {
+      function buildConfigRows(content, policy = {}) {
+        const scope = normalizeScopeMeta({
+          scopeType: policy.scopeType || scopeTypeInput.value,
+          scopeValue: policy.scopeValue || scopeValueInput.value,
+          scopeLabel: policy.scopeLabel || scopeLabelInput.value,
+          regionCode: policy.regionCode || regionInput.value,
+          regionName: content.regionName || regionNameInput.value,
+        });
         return [
+          { module: "region", key: "下发层级", value: scopeTypeLabel(scope.scopeType) },
+          { module: "region", key: "作用域标识", value: scope.scopeValue },
+          { module: "region", key: "作用域名称", value: scope.scopeLabel },
+          { module: "region", key: "区域编码", value: scope.regionCode },
           { module: "region", key: "地区名称", value: content.regionName },
           { module: "region", key: "合规模板", value: templateLabel(content.template) },
           { module: "inspection", key: "随瓶安检", value: content.inspection.delivery.enabled ? `开启 · ${modeLabel(content.inspection.delivery.mode)}` : "关闭" },
@@ -885,7 +954,7 @@
           { module: "scan", key: "扫码场景", value: content.scan.scenes.length ? content.scan.scenes.map(sceneLabel).join(" / ") : "未配置" },
           { module: "reporting", key: "上报模式", value: reportModeLabel(content.reporting.mode) },
           { module: "reporting", key: "批量间隔", value: content.reporting.batchInterval },
-          { module: "reporting", key: "失败重试", value: `${content.reporting.retryCount} 次` },
+          { module: "reporting", key: "离线补传上限", value: `${content.reporting.retryCount} 次` },
           { module: "reporting", key: "同步批量", value: `${content.reporting.syncBatchSize} 条` },
         ];
       }
@@ -918,15 +987,16 @@
 
       function updateHero(policy) {
         const normalized = normalizePolicyContent(policy?.content || policy || {});
-        heroRegion.textContent = policy?.regionCode || "CN-DEFAULT";
+        const scope = normalizeScopeMeta(policy || {});
+        heroRegion.textContent = scope.scopeLabel || scope.scopeValue;
         heroTemplate.textContent = `模板 ${templateLabel(normalized.template)}`;
         heroInspection.textContent = normalized.inspection.delivery.enabled ? modeLabel(normalized.inspection.delivery.mode) : "关闭";
         heroPeriodic.textContent = normalized.inspection.periodic.enabled ? `周期 ${normalized.inspection.periodic.cycleDays}天` : "未启用周期任务";
         heroScan.textContent = normalized.scan.enabled ? (normalized.scan.required ? "强制" : "建议") : "关闭";
         heroScanMode.textContent = `方式 ${scanModeLabel(normalized.scan.mode)}`;
         heroReporting.textContent = reportModeLabel(normalized.reporting.mode);
-        heroRetry.textContent = `重试 ${normalized.reporting.retryCount} 次 / ${normalized.reporting.syncBatchSize} 条`;
-        currentConfigRows = buildConfigRows(normalized);
+        heroRetry.textContent = `${scopeTypeLabel(scope.scopeType)} / ${scope.scopeValue}`;
+        currentConfigRows = buildConfigRows(normalized, policy || {});
         renderConfigRows();
       }
 
@@ -936,20 +1006,24 @@
           return;
         }
         const normalized = normalizePolicyContent(policy.content || {});
+        const scope = normalizeScopeMeta(policy);
         currentPolicy.innerHTML = `
           <div class="summary-grid">
             <div class="summary-card">
-              <h3>地区模板</h3>
+              <h3>下发范围</h3>
               <div class="summary-list">
-                <div class="summary-line"><span>地区编码</span><strong>${policy.regionCode}</strong></div>
-                <div class="summary-line"><span>地区名称</span><strong>${normalized.regionName}</strong></div>
-                <div class="summary-line"><span>模板</span><strong>${templateLabel(normalized.template)}</strong></div>
-                <div class="summary-line"><span>发布人</span><strong>${policy.publishedBy || "未记录"}</strong></div>
+                <div class="summary-line"><span>层级</span><strong>${scopeTypeLabel(scope.scopeType)}</strong></div>
+                <div class="summary-line"><span>作用域标识</span><strong>${scope.scopeValue}</strong></div>
+                <div class="summary-line"><span>作用域名称</span><strong>${scope.scopeLabel}</strong></div>
+                <div class="summary-line"><span>区域编码</span><strong>${scope.regionCode}</strong></div>
               </div>
             </div>
             <div class="summary-card">
-              <h3>发布状态</h3>
+              <h3>策略内容</h3>
               <div class="summary-list">
+                <div class="summary-line"><span>地区名称</span><strong>${normalized.regionName}</strong></div>
+                <div class="summary-line"><span>模板</span><strong>${templateLabel(normalized.template)}</strong></div>
+                <div class="summary-line"><span>发布人</span><strong>${policy.publishedBy || "未记录"}</strong></div>
                 <div class="summary-line"><span>当前版本</span><strong>${policy.version}</strong></div>
                 <div class="summary-line"><span>发布时间</span><strong>${formatTime(policy.publishedAt)}</strong></div>
                 <div class="summary-line"><span>扫码</span><strong>${normalized.scan.enabled ? "开启" : "关闭"}</strong></div>
@@ -979,6 +1053,7 @@
         versionList.innerHTML = "";
         rollbackVersionSelect.innerHTML = "";
         list.forEach((item, idx) => {
+          const scope = normalizeScopeMeta(item);
           const row = document.createElement("div");
           row.className = `item version-item ${selectedVersion === item.version ? "active" : ""}`;
           row.innerHTML = `
@@ -986,7 +1061,7 @@
               <div class="version-title">${item.version}</div>
               <span class="status-pill ${item.status}">${item.status === "active" ? "生效中" : item.status === "draft" ? "草稿" : "历史"}</span>
             </div>
-            <div class="version-meta">区域：${item.regionCode}<br/>发布时间：${formatTime(item.publishedAt)}<br/>发布人：${item.publishedBy || "未发布"}</div>
+            <div class="version-meta">${scopeTypeLabel(scope.scopeType)}：${scope.scopeLabel} (${scope.scopeValue})<br/>区域：${scope.regionCode}<br/>发布时间：${formatTime(item.publishedAt)}<br/>发布人：${item.publishedBy || "未发布"}</div>
           `;
           row.addEventListener("click", () => {
             selectedVersion = item.version;
@@ -1034,6 +1109,9 @@
         setTip("正在保存策略草稿...");
         const res = await editPolicyDraft({
           operator: operatorInput.value,
+          scopeType: scopeTypeInput.value,
+          scopeValue: scopeValueInput.value,
+          scopeLabel: scopeLabelInput.value,
           regionCode: regionInput.value,
           content,
         });
@@ -1075,6 +1153,9 @@
       });
 
       [
+        scopeTypeInput,
+        scopeValueInput,
+        scopeLabelInput,
         regionNameInput,
         templateSelect,
         scanEnabledInput,
@@ -1094,6 +1175,18 @@
         node.addEventListener("input", syncContentPreview);
         node.addEventListener("change", syncContentPreview);
       });
+      scopeTypeInput.addEventListener("change", () => {
+        syncScopeInputs();
+        syncContentPreview();
+      });
+      regionInput.addEventListener("input", () => {
+        if (scopeTypeInput.value === "region") syncScopeInputs();
+        syncContentPreview();
+      });
+      regionNameInput.addEventListener("input", () => {
+        if (scopeTypeInput.value === "region") syncScopeInputs();
+        syncContentPreview();
+      });
       templateSelect.addEventListener("change", () => applyPreset(templateSelect.value));
       bindChipWrap("scanScenesWrap");
       bindChipWrap("aiItemsWrap");
@@ -1109,6 +1202,7 @@
       });
 
       applyPreset("standard");
+      syncScopeInputs();
       loadCurrent();
       loadVersions();
       loadAudit();

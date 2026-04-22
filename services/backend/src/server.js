@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const {
+  authByAccessToken,
   issueCode,
   login,
   refresh,
@@ -31,6 +32,9 @@ const offlineQueue = [];
 const policyVersions = [
   {
     version: "v1.0.0",
+    scopeType: "region",
+    scopeValue: "CN-DEFAULT",
+    scopeLabel: "全国默认区域",
     regionCode: "CN-DEFAULT",
     content: {
       regionName: "全国默认区域",
@@ -2036,11 +2040,22 @@ function retrySafetyReport(safetyId) {
   };
 }
 
+function syncSafetyOfflinePayload(payload = {}) {
+  const mode = String(payload.mode || "").trim();
+  if (mode === "retry" && payload.safetyId) {
+    return retrySafetyReport(String(payload.safetyId));
+  }
+  if (mode === "submit" && payload.orderId) {
+    return submitSafetyRecord(String(payload.orderId), payload.submitPayload || {});
+  }
+  throw new Error("安检离线同步数据不完整");
+}
+
 function enqueueOfflineChange(payload) {
   const entityType = String(payload.entityType || "").trim();
   const action = String(payload.action || "").trim();
   const changePayload = payload.payload || {};
-  if (!["order", "inventory", "customer"].includes(entityType)) {
+  if (!["order", "inventory", "customer", "safety"].includes(entityType)) {
     throw new Error("同步实体类型不支持");
   }
   if (!action) {
@@ -2135,6 +2150,47 @@ function syncOneOfflineItem(item) {
       nextRetryAt: item.nextRetryAt,
     };
   }
+  if (item.entityType === "safety") {
+    try {
+      const result = syncSafetyOfflinePayload(item.payload || {});
+      item.syncStatus = "completed";
+      item.conflictType = "";
+      item.lastError = "";
+      item.resultSummary = result?.status === "completed" ? "安检补传成功" : "安检已提交，等待上报";
+      item.nextRetryAt = 0;
+      item.updatedAt = Date.now();
+      return {
+        offlineId: item.offlineId,
+        syncStatus: item.syncStatus,
+        conflictType: "",
+        manualRequired: false,
+        message: item.resultSummary,
+        nextRetryAt: 0,
+      };
+    } catch (err) {
+      item.retryCount += 1;
+      item.syncStatus = "failed";
+      item.conflictType = "safety_sync_failed";
+      item.lastError = err.message || "安检补传失败";
+      item.resultSummary = "安检补传失败";
+      if (item.retryCount >= 3) {
+        item.manualRequired = true;
+        item.resultSummary = "安检补传失败，需人工处理";
+        item.nextRetryAt = 0;
+      } else {
+        item.nextRetryAt = Date.now() + 1000 * Math.pow(2, item.retryCount);
+      }
+      item.updatedAt = Date.now();
+      return {
+        offlineId: item.offlineId,
+        syncStatus: item.syncStatus,
+        conflictType: item.conflictType,
+        manualRequired: item.manualRequired,
+        message: item.lastError,
+        nextRetryAt: item.nextRetryAt,
+      };
+    }
+  }
   item.syncStatus = "completed";
   item.conflictType = "";
   item.lastError = "";
@@ -2196,8 +2252,78 @@ function markOfflineManual(offlineId) {
   };
 }
 
-function getActivePolicy() {
-  return policyVersions.find((x) => x.status === "active") || null;
+function normalizePolicyScope(payload = {}) {
+  const scopeType = ["account", "company", "region"].includes(String(payload.scopeType || "").trim())
+    ? String(payload.scopeType || "").trim()
+    : "region";
+  const fallbackValue = scopeType === "company" ? "COMP-DEFAULT" : scopeType === "account" ? "DEALER-DEFAULT" : "CN-DEFAULT";
+  const scopeValue = String(payload.scopeValue || payload.regionCode || fallbackValue).trim() || fallbackValue;
+  const scopeLabel = String(
+    payload.scopeLabel ||
+      payload.regionName ||
+      (scopeType === "company" ? payload.companyName : "") ||
+      (scopeType === "account" ? payload.dealerName : "") ||
+      scopeValue
+  ).trim() || scopeValue;
+  const regionCode =
+    scopeType === "region"
+      ? scopeValue
+      : String(payload.regionCode || payload.content?.regionCode || "CN-DEFAULT").trim() || "CN-DEFAULT";
+  return { scopeType, scopeValue, scopeLabel, regionCode };
+}
+
+function buildPolicyScopeKey(policy = {}) {
+  const normalized = normalizePolicyScope(policy);
+  return `${normalized.scopeType}:${normalized.scopeValue}`;
+}
+
+function getPolicyContext(accessToken = "") {
+  try {
+    const auth = authByAccessToken(accessToken);
+    return {
+      userId: String(auth?.user?.id || "").trim(),
+      dealerId: String(auth?.user?.dealerId || "").trim(),
+      companyId: String(auth?.user?.companyId || "").trim(),
+      companyName: String(auth?.user?.companyName || "").trim(),
+      regionCode: String(auth?.user?.regionCode || "CN-DEFAULT").trim() || "CN-DEFAULT",
+    };
+  } catch (_err) {
+    return {
+      userId: "",
+      dealerId: "",
+      companyId: "",
+      companyName: "",
+      regionCode: "CN-DEFAULT",
+    };
+  }
+}
+
+function matchesPolicyScope(policy = {}, context = {}) {
+  const normalized = normalizePolicyScope(policy);
+  if (normalized.scopeType === "account") {
+    return normalized.scopeValue === String(context.dealerId || "").trim();
+  }
+  if (normalized.scopeType === "company") {
+    return normalized.scopeValue === String(context.companyId || "").trim();
+  }
+  return normalized.scopeValue === String(context.regionCode || "CN-DEFAULT").trim();
+}
+
+function getActivePolicy(context = {}) {
+  const activePolicies = policyVersions.filter((x) => x.status === "active");
+  if (context.dealerId) {
+    const dealerHit = activePolicies.find((x) => normalizePolicyScope(x).scopeType === "account" && matchesPolicyScope(x, context));
+    if (dealerHit) return dealerHit;
+  }
+  if (context.companyId) {
+    const companyHit = activePolicies.find((x) => normalizePolicyScope(x).scopeType === "company" && matchesPolicyScope(x, context));
+    if (companyHit) return companyHit;
+  }
+  if (context.regionCode) {
+    const regionHit = activePolicies.find((x) => normalizePolicyScope(x).scopeType === "region" && matchesPolicyScope(x, context));
+    if (regionHit) return regionHit;
+  }
+  return activePolicies.find((x) => buildPolicyScopeKey(x) === "region:CN-DEFAULT") || activePolicies[0] || null;
 }
 
 function addPolicyAudit(action, operator, detail) {
@@ -2212,12 +2338,15 @@ function addPolicyAudit(action, operator, detail) {
 }
 
 function savePolicyDraft(payload) {
-  const regionCode = String(payload.regionCode || "CN-DEFAULT").trim();
+  const scope = normalizePolicyScope(payload);
   const content = payload.content && typeof payload.content === "object" ? payload.content : {};
   const draftVersion = `v${new Date().toISOString().slice(0, 19).replace(/[-T:]/g, ".")}`;
   const draft = {
     version: draftVersion,
-    regionCode,
+    scopeType: scope.scopeType,
+    scopeValue: scope.scopeValue,
+    scopeLabel: scope.scopeLabel,
+    regionCode: scope.regionCode,
     content,
     status: "draft",
     publishedAt: 0,
@@ -2234,8 +2363,9 @@ function publishPolicy(payload) {
   const operator = String(payload.operator || "unknown").trim();
   const target = policyVersions.find((x) => x.version === version);
   if (!target) throw new Error("目标策略版本不存在");
+  const targetScopeKey = buildPolicyScopeKey(target);
   policyVersions.forEach((x) => {
-    if (x.status === "active") x.status = "history";
+    if (x.status === "active" && buildPolicyScopeKey(x) === targetScopeKey) x.status = "history";
   });
   target.status = "active";
   target.publishedAt = Date.now();
@@ -2249,9 +2379,10 @@ function rollbackPolicy(payload) {
   const operator = String(payload.operator || "unknown").trim();
   const target = policyVersions.find((x) => x.version === toVersion);
   if (!target) throw new Error("回滚目标版本不存在");
-  const current = getActivePolicy();
+  const targetScopeKey = buildPolicyScopeKey(target);
+  const current = policyVersions.find((x) => x.status === "active" && buildPolicyScopeKey(x) === targetScopeKey) || null;
   policyVersions.forEach((x) => {
-    if (x.status === "active") x.status = "history";
+    if (x.status === "active" && buildPolicyScopeKey(x) === targetScopeKey) x.status = "history";
   });
   target.status = "active";
   target.rolledBackFrom = current ? current.version : "";
@@ -2928,6 +3059,10 @@ const server = http.createServer(async (req, res) => {
             id: result.user.id,
             phone: result.user.phone,
             nickname: result.user.nickname,
+            dealerId: result.user.dealerId,
+            regionCode: result.user.regionCode,
+            companyId: result.user.companyId,
+            companyName: result.user.companyName,
           },
           sessionId: result.sessionId,
           accessToken: result.accessToken,
@@ -3457,9 +3592,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/platform/policies/current") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
+      const context = getPolicyContext(accessToken);
       return sendJson(res, 200, {
         success: true,
-        data: getActivePolicy(),
+        data: getActivePolicy(context),
       });
     }
 

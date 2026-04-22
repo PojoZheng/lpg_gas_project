@@ -47,12 +47,6 @@
         letter-spacing: 0.2px;
         font-family: var(--font-title);
       }
-      .hero-copy {
-        margin: 8px 0 0;
-        font-size: 13px;
-        line-height: 1.6;
-        color: #5a666b;
-      }
       .status-pill,
       .mini-pill {
         min-height: 30px;
@@ -341,9 +335,8 @@
             <div class="hero-kicker">本次完单安检</div>
             <div class="order-no" id="orderText">订单号</div>
           </div>
-          <div class="status-pill pending" id="statusPill">待上报</div>
+          <div class="status-pill pending" id="statusPill">待提交</div>
         </div>
-        <p class="hero-copy" id="heroCopy">按顺序完成检查项、补现场照片，再决定是否存在隐患。异常时补充说明后再提交。</p>
         <div class="step-strip">
           <div class="step-chip"><strong>1. 检查</strong><span>勾选已完成的安检动作</span></div>
           <div class="step-chip"><strong>2. 拍照</strong><span>至少补 1 张现场照片</span></div>
@@ -438,7 +431,6 @@
         <div class="dock-actions">
           <button class="app-btn primary" id="submitBtn">提交安检并上报</button>
           <div class="dock-secondary-row">
-            <button class="app-btn ghost" id="retryBtn">失败重试</button>
             <button class="app-btn" id="backWorkbenchBtn">返回结果页</button>
           </div>
         </div>
@@ -453,8 +445,8 @@
         fetchCurrentPlatformPolicy,
         fetchSafetyByOrder,
         submitSafetyByOrder,
-        retrySafetyReport,
       } from "./delivery-complete-client.js";
+      import { enqueueOfflineChange, submitOfflineQueueBatch } from "./offline-sync-client.js";
       import { getFlowState } from "./delivery-flow-state.js";
 
       if (!ensureAuthenticatedPage()) throw new Error("未登录");
@@ -478,12 +470,10 @@
       const abnormalStatePill = document.getElementById("abnormalStatePill");
       const attemptCount = document.getElementById("attemptCount");
       const historyList = document.getElementById("historyList");
-      const heroCopy = document.getElementById("heroCopy");
       const hazardInput = document.getElementById("hazardInput");
       const abnormalPanel = document.getElementById("abnormalPanel");
       const normalBtn = document.getElementById("normalBtn");
       const abnormalBtn = document.getElementById("abnormalBtn");
-      const retryBtn = document.getElementById("retryBtn");
       const CHECK_VALUE_SET = new Set(checks.map((item) => item.value));
 
       function setTip(text, err = false) {
@@ -505,22 +495,17 @@
 
       function setStatus(status, lastError = "") {
         const normalized = String(status || "pending");
-        statusPill.className = `status-pill ${normalized}`;
+        const uiStatus = normalized === "failed" ? "failed" : normalized === "completed" ? "completed" : "pending";
+        statusPill.className = `status-pill ${uiStatus}`;
         if (normalized === "completed") {
           statusPill.textContent = "已上报";
-          heroCopy.textContent = "本次安检已完成监管上报，可直接返回结果页查看订单状态。";
-          retryBtn.disabled = true;
           return;
         }
         if (normalized === "failed") {
-          statusPill.textContent = "上报失败";
-          heroCopy.textContent = lastError || "安检信息已保存，可直接点失败重试继续上报。";
-          retryBtn.disabled = false;
+          statusPill.textContent = "待补传";
           return;
         }
-        statusPill.textContent = "待上报";
-        heroCopy.textContent = "按顺序完成检查项、补现场照片，再决定是否存在隐患。异常时补充说明后再提交。";
-        retryBtn.disabled = !currentSafety?.safetyId;
+        statusPill.textContent = "待提交";
       }
 
       function updateSelectedCount() {
@@ -574,7 +559,7 @@
         currentSafety = record || null;
         if (!record) {
           attemptCount.textContent = "0 次";
-          historyList.innerHTML = '<div class="history-item"><div class="history-main">还没有上报记录</div><div class="history-sub">完成检查并提交后，这里会显示最近状态</div></div>';
+          historyList.innerHTML = '<div class="history-item"><div class="history-main">暂无上报记录</div></div>';
           setStatus("pending");
           return;
         }
@@ -604,13 +589,51 @@
               .map(
                 (log) => `
                   <div class="history-item">
-                    <div class="history-main">${log.status === "completed" ? "上报成功" : "上报失败"} · ${String(log.summary || "")}</div>
+                    <div class="history-main">${log.status === "completed" ? "上报成功" : "待补传"} · ${String(log.summary || "")}</div>
                     <div class="history-sub">${formatTime(log.at)}</div>
                   </div>
                 `,
               )
               .join("")
-          : '<div class="history-item"><div class="history-main">还没有上报记录</div><div class="history-sub">提交后会在这里显示最近状态</div></div>';
+          : '<div class="history-item"><div class="history-main">暂无上报记录</div></div>';
+      }
+
+      async function flushOfflineSafetyQueue() {
+        if (!navigator.onLine) return false;
+        const res = await submitOfflineQueueBatch();
+        if (!res.success) return false;
+        return true;
+      }
+
+      async function enqueueSafetyOffline(mode, payload, fallbackRecord = {}) {
+        const res = await enqueueOfflineChange({
+          entityType: "safety",
+          action: "sync",
+          payload: {
+            mode,
+            ...payload,
+          },
+        });
+        currentSafety = {
+          ...(currentSafety || {}),
+          ...fallbackRecord,
+          status: "failed",
+          lastError: "已加入离线队列，联网后自动补传",
+        };
+        setStatus("failed");
+        historyList.innerHTML = `
+          <div class="history-item">
+            <div class="history-main">已加入离线队列</div>
+            <div class="history-sub">${formatTime(Date.now())}</div>
+          </div>
+        `;
+        if (!res.success) {
+          setTip(res.error || "加入离线队列失败", true);
+          return false;
+        }
+        attemptCount.textContent = `${Number(currentSafety?.reportAttempts || fallbackRecord.reportAttempts || 0)} 次`;
+        setTip("已加入离线队列，联网后自动补传");
+        return true;
       }
 
       async function guardByPolicy() {
@@ -684,11 +707,15 @@
         const checkItems = checks.filter((item) => item.checked).map((item) => item.value).filter((value) => CHECK_VALUE_SET.has(value));
         const photoUrls = localPhotos.map((item) => item.value).filter(Boolean);
         const hazardNote = String(hazardInput.value || "").trim();
+        const submitPayload = { checkItems, photoUrls, hasAbnormal, hazardNote };
 
         setTip("正在提交安检...");
-        const res = await submitSafetyByOrder(orderId, { checkItems, photoUrls, hasAbnormal, hazardNote });
-        if (!res.success) return setTip(res.error || "安检提交失败", true);
-        currentSafety = { ...(currentSafety || {}), ...(res.data || {}), checkItems, photoUrls, hasAbnormal, hazardNote };
+        const res = await submitSafetyByOrder(orderId, submitPayload);
+        if (!res.success) {
+          await enqueueSafetyOffline("submit", { orderId, submitPayload }, submitPayload);
+          return;
+        }
+        currentSafety = { ...(currentSafety || {}), ...(res.data || {}), ...submitPayload };
         setStatus(res.data?.status, res.data?.lastError || "");
         attemptCount.textContent = `${Number(res.data?.reportAttempts || 0)} 次`;
         if (res.data?.status === "completed") {
@@ -702,41 +729,23 @@
           window.setTimeout(() => (window.location.href = "./delivery-result.html"), 300);
           return;
         }
-        historyList.innerHTML = `
-          <div class="history-item">
-            <div class="history-main">上报失败 · ${String(res.data?.lastError || "请稍后重试")}</div>
-            <div class="history-sub">${formatTime(res.data?.updatedAt)}</div>
-          </div>
-        `;
-        setTip(`当前状态：${res.data?.status || "pending"}，可直接点失败重试`, true);
-      });
-
-      retryBtn.addEventListener("click", async () => {
-        if (!currentSafety?.safetyId) return setTip("当前无可重试记录", true);
-        setTip("正在重试上报...");
-        const res = await retrySafetyReport(currentSafety.safetyId);
-        if (!res.success) return setTip(res.error || "重试失败", true);
-        currentSafety = { ...(currentSafety || {}), ...(res.data || {}) };
-        attemptCount.textContent = `${Number(res.data?.reportAttempts || 0)} 次`;
-        setStatus(res.data?.status, res.data?.lastError || "");
-        historyList.innerHTML = `
-          <div class="history-item">
-            <div class="history-main">${res.data?.status === "completed" ? "上报成功" : "上报失败"} · ${String(res.data?.lastError || "监管上报成功")}</div>
-            <div class="history-sub">${formatTime(res.data?.updatedAt)}</div>
-          </div>
-        `;
-        if (res.data?.status === "completed") {
-          setTip("重试成功，正在进入结果页");
-          window.setTimeout(() => (window.location.href = "./delivery-result.html"), 300);
-          return;
-        }
-        setTip(`当前状态：${res.data?.status || "pending"}，可继续重试`, true);
+        await enqueueSafetyOffline(
+          res.data?.safetyId ? "retry" : "submit",
+          res.data?.safetyId ? { safetyId: res.data.safetyId } : { orderId, submitPayload },
+          { ...(res.data || {}), ...submitPayload },
+        );
       });
 
       updateSelectedCount();
       setAbnormalState(false);
       renderPhotos();
       void loadSafety();
+      if (navigator.onLine) {
+        void flushOfflineSafetyQueue();
+      }
+      window.addEventListener("online", () => {
+        void flushOfflineSafetyQueue();
+      });
 
       window.addEventListener("beforeunload", () => {
         objectUrls.forEach((url) => URL.revokeObjectURL(url));
