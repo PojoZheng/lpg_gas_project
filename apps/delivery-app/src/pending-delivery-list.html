@@ -33,7 +33,6 @@
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { goBackOr } from "./app-shell.js";
       import { fetchPendingDeliveryOrders } from "./delivery-complete-client.js";
       import { clearFlowState, setSelectedOrder } from "./delivery-flow-state.js";
 
@@ -41,7 +40,9 @@
 
       const listEl = document.getElementById("orderList");
       const tipEl = document.getElementById("tip");
-      document.getElementById("backBtn").addEventListener("click", () => goBackOr("./workbench.html"));
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
 
       async function load() {
         clearFlowState();
