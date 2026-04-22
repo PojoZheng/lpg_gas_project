@@ -288,6 +288,7 @@
         checkHeavyInventory,
         updateOrderBasic,
       } from "./order-client.js";
+      import { setSelectedOrder } from "./delivery-flow-state.js";
       import { goBackOr } from "./app-shell.js";
 
       if (!ensureAuthenticatedPage()) {
@@ -378,8 +379,9 @@
 
           if (orderData.orderStatus === "pending_delivery") {
             showToast("待配送订单进入完单录入");
+            setSelectedOrder(orderData);
             window.setTimeout(() => {
-              window.location.href = `./pending-delivery-list.html?orderId=${encodeURIComponent(orderData.orderId)}`;
+              window.location.replace("./delivery-settlement.html");
             }, 250);
             return;
           }

@@ -75,7 +75,7 @@
           listEl.appendChild(btn);
           if (preferOrderId && item.orderId === preferOrderId) {
             setSelectedOrder(item);
-            window.location.href = "./delivery-settlement.html";
+            window.location.replace("./delivery-settlement.html");
           }
         });
       }
