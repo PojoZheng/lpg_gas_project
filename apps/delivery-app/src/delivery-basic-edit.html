@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基础修改</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px; }
+      .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+      .row label { width: 82px; font-size: 13px; color: var(--text-secondary); }
+      .row input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
+      .tip { margin-top: 10px; font-size: 13px; }
+      .err { color: #b42318; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">基础修改</h1>
+        <div style="width:38px"></div>
+      </header>
+      <section class="card">
+        <div class="row"><label>配送时间</label><input id="scheduleInput" placeholder="如：今天 18:30" /></div>
+        <div class="row"><label>配送地址</label><input id="addressInput" placeholder="请输入配送地址" /></div>
+        <button class="app-btn primary" id="saveBtn">保存并回完单录入</button>
+        <div id="tip" class="tip"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { fetchOrderById, updateOrder } from "./delivery-complete-client.js";
+      import { getFlowState, patchFlowState } from "./delivery-flow-state.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const flow = getFlowState();
+      const orderId = flow.selectedOrderId || "";
+      if (!orderId) window.location.href = "./pending-delivery-list.html";
+
+      const tipEl = document.getElementById("tip");
+      function tip(text, err = false) {
+        tipEl.textContent = text || "";
+        tipEl.className = `tip ${err ? "err" : ""}`;
+      }
+
+      async function load() {
+        let order = flow.selectedOrder;
+        if (!order) {
+          const res = await fetchOrderById(orderId);
+          if (!res.success || !res.data) return tip(res.error || "订单不存在", true);
+          order = res.data;
+          patchFlowState({ selectedOrder: order });
+        }
+        document.getElementById("scheduleInput").value = order.scheduleAt || "";
+        document.getElementById("addressInput").value = order.address || "";
+      }
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./delivery-settlement.html";
+      });
+      document.getElementById("saveBtn").addEventListener("click", async () => {
+        const scheduleAt = document.getElementById("scheduleInput").value.trim();
+        const address = document.getElementById("addressInput").value.trim();
+        if (!scheduleAt) return tip("配送时间不能为空", true);
+        if (!address) return tip("配送地址不能为空", true);
+        tip("保存中...");
+        const res = await updateOrder(orderId, { scheduleAt, address });
+        if (!res.success) return tip(res.error || "保存失败", true);
+        patchFlowState({ selectedOrder: { ...(flow.selectedOrder || {}), scheduleAt, address } });
+        window.location.href = "./delivery-settlement.html";
+      });
+
+      void load();
+    </script>
+  </body>
+</html>

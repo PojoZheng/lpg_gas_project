@@ -1,0 +1,23 @@
+{
+  "id": "64-mobile-flow-focus-and-copy-cap",
+  "title": "移动端页面聚焦：完单与安检解耦、开单流程重排、按钮文案收口",
+  "status": "completed",
+  "depends_on": [
+    "63-mobile-safety-policy-and-tip-timing"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-mobile-flow-focus-and-button-copy-cap.md"
+  ],
+  "acceptance": [
+    "安检可选时完单页仅保留安检入口，不常驻安检操作区",
+    "快速开单默认客户优先最近客户，连续模式保持不自动选客",
+    "快速开单加客入口位置前置，流程按选客户-填订单-提交组织",
+    "本次改动范围内按钮文案不超过 6 个字"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-complete.html",
+    "apps/delivery-app/src/quick-order.html",
+    "apps/delivery-app/src/workbench.html"
+  ]
+}

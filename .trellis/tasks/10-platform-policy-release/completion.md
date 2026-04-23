@@ -8,7 +8,7 @@
 - [x] 界面文案必须为中文且严禁 emoji：新增页面文案全部中文，无 emoji。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 新增策略版本模型与审计日志模型
   - 新增接口：
     - `GET /platform/policies/current`
@@ -17,11 +17,11 @@
     - `POST /platform/policies/publish`
     - `POST /platform/policies/rollback`
     - `GET /platform/policies/audit-logs`
-- 前端：`/.trellis/delivery-app/src/policy-release-client.js`
+- 前端：`/apps/delivery-app/src/policy-release-client.js`
   - 新增平台策略接口调用封装
-- 前端：`/.trellis/delivery-app/src/policy-release.html`
+- 前端：`/apps/delivery-app/src/policy-release.html`
   - 新增策略编辑、发布、回滚、当前配置与审计日志页面
-- 前端：`/.trellis/delivery-app/src/workbench.html`
+- 前端：`/apps/delivery-app/src/workbench.html`
   - 新增“平台策略发布”入口
 
 ## 3. 测试与风险

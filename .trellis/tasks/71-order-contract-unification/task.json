@@ -1,0 +1,27 @@
+{
+  "id": "71-order-contract-unification",
+  "title": "订单接口字段契约统一（列表/待配送/详情）",
+  "status": "completed",
+  "depends_on": [
+    "70-delivery-complete-structure-focus"
+  ],
+  "input_spec": [
+    "requirements/02_订单/需求.md",
+    "requirements/02_订单/数据模型.md",
+    ".trellis/spec/shared/api-contracts.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md"
+  ],
+  "acceptance": [
+    "/orders、/orders/pending-delivery、/orders/:id 返回字段命名与语义统一（同域单一口径）",
+    "前端订单相关页面不再依赖蛇形/驼峰双口径兜底映射",
+    "补充接口契约文档示例，明确完单相关关键字段（应收、实收、空瓶处理、支付方式）",
+    "现有核心订单链路（列表、详情、完单）回归通过"
+  ],
+  "output_artifacts": [
+    "services/backend/src/server.js",
+    "apps/delivery-app/src/delivery-complete-client.js",
+    "apps/delivery-app/src/order-list.html",
+    "apps/delivery-app/src/order-detail.html",
+    ".trellis/spec/shared/api-contracts.md"
+  ]
+}

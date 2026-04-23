@@ -8,12 +8,12 @@
 - [x] `delivery-complete.html` 在 `view=pending` 时加载订单后平滑滚动至「待配送订单」区块，便于从工作台进入后直接定位列表。
 
 ## 关键改动
-- `.trellis/delivery-app/src/workbench.html`：区域 B 标题与副文案、`viewAllPendingLink` 链接样式。
-- `.trellis/delivery-app/src/delivery-complete.html`：`pendingDeliverySection` 锚点与 `maybeScrollToPendingList`。
+- `apps/delivery-app/src/workbench.html`：区域 B 标题与副文案、`viewAllPendingLink` 链接样式。
+- `apps/delivery-app/src/delivery-complete.html`：`pendingDeliverySection` 锚点与 `maybeScrollToPendingList`。
 - `.trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md`：覆盖表与变更记录。
 - `.trellis/scripts/task37_workbench_view_all_smoke.py`：轻量 DOM/路由断言。
 - `.trellis/tasks/test-commands.json`：增加本任务测试命令条目。
 
 ## 校验
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`
-- `node --check ".trellis/delivery-app/src/workbench-client.js"`（未改逻辑时仍通过）
+- `node --check "apps/delivery-app/src/workbench-client.js"`（未改逻辑时仍通过）

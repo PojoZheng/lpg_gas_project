@@ -1,0 +1,26 @@
+{
+  "id": "72-delivery-complete-validation-rules",
+  "title": "待配送完单输入校验规则补齐（前后端一致）",
+  "status": "completed",
+  "depends_on": [
+    "70-delivery-complete-structure-focus",
+    "71-order-contract-unification"
+  ],
+  "input_spec": [
+    "requirements/02_订单/需求.md",
+    "requirements/02_订单/规格.md",
+    "requirements/02_订单/数据模型.md",
+    ".trellis/spec/shared/api-contracts.md"
+  ],
+  "acceptance": [
+    "完单表单前端增加关键输入约束（实收、回收空瓶、欠瓶、支付方式）并给出明确错误提示",
+    "后端 complete 接口对同一规则做兜底校验，返回稳定错误码与可读文案",
+    "前后端校验规则口径一致，避免‘前端通过后端拒绝’或反向放行",
+    "新增规则验证脚本覆盖合法/非法组合"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-complete.html",
+    "services/backend/src/server.js",
+    ".trellis/tests/stories/story_delivery_complete_validation.py"
+  ]
+}

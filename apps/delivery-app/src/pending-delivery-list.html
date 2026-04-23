@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>待配送列表</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px; margin-bottom: 10px; }
+      .title { margin: 0 0 8px; font-size: 18px; font-family: var(--font-title); }
+      .sub { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
+      .order-btn { width: 100%; text-align: left; border: 1px solid var(--border); border-radius: 12px; background: #fff; padding: 12px; margin-bottom: 8px; }
+      .line2 { margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
+      .line3 { margin-top: 8px; display: flex; justify-content: space-between; font-size: 13px; }
+      .tip { font-size: 13px; color: var(--text-secondary); }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">待配送列表</h1>
+        <div style="width: 38px"></div>
+      </header>
+
+      <section class="card">
+        <h2 class="title">选择待配送订单</h2>
+        <div id="orderList"></div>
+        <div id="tip" class="tip"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { fetchPendingDeliveryOrders } from "./delivery-complete-client.js";
+      import { clearFlowState, setSelectedOrder } from "./delivery-flow-state.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const listEl = document.getElementById("orderList");
+      const tipEl = document.getElementById("tip");
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./workbench.html";
+      });
+
+      async function load() {
+        clearFlowState();
+        const preferOrderId = new URLSearchParams(window.location.search).get("orderId") || "";
+        tipEl.textContent = "加载中...";
+        const res = await fetchPendingDeliveryOrders();
+        if (!res.success) {
+          tipEl.textContent = res.error || "加载失败";
+          return;
+        }
+        const rows = res.data || [];
+        listEl.innerHTML = "";
+        if (!rows.length) {
+          tipEl.textContent = "暂无待配送订单";
+          return;
+        }
+        tipEl.textContent = `共 ${rows.length} 条待配送`;
+        rows.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.className = "order-btn";
+          btn.type = "button";
+          btn.innerHTML = `
+            <div>${item.customerName}（${item.spec} x ${item.quantity}）</div>
+            <div class="line2">${item.address || "-"}</div>
+            <div class="line3"><span>${item.scheduleAt || "尽快配送"}</span><span>订单号 ${item.orderId}</span></div>
+          `;
+          btn.addEventListener("click", () => {
+            setSelectedOrder(item);
+            window.location.href = "./delivery-settlement.html";
+          });
+          listEl.appendChild(btn);
+          if (preferOrderId && item.orderId === preferOrderId) {
+            setSelectedOrder(item);
+            window.location.replace("./delivery-settlement.html");
+          }
+        });
+      }
+
+      void load();
+    </script>
+  </body>
+</html>

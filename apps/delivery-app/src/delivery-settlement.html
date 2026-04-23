@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>完单录入</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px; margin-bottom: 10px; }
+      .meta-line {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .meta-line .app-btn {
+        height: 36px;
+        min-height: 36px;
+        padding: 0 10px;
+      }
+      .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+      .row label { width: 82px; font-size: 13px; color: var(--text-secondary); }
+      .row input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
+      .pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+      .pay button { height: 44px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+      .pay button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .actions { display: grid; gap: 8px; }
+      .tip { font-size: 13px; line-height: 1.5; }
+      .tip.err { color: #b42318; }
+      .tip.ok { color: #166534; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">完单录入</h1>
+        <div style="width: 38px"></div>
+      </header>
+
+      <section class="card">
+        <div id="orderTitle" style="font-weight: 700"></div>
+        <div id="orderSub" style="margin-top: 6px; font-size: 13px; color: var(--text-secondary)"></div>
+        <div class="meta-line">
+          <span>配送时间：<strong id="scheduleText">-</strong></span>
+          <button class="app-btn ghost" id="editScheduleBtn">改配送时间</button>
+        </div>
+        <div class="meta-line">
+          <span>配送地址：<strong id="addressText">-</strong></span>
+          <button class="app-btn ghost" id="editAddressBtn">改配送地址</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row"><label>应收金额</label><input id="amountInput" disabled /></div>
+        <div class="row"><label>实收金额</label><input id="receivedInput" type="number" min="0" step="0.01" /></div>
+        <div class="pay" id="payWrap">
+          <button type="button" data-method="wechat" class="active">微信收款</button>
+          <button type="button" data-method="cash">现金收款</button>
+          <button type="button" data-method="credit">记账</button>
+        </div>
+        <div class="row"><label>回收空瓶</label><input id="recycleInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>欠瓶数量</label><input id="owedInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="actions">
+          <button class="app-btn primary" id="completeBtn">提交完单</button>
+          <button class="app-btn" id="cancelBtn">取消订单</button>
+        </div>
+        <div id="tip" class="tip"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import {
+        completeOrder,
+        cancelOrder,
+        fetchOrderById,
+        fetchCurrentPlatformPolicy,
+      } from "./delivery-complete-client.js";
+      import {
+        getFlowState,
+        patchFlowState,
+        setCompleteResult,
+        setPolicySafetyRequired,
+        setSettlementDraft,
+      } from "./delivery-flow-state.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const tipEl = document.getElementById("tip");
+      const flow = getFlowState();
+      const orderId = flow.selectedOrderId || "";
+      let order = flow.selectedOrder || null;
+      let paymentMethod = "wechat";
+
+      if (!orderId) {
+        window.location.href = "./pending-delivery-list.html";
+      }
+
+      function showTip(text, err = false) {
+        tipEl.textContent = text || "";
+        tipEl.className = `tip ${err ? "err" : "ok"}`;
+      }
+
+      function hasUpToTwoDecimals(raw) {
+        const text = String(raw || "").trim();
+        if (!text) return true;
+        return /^-?\d+(\.\d{1,2})?$/.test(text);
+      }
+
+      function validate() {
+        const receivedRaw = String(document.getElementById("receivedInput").value || "").trim();
+        const recycle = Number(document.getElementById("recycleInput").value || 0);
+        const owed = Number(document.getElementById("owedInput").value || 0);
+        const received = Number(receivedRaw);
+
+        if (!hasUpToTwoDecimals(receivedRaw) || !Number.isFinite(received) || received < 0) {
+          return { ok: false, message: "实收金额格式不正确" };
+        }
+        if (!Number.isInteger(recycle) || recycle < 0) return { ok: false, message: "回收空瓶必须为非负整数" };
+        if (!Number.isInteger(owed) || owed < 0) return { ok: false, message: "欠瓶必须为非负整数" };
+        if (recycle + owed > Number(order?.quantity || 0)) {
+          return { ok: false, message: "回收空瓶+欠瓶不能超过配送数量" };
+        }
+        if (paymentMethod === "credit" && received !== 0) return { ok: false, message: "记账时实收必须为0" };
+        if (paymentMethod !== "credit" && received <= 0) return { ok: false, message: "现金/微信时实收需大于0" };
+
+        return {
+          ok: true,
+          payload: { receivedAmount: Number(received.toFixed(2)), paymentMethod, recycledEmptyCount: recycle, owedEmptyCount: owed },
+        };
+      }
+
+      async function loadOrder() {
+        if (!order) {
+          const res = await fetchOrderById(orderId);
+          if (!res.success || !res.data) {
+            showTip(res.error || "订单不存在", true);
+            return;
+          }
+          order = res.data;
+          patchFlowState({ selectedOrder: order });
+        }
+        document.getElementById("orderTitle").textContent = `${order.customerName}（${order.spec} x ${order.quantity}）`;
+        document.getElementById("orderSub").textContent = `${order.address || "-"}｜${order.scheduleAt || "尽快配送"}｜订单号 ${order.orderId}`;
+        document.getElementById("scheduleText").textContent = order.scheduleAt || "尽快配送";
+        document.getElementById("addressText").textContent = order.address || "-";
+        document.getElementById("amountInput").value = Number(order.amount || 0).toFixed(2);
+
+        const draft = flow.settlementDraft || {};
+        document.getElementById("receivedInput").value = Number(draft.receivedAmount ?? order.amount ?? 0).toFixed(2);
+        document.getElementById("recycleInput").value = Number(draft.recycledEmptyCount ?? 0);
+        document.getElementById("owedInput").value = Number(draft.owedEmptyCount ?? 0);
+        paymentMethod = draft.paymentMethod || "wechat";
+        document.querySelectorAll("#payWrap button").forEach((x) => x.classList.toggle("active", x.dataset.method === paymentMethod));
+      }
+
+      async function decideSafetyAndGo() {
+        const policy = await fetchCurrentPlatformPolicy();
+        const required = Boolean(policy.success ? policy.data?.content?.safetyCheckRequired : true);
+        setPolicySafetyRequired(required);
+        window.location.href = required ? "./delivery-safety.html" : "./delivery-result.html";
+      }
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "./pending-delivery-list.html";
+      });
+      const goEdit = () => {
+        const validated = validate();
+        if (validated.ok) setSettlementDraft(validated.payload);
+        window.location.href = "./delivery-basic-edit.html";
+      };
+      document.getElementById("editScheduleBtn").addEventListener("click", goEdit);
+      document.getElementById("editAddressBtn").addEventListener("click", goEdit);
+
+      document.querySelectorAll("#payWrap button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          paymentMethod = btn.dataset.method;
+          document.querySelectorAll("#payWrap button").forEach((x) => x.classList.toggle("active", x === btn));
+        });
+      });
+
+      document.getElementById("completeBtn").addEventListener("click", async () => {
+        const validated = validate();
+        if (!validated.ok) return showTip(validated.message, true);
+        showTip("正在提交完单...");
+        setSettlementDraft(validated.payload);
+        const res = await completeOrder(orderId, validated.payload);
+        if (!res.success) return showTip(res.error || "完单失败", true);
+        setCompleteResult(res.data || {});
+        showTip("完单成功，正在进入下一步...");
+        await decideSafetyAndGo();
+      });
+
+      document.getElementById("cancelBtn").addEventListener("click", async () => {
+        showTip("正在取消订单...");
+        const res = await cancelOrder(orderId);
+        if (!res.success) return showTip(res.error || "取消失败", true);
+        showTip("订单已取消，返回待配送列表");
+        window.setTimeout(() => {
+          window.location.href = "./pending-delivery-list.html";
+        }, 500);
+      });
+
+      void loadOrder();
+    </script>
+  </body>
+</html>

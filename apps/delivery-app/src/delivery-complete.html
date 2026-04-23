@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>待配送流程入口</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; display: grid; place-items: center; padding: 24px; text-align: center; }
+      .box { max-width: 420px; background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+      .sub { margin-top: 8px; color: var(--text-secondary); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <section class="box">
+        <h1>正在进入待配送流程</h1>
+        <p class="sub">流程已拆分为：待配送列表 -> 完单录入 -> 安检（按 portal 配置）-> 结果页。</p>
+        <p class="sub" style="display:none">delivery-safety.html</p>
+        <button class="app-btn primary" id="enterBtn">立即进入</button>
+      </section>
+    </main>
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+      const next = "./pending-delivery-list.html";
+      document.getElementById("enterBtn").addEventListener("click", () => {
+        window.location.href = next;
+      });
+      window.setTimeout(() => {
+        window.location.href = next;
+      }, 50);
+    </script>
+  </body>
+</html>

@@ -40,6 +40,89 @@
 - `COMPLIANCE_502_REPORT`：监管上报失败
 - `VALIDATION_400`：参数校验失败
 
+## 订单接口字段契约（task-71）
+
+### 统一字段口径
+- `/orders`
+- `/orders/pending-delivery`
+- `/orders/:id`
+
+以上三个接口统一使用 camelCase 字段，不再混用 snake_case。
+
+### 订单对象（OrderContract）
+```json
+{
+  "orderId": "ORD-1713571200000",
+  "customerId": "CUST-001",
+  "customerName": "李大妈",
+  "address": "阳光花园5栋1单元301",
+  "orderType": "later_delivery",
+  "orderStatus": "pending_delivery",
+  "spec": "15kg",
+  "quantity": 1,
+  "unitPrice": 120,
+  "amount": 120,
+  "receivedAmount": 0,
+  "paymentStatus": "unpaid",
+  "paymentMethod": "",
+  "recycledEmptyCount": 0,
+  "owedEmptyCount": 0,
+  "scheduleAt": "今天 18:30",
+  "inventoryStage": "locked",
+  "createdAt": 1713571200000,
+  "completedAt": 0
+}
+```
+
+### 列表接口
+`GET /orders` 返回：
+```json
+{
+  "success": true,
+  "data": {
+    "total": 100,
+    "page": 1,
+    "size": 20,
+    "list": [
+      {
+        "orderId": "ORD-1713571200000",
+        "customerId": "CUST-001",
+        "customerName": "李大妈",
+        "address": "阳光花园5栋1单元301",
+        "orderType": "later_delivery",
+        "orderStatus": "pending_delivery",
+        "spec": "15kg",
+        "quantity": 1,
+        "unitPrice": 120,
+        "amount": 120,
+        "receivedAmount": 0,
+        "paymentStatus": "unpaid",
+        "paymentMethod": "",
+        "recycledEmptyCount": 0,
+        "owedEmptyCount": 0,
+        "scheduleAt": "今天 18:30",
+        "inventoryStage": "locked",
+        "createdAt": 1713571200000,
+        "completedAt": 0
+      }
+    ]
+  }
+}
+```
+
+### 待配送接口
+`GET /orders/pending-delivery` 返回 `OrderContract[]`，字段与上文完全一致，仅数据集合限定为 `orderStatus=pending_delivery`。
+
+### 详情接口
+`GET /orders/:id` 返回单个 `OrderContract` 对象，字段与列表项一致。
+
+### 完单关键字段说明
+- `amount`：应收金额
+- `receivedAmount`：实收金额
+- `recycledEmptyCount`：回收空瓶数量
+- `owedEmptyCount`：欠瓶数量
+- `paymentMethod`：收款方式（`cash`/`wechat`/`alipay`/`transfer`/`credit`）
+
 ## 来源需求
 - `requirements/02_订单/接口.md`
 - `requirements/04_库存/接口.md`

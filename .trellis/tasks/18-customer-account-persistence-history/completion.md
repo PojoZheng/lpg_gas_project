@@ -8,7 +8,7 @@
 
 ## 数据模型（磁盘）
 
-路径默认：`.trellis/backend/data/customer-ledger.json`。可通过环境变量 `TRELLIS_CUSTOMER_LEDGER_PATH` 覆盖（供自动化与多实例隔离）。
+路径默认：`services/backend/data/customer-ledger.json`。可通过环境变量 `TRELLIS_CUSTOMER_LEDGER_PATH` 覆盖（供自动化与多实例隔离）。
 
 文件结构示例：
 

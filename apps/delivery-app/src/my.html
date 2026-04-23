@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .entry-list { display: grid; gap: 10px; }
+      .account-card { margin-bottom: 12px; }
+      .logout-card { margin-top: 12px; }
+      .logout-btn { width: 100%; }
+      .account-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .account-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        border: 1px solid #d6e8ea;
+        object-fit: cover;
+        display: block;
+        flex-shrink: 0;
+      }
+      .account-main { min-width: 0; }
+      .account-name {
+        margin-top: 0;
+        font-size: 22px;
+        line-height: 1.2;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .account-sub { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
+      .entry-btn {
+        width: 100%;
+        min-height: 68px;
+        height: auto;
+        text-align: left;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .entry-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .entry-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: var(--brand-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand);
+      }
+      .entry-icon .nav-icon { width: 18px; height: 18px; }
+      .entry-text { min-width: 0; }
+      .entry-title { font-size: 15px; font-weight: 600; font-family: var(--font-title); }
+      .entry-arrow { color: var(--text-secondary); }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <section class="app-card account-card">
+        <div class="account-head">
+          <img class="account-avatar" id="accountAvatar" src="./default-avatar.svg" alt="头像" />
+          <div class="account-main">
+            <div class="account-name" id="accountName">当前账号</div>
+            <div class="account-sub" id="accountSub" hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">经营管理</h2>
+        <div class="entry-list">
+          <button class="app-btn entry-btn" id="inventoryBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-inventory"></use></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">库存管理</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
+          <button class="app-btn entry-btn" id="ordersBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-orders"></use></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">订单历史</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
+          <button class="app-btn entry-btn" id="financeBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-finance"></use></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">财务记账与日结</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
+          <button class="app-btn entry-btn" id="debtBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-debt"></use></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">债务管理</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
+          <button class="app-btn entry-btn" id="syncBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-sync"></use></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">离线数据</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
+          <button class="app-btn entry-btn" id="rulesBtn">
+            <span class="entry-main">
+              <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-rules"></use></svg></span>
+              <span class="entry-text">
+                <div class="entry-title">业务规则</div>
+              </span>
+            </span>
+            <span class="entry-arrow">›</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="app-card logout-card">
+        <button class="app-btn logout-btn" id="logoutBtn">退出登录</button>
+      </section>
+    </main>
+
+    <div id="appBottomNav"></div>
+
+    <script type="module">
+      import { ensureAuthenticatedPage, getCurrentSession, logoutCurrentSession } from "./auth-client.js";
+      import { mountAppBottomNav } from "./app-shell.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const accountName = document.getElementById("accountName");
+      const accountAvatar = document.getElementById("accountAvatar");
+      const accountSub = document.getElementById("accountSub");
+      const doLogout = async () => {
+        await logoutCurrentSession();
+        window.location.href = "./login.html?from=您已安全退出";
+      };
+      const bindClick = (id, handler) => {
+        const node = document.getElementById(id);
+        if (node) node.addEventListener("click", handler);
+      };
+      const session = getCurrentSession() || {};
+      const accountLabel = String(session.nickname || session.name || "郑老板").trim();
+      accountName.textContent = accountLabel;
+      accountAvatar.src = "./default-avatar.svg";
+      accountSub.hidden = true;
+      accountSub.textContent = "";
+
+      bindClick("inventoryBtn", () => (window.location.href = "./inventory.html"));
+      bindClick("ordersBtn", () => (window.location.href = "./order-list.html"));
+      bindClick("financeBtn", () => (window.location.href = "./finance-overview.html"));
+      bindClick("debtBtn", () => (window.location.href = "./debt-overview.html"));
+      bindClick("syncBtn", () => (window.location.href = "./offline-sync.html"));
+      bindClick("rulesBtn", () => (window.location.href = "./business-rules.html"));
+      bindClick("logoutBtn", doLogout);
+      mountAppBottomNav("appBottomNav", {
+        active: "my",
+      });
+    </script>
+  </body>
+</html>

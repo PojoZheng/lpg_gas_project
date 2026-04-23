@@ -1,0 +1,21 @@
+{
+  "id": "51-finance-lightweight-confirm-section",
+  "title": "财务域 UI：日结页对账确认区轻量化",
+  "status": "completed",
+  "depends_on": [
+    "46-finance-income-daily-close"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-finance-lightweight-cards.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/domain-finance/overview.md"
+  ],
+  "acceptance": [
+    "finance-daily-close.html 的对账确认区不使用渐变背景",
+    "对账确认区不使用粗描边，回归轻卡片弱边框样式",
+    "本次不改动对账流程与按钮逻辑，仅收口视觉层"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/finance-daily-close.html"
+  ]
+}

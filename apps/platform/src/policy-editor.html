@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>编辑策略规则</title>
+    <link rel="stylesheet" href="./platform-design-system.css" />
+    <style>
+      .page-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .page-toolbar-copy h2 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .page-toolbar-copy p {
+        margin: 6px 0 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .saas-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 18px;
+        align-items: start;
+      }
+      .editor-card,
+      .aside-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 16px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+        margin-bottom: 0;
+      }
+      .section-card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 16px;
+        background: #fff;
+        margin-bottom: 14px;
+      }
+      .section-card:last-of-type {
+        margin-bottom: 0;
+      }
+      .section-head,
+      .aside-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .section-head h3,
+      .aside-head h3,
+      .summary-card h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .section-head p,
+      .aside-head p,
+      .summary-card p,
+      .panel-muted {
+        margin: 6px 0 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .mini-tag,
+      .option-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid #d4e7ea;
+        background: #fff;
+        font-size: 12px;
+      }
+      .mini-tag {
+        color: var(--brand);
+        background: var(--brand-soft);
+      }
+      .field-grid,
+      .option-grid,
+      .summary-grid,
+      .summary-list {
+        display: grid;
+        gap: 10px;
+      }
+      .field-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .option-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .option-chip {
+        min-height: 52px;
+        border-radius: 16px;
+        cursor: pointer;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .option-chip.active {
+        background: var(--brand-soft);
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+      .summary-grid {
+        gap: 12px;
+      }
+      .summary-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        background: #fff;
+      }
+      .summary-list {
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .summary-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .summary-line strong {
+        color: var(--text-primary);
+        text-align: right;
+      }
+      .json-preview {
+        min-height: 180px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.55;
+        background: #f8fbfb;
+      }
+      @media (max-width: 1120px) {
+        .saas-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 860px) {
+        .field-grid,
+        .option-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="platform-app">
+      <div id="platformSidebar"></div>
+      <div class="content-wrap">
+        <div id="platformTopBar"></div>
+        <main class="page-content">
+          <div class="page-toolbar">
+            <div class="page-toolbar-copy">
+              <h2>编辑策略规则</h2>
+              <p>这个页面只负责新增、编辑和发布规则，字段全部使用运营能理解的业务语言。</p>
+            </div>
+            <a class="btn ghost" href="./policy-release.html">返回策略规则</a>
+          </div>
+
+          <div class="saas-layout">
+            <section class="editor-card">
+              <section class="section-card">
+                <div class="section-head">
+                  <div>
+                    <h3>适用范围</h3>
+                    <p>确定这套规则适用于哪个地区、哪家燃气公司下使用平台的配送员。</p>
+                  </div>
+                  <span class="mini-tag">范围</span>
+                </div>
+                <div class="field-grid">
+                  <div class="field">
+                    <label>规则类型</label>
+                    <select id="scopeTypeInput">
+                      <option value="region">地区规则</option>
+                      <option value="company">燃气公司规则</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>操作人</label>
+                    <input id="operatorInput" value="平台管理员" />
+                  </div>
+                  <div class="field">
+                    <label>省份</label>
+                    <select id="provinceCodeInput"></select>
+                  </div>
+                  <div class="field">
+                    <label>城市</label>
+                    <select id="cityCodeInput"></select>
+                  </div>
+                  <div class="field">
+                    <label>区县</label>
+                    <select id="districtCodeInput"></select>
+                  </div>
+                  <div class="field">
+                    <label>燃气公司</label>
+                    <input id="companyNameInput" value="当前地区全部配送员" />
+                  </div>
+                </div>
+              </section>
+
+              <section class="section-card">
+                <div class="section-head">
+                  <div>
+                    <h3>随瓶安检</h3>
+                    <p>配置当前范围内配送员是否需要执行随瓶安检。</p>
+                  </div>
+                  <span class="mini-tag">作业</span>
+                </div>
+                <div class="option-grid" id="inspectionWrap">
+                  <button class="option-chip active" type="button" data-value="required">必做</button>
+                  <button class="option-chip" type="button" data-value="optional">可选</button>
+                  <button class="option-chip" type="button" data-value="disabled">不需要</button>
+                </div>
+              </section>
+
+              <section class="section-card">
+                <div class="section-head">
+                  <div>
+                    <h3>扫码要求</h3>
+                    <p>配置当前范围内配送员现场是否需要扫码。</p>
+                  </div>
+                  <span class="mini-tag">作业</span>
+                </div>
+                <div class="option-grid" id="scanWrap">
+                  <button class="option-chip active" type="button" data-value="required">必须</button>
+                  <button class="option-chip" type="button" data-value="suggested">建议</button>
+                  <button class="option-chip" type="button" data-value="disabled">不需要</button>
+                </div>
+              </section>
+
+              <section class="section-card">
+                <div class="section-head">
+                  <div>
+                    <h3>上报给谁</h3>
+                    <p>业务上只配置上报对象，不暴露离线和重试等系统参数。</p>
+                  </div>
+                  <span class="mini-tag">同步</span>
+                </div>
+                <div class="option-grid" id="reportWrap">
+                  <button class="option-chip active" type="button" data-value="company_first">燃气公司转报</button>
+                  <button class="option-chip" type="button" data-value="hybrid">上报燃气公司</button>
+                  <button class="option-chip" type="button" data-value="direct">直报监管</button>
+                </div>
+              </section>
+
+              <section class="section-card">
+                <div class="section-head">
+                  <div>
+                    <h3>规则预览</h3>
+                    <p>用于发布前确认当前配置内容。</p>
+                  </div>
+                  <span class="mini-tag">预览</span>
+                </div>
+                <div class="field" style="margin-bottom: 0;">
+                  <label>配置 JSON</label>
+                  <textarea id="contentInput" class="json-preview" readonly></textarea>
+                </div>
+              </section>
+
+              <div class="btn-row" style="margin-top: 14px;">
+                <button class="btn primary" id="saveDraftBtn">保存草稿</button>
+                <button class="btn secondary" id="publishBtn">发布当前规则</button>
+              </div>
+              <p class="tip" id="opTip"></p>
+            </section>
+
+            <aside class="aside-card">
+              <div class="aside-head">
+                <div>
+                  <h3>当前规则摘要</h3>
+                  <p>右侧仅帮助运营确认编辑结果。</p>
+                </div>
+              </div>
+              <div class="summary-grid" id="summaryPanel"></div>
+            </aside>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import { fetchCurrentPolicy, fetchPolicyVersions, editPolicyDraft, publishPolicyVersion } from "./policy-release-client.js";
+      import { mountPlatformChrome } from "./platform-shell.js";
+
+      const query = new URLSearchParams(window.location.search);
+      const initialVersion = String(query.get("version") || "").trim();
+
+      const pageEls = {
+        operator: document.getElementById("operatorInput"),
+        scopeType: document.getElementById("scopeTypeInput"),
+        provinceCode: document.getElementById("provinceCodeInput"),
+        cityCode: document.getElementById("cityCodeInput"),
+        districtCode: document.getElementById("districtCodeInput"),
+        companyName: document.getElementById("companyNameInput"),
+        inspectionWrap: document.getElementById("inspectionWrap"),
+        scanWrap: document.getElementById("scanWrap"),
+        reportWrap: document.getElementById("reportWrap"),
+        content: document.getElementById("contentInput"),
+        summary: document.getElementById("summaryPanel"),
+        opTip: document.getElementById("opTip"),
+        saveDraft: document.getElementById("saveDraftBtn"),
+        publish: document.getElementById("publishBtn"),
+      };
+
+      let selectedVersion = initialVersion;
+      let currentPolicyRecord = null;
+      let regionTree = [];
+
+      function buildRegionIndexes(items = []) {
+        const provinceMap = new Map();
+        const cityMap = new Map();
+        const districtMap = new Map();
+        items.forEach((province) => {
+          provinceMap.set(String(province.code), province);
+          (province.children || []).forEach((city) => {
+            cityMap.set(String(city.code), { ...city, provinceCode: province.code, provinceName: province.name });
+            (city.children || []).forEach((district) => {
+              districtMap.set(String(district.code), {
+                ...district,
+                cityCode: city.code,
+                cityName: city.name,
+                provinceCode: province.code,
+                provinceName: province.name,
+              });
+            });
+          });
+        });
+        return { provinceMap, cityMap, districtMap };
+      }
+
+      let regionIndexes = buildRegionIndexes([]);
+
+      function reportTargetLabel(value) {
+        return ({ direct: "直报监管", company_first: "燃气公司转报", hybrid: "上报燃气公司" })[value] || "燃气公司转报";
+      }
+
+      function inspectionLabel(value) {
+        return ({ required: "必做", optional: "可选", disabled: "不需要" })[value] || "必做";
+      }
+
+      function scanLabel(value) {
+        return ({ required: "必须", suggested: "建议", disabled: "不需要" })[value] || "必须";
+      }
+
+      function setTip(text, isError = false) {
+        pageEls.opTip.textContent = text || "";
+        pageEls.opTip.className = isError ? "tip err" : "tip";
+      }
+
+      function renderOptions(select, items, placeholder) {
+        select.innerHTML = [
+          `<option value="">${placeholder}</option>`,
+          ...items.map((item) => `<option value="${item.code}">${item.name}</option>`),
+        ].join("");
+      }
+
+      function getProvinceList() {
+        return regionTree;
+      }
+
+      function getCityList(provinceCode) {
+        return regionIndexes.provinceMap.get(String(provinceCode || ""))?.children || [];
+      }
+
+      function getDistrictList(cityCode) {
+        return regionIndexes.cityMap.get(String(cityCode || ""))?.children || [];
+      }
+
+      function syncRegionOptions({ provinceCode = "", cityCode = "", districtCode = "" } = {}) {
+        const provinces = getProvinceList();
+        renderOptions(pageEls.provinceCode, provinces, "请选择省份");
+        pageEls.provinceCode.value = provinces.some((item) => item.code === provinceCode) ? provinceCode : "";
+
+        const cities = getCityList(pageEls.provinceCode.value);
+        renderOptions(pageEls.cityCode, cities, "请选择城市");
+        pageEls.cityCode.value = cities.some((item) => item.code === cityCode) ? cityCode : "";
+
+        const districts = getDistrictList(pageEls.cityCode.value);
+        renderOptions(pageEls.districtCode, districts, "请选择区县");
+        pageEls.districtCode.value = districts.some((item) => item.code === districtCode) ? districtCode : "";
+      }
+
+      function findRegionPathByCode(regionCode = "") {
+        const code = String(regionCode || "").trim();
+        if (!code) return null;
+        const district = regionIndexes.districtMap.get(code);
+        if (district) {
+          return {
+            provinceCode: district.provinceCode,
+            provinceName: district.provinceName,
+            cityCode: district.cityCode,
+            cityName: district.cityName,
+            districtCode: district.code,
+            districtName: district.name,
+          };
+        }
+        const city = regionIndexes.cityMap.get(code);
+        if (city) {
+          const firstDistrict = (city.children || [])[0] || null;
+          return {
+            provinceCode: city.provinceCode,
+            provinceName: city.provinceName,
+            cityCode: city.code,
+            cityName: city.name,
+            districtCode: firstDistrict?.code || "",
+            districtName: firstDistrict?.name || "",
+          };
+        }
+        const province = regionIndexes.provinceMap.get(code);
+        if (province) {
+          const firstCity = (province.children || [])[0] || null;
+          const firstDistrict = (firstCity?.children || [])[0] || null;
+          return {
+            provinceCode: province.code,
+            provinceName: province.name,
+            cityCode: firstCity?.code || "",
+            cityName: firstCity?.name || "",
+            districtCode: firstDistrict?.code || "",
+            districtName: firstDistrict?.name || "",
+          };
+        }
+        return null;
+      }
+
+      function getSelectedRegion() {
+        const province = regionIndexes.provinceMap.get(String(pageEls.provinceCode.value || ""));
+        const city = regionIndexes.cityMap.get(String(pageEls.cityCode.value || ""));
+        const district = regionIndexes.districtMap.get(String(pageEls.districtCode.value || ""));
+        const regionCode = String(district?.code || city?.code || province?.code || "CN-DEFAULT");
+        const pathNames = [province?.name, city?.name, district?.name].filter(Boolean);
+        return {
+          regionCode,
+          regionName: pathNames.length ? pathNames.join(" / ") : "全国默认区域",
+          regionPath: {
+            provinceCode: String(province?.code || ""),
+            provinceName: String(province?.name || ""),
+            cityCode: String(city?.code || ""),
+            cityName: String(city?.name || ""),
+            districtCode: String(district?.code || ""),
+            districtName: String(district?.name || ""),
+          },
+        };
+      }
+
+      function activeChipValue(wrap) {
+        return wrap.querySelector(".option-chip.active")?.dataset.value || "";
+      }
+
+      function setActiveChip(wrap, value) {
+        wrap.querySelectorAll(".option-chip").forEach((button) => {
+          button.classList.toggle("active", button.dataset.value === value);
+        });
+      }
+
+      function normalizeScopeMeta(policy = {}) {
+        const scopeType = String(policy.scopeType || "region").trim() === "company" ? "company" : "region";
+        const content = policy.content || {};
+        const regionPath = content.regionPath || {};
+        return {
+          scopeType,
+          regionName: String(content.regionName || policy.regionName || "全国默认区域").trim() || "全国默认区域",
+          regionCode: String(policy.regionCode || policy.scopeValue || regionPath.districtCode || regionPath.cityCode || regionPath.provinceCode || "CN-DEFAULT").trim() || "CN-DEFAULT",
+          regionPath: {
+            provinceCode: String(regionPath.provinceCode || ""),
+            provinceName: String(regionPath.provinceName || ""),
+            cityCode: String(regionPath.cityCode || ""),
+            cityName: String(regionPath.cityName || ""),
+            districtCode: String(regionPath.districtCode || ""),
+            districtName: String(regionPath.districtName || ""),
+          },
+          companyName: scopeType === "company" ? String(policy.scopeLabel || "默认燃气公司").trim() || "默认燃气公司" : "当前地区全部配送员",
+        };
+      }
+
+      function normalizeValues(policy = {}) {
+        const scope = normalizeScopeMeta(policy);
+        const content = policy.content || policy || {};
+        const inspectionValue = !Boolean(content.inspection?.delivery?.enabled ?? content.safetyCheckRequired ?? true)
+          ? "disabled"
+          : String(content.inspection?.delivery?.mode || "required") === "optional"
+            ? "optional"
+            : "required";
+        const scanEnabled = Boolean(content.scan?.enabled ?? true);
+        const scanValue = !scanEnabled ? "disabled" : Boolean(content.scan?.required ?? false) ? "required" : "suggested";
+        const reportValue = String(content.reporting?.mode || "company_first");
+        return {
+          scopeType: scope.scopeType,
+          regionName: scope.regionName,
+          regionCode: scope.regionCode,
+          regionPath: scope.regionPath,
+          companyName: scope.companyName,
+          inspectionValue,
+          scanValue,
+          reportValue,
+        };
+      }
+
+      function buildPayload() {
+        const scopeType = String(pageEls.scopeType.value || "region");
+        const selectedRegion = getSelectedRegion();
+        const regionName = selectedRegion.regionName;
+        const regionCode = selectedRegion.regionCode;
+        const companyName = String(pageEls.companyName.value || "当前地区全部配送员").trim() || "当前地区全部配送员";
+        const inspectionValue = activeChipValue(pageEls.inspectionWrap) || "required";
+        const scanValue = activeChipValue(pageEls.scanWrap) || "required";
+        const reportValue = activeChipValue(pageEls.reportWrap) || "company_first";
+        const payload = {
+          scopeType,
+          scopeLabel: scopeType === "company" ? companyName : regionName,
+          scopeValue: scopeType === "company" ? companyName : regionCode,
+          regionCode,
+          content: {
+            regionName,
+            regionPath: selectedRegion.regionPath,
+            safetyCheckRequired: inspectionValue !== "disabled",
+            inspection: {
+              delivery: {
+                enabled: inspectionValue !== "disabled",
+                mode: inspectionValue === "optional" ? "optional" : "required",
+              },
+            },
+            scan: {
+              enabled: scanValue !== "disabled",
+              required: scanValue === "required",
+            },
+            reporting: {
+              mode: reportValue,
+            },
+          },
+          view: {
+            regionName,
+            regionCode,
+            regionPath: selectedRegion.regionPath,
+            companyName,
+            inspectionValue,
+            scanValue,
+            reportValue,
+          },
+        };
+        return payload;
+      }
+
+      function syncPreview() {
+        const payload = buildPayload();
+        pageEls.content.value = JSON.stringify(payload.content, null, 2);
+        pageEls.summary.innerHTML = `
+          <div class="summary-card">
+            <h3>适用范围</h3>
+            <div class="summary-list">
+              <div class="summary-line"><span>规则类型</span><strong>${payload.scopeType === "company" ? "燃气公司规则" : "地区规则"}</strong></div>
+              <div class="summary-line"><span>地区</span><strong>${payload.view.regionName}</strong></div>
+              <div class="summary-line"><span>区域编码</span><strong>${payload.view.regionCode}</strong></div>
+              <div class="summary-line"><span>燃气公司</span><strong>${payload.view.companyName}</strong></div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>业务规则</h3>
+            <div class="summary-list">
+              <div class="summary-line"><span>随瓶安检</span><strong>${inspectionLabel(payload.view.inspectionValue)}</strong></div>
+              <div class="summary-line"><span>扫码要求</span><strong>${scanLabel(payload.view.scanValue)}</strong></div>
+              <div class="summary-line"><span>上报给谁</span><strong>${reportTargetLabel(payload.view.reportValue)}</strong></div>
+              <div class="summary-line"><span>当前版本</span><strong>${selectedVersion || "未保存"}</strong></div>
+            </div>
+          </div>
+        `;
+        return payload;
+      }
+
+      function applyRecord(policy) {
+        const values = normalizeValues(policy);
+        pageEls.scopeType.value = values.scopeType;
+        const matchedPath =
+          values.regionPath?.districtCode || values.regionPath?.cityCode || values.regionPath?.provinceCode
+            ? values.regionPath
+            : findRegionPathByCode(values.regionCode);
+        syncRegionOptions({
+          provinceCode: matchedPath?.provinceCode || "",
+          cityCode: matchedPath?.cityCode || "",
+          districtCode: matchedPath?.districtCode || "",
+        });
+        pageEls.companyName.value = values.companyName;
+        setActiveChip(pageEls.inspectionWrap, values.inspectionValue);
+        setActiveChip(pageEls.scanWrap, values.scanValue);
+        setActiveChip(pageEls.reportWrap, values.reportValue);
+        syncPreview();
+      }
+
+      async function loadRegionTree() {
+        const res = await fetch("./china-region-data.json");
+        const data = await res.json();
+        regionTree = Array.isArray(data) ? data : [];
+        regionIndexes = buildRegionIndexes(regionTree);
+        syncRegionOptions();
+      }
+
+      async function loadTarget() {
+        await loadRegionTree();
+        const [currentRes, versionsRes] = await Promise.all([fetchCurrentPolicy(), fetchPolicyVersions()]);
+        const all = versionsRes.success ? versionsRes.data || [] : [];
+        currentPolicyRecord = all.find((item) => item.version === initialVersion) || (currentRes.success ? currentRes.data || null : null);
+        if (currentPolicyRecord?.version) selectedVersion = currentPolicyRecord.version;
+        if (currentPolicyRecord) {
+          applyRecord(currentPolicyRecord);
+        } else {
+          setActiveChip(pageEls.inspectionWrap, "required");
+          setActiveChip(pageEls.scanWrap, "required");
+          setActiveChip(pageEls.reportWrap, "company_first");
+          syncPreview();
+        }
+      }
+
+      function bindOptionWrap(wrap) {
+        wrap.addEventListener("click", (event) => {
+          const button = event.target.closest(".option-chip");
+          if (!button) return;
+          setActiveChip(wrap, button.dataset.value || "");
+          syncPreview();
+        });
+      }
+
+      pageEls.saveDraft.addEventListener("click", async () => {
+        const payload = buildPayload();
+        setTip("正在保存草稿...");
+        const res = await editPolicyDraft({
+          operator: pageEls.operator.value,
+          scopeType: payload.scopeType,
+          scopeValue: payload.scopeValue,
+          scopeLabel: payload.scopeLabel,
+          regionCode: payload.regionCode,
+          content: payload.content,
+        });
+        if (!res.success) return setTip(res.error || "保存失败，请重试", true);
+        selectedVersion = res.data.version;
+        history.replaceState({}, "", `./policy-editor.html?version=${encodeURIComponent(selectedVersion)}`);
+        syncPreview();
+        setTip(`草稿已保存：${selectedVersion}`);
+      });
+
+      pageEls.publish.addEventListener("click", async () => {
+        if (!selectedVersion) return setTip("请先保存草稿", true);
+        setTip("正在发布规则...");
+        const res = await publishPolicyVersion({ version: selectedVersion, operator: pageEls.operator.value });
+        if (!res.success) return setTip(res.error || "发布失败，请重试", true);
+        setTip(`发布成功：${selectedVersion}`);
+      });
+
+      [pageEls.scopeType, pageEls.operator, pageEls.companyName, pageEls.provinceCode, pageEls.cityCode, pageEls.districtCode].forEach((node) => {
+        node.addEventListener("input", syncPreview);
+        node.addEventListener("change", syncPreview);
+      });
+      pageEls.provinceCode.addEventListener("change", () => {
+        syncRegionOptions({ provinceCode: pageEls.provinceCode.value });
+        syncPreview();
+      });
+      pageEls.cityCode.addEventListener("change", () => {
+        syncRegionOptions({
+          provinceCode: pageEls.provinceCode.value,
+          cityCode: pageEls.cityCode.value,
+        });
+        syncPreview();
+      });
+      bindOptionWrap(pageEls.inspectionWrap);
+      bindOptionWrap(pageEls.scanWrap);
+      bindOptionWrap(pageEls.reportWrap);
+
+      mountPlatformChrome({
+        active: "policy",
+        breadcrumb: "编辑策略规则",
+        title: "编辑策略规则",
+        actions: [{ label: "返回策略规则", href: "./policy-release.html", variant: "secondary" }],
+      });
+
+      loadTarget();
+    </script>
+  </body>
+</html>

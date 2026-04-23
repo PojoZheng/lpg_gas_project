@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>平台控制台</title>
+    <link rel="stylesheet" href="./platform-design-system.css" />
+    <style>
+      .route-page {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .route-card {
+        width: min(560px, 100%);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: #fff;
+        padding: 28px;
+        box-shadow: 0 20px 50px rgba(17, 17, 17, 0.06);
+      }
+      .route-card h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .route-card p {
+        margin: 8px 0 0;
+        color: var(--text-secondary);
+      }
+      .route-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .route-link {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 56px;
+        padding: 0 16px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        color: var(--text-primary);
+        text-decoration: none;
+      }
+      .route-link.primary {
+        border-color: var(--brand);
+        background: var(--brand-soft);
+      }
+      .route-link small {
+        color: var(--text-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="route-page">
+      <section class="route-card">
+        <h1>平台控制台</h1>
+        <p>首页不再承载概览，直接进入具体管理页面。</p>
+        <div class="route-list">
+          <a class="route-link primary" href="./policy-release.html">
+            <span>策略配置</span>
+            <small>地区 / 公司 / 个人配置管理</small>
+          </a>
+          <a class="route-link" href="./sync-queue.html">
+            <span>安检上报</span>
+            <small>查看失败记录与补传处理</small>
+          </a>
+        </div>
+      </section>
+    </main>
+    <script>
+      window.setTimeout(() => {
+        if (!window.location.hash) {
+          window.location.replace("./policy-release.html");
+        }
+      }, 600);
+    </script>
+  </body>
+</html>

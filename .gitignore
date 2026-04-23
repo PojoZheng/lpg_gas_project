@@ -11,3 +11,9 @@
 .trae/
 skills/
 skills-lock.json
+
+# Integrator runtime artifacts
+.trellis/workspace/integrator/*.log
+.trellis/workspace/integrator/*.out
+.trellis/workspace/integrator/*.pid
+.trellis/workspace/integrator/pr_state.json

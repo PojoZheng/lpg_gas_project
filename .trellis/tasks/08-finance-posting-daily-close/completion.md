@@ -1,11 +1,11 @@
 # 08-finance-posting-daily-close completion
 
 ## 1) 交付范围（文件/页面/接口）
-- 后端文件：`/.trellis/backend/src/server.js`
+- 后端文件：`/services/backend/src/server.js`
   - 增加完单自动记账流水、今日汇总、日结记录与状态计算逻辑
 - 前端页面与脚本：
-  - `/.trellis/delivery-app/src/finance-daily-close.html`
-  - `/.trellis/delivery-app/src/finance-daily-close-client.js`
+  - `/apps/delivery-app/src/finance-daily-close.html`
+  - `/apps/delivery-app/src/finance-daily-close-client.js`
 - 接口范围：
   - 今日财务汇总查询
   - 流水列表查询
@@ -21,7 +21,7 @@
 ## 3) 执行过的验证命令与结果
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`：通过
 - `python3 ./.trellis/scripts/task_conflict_check.py`：通过（无阻断冲突）
-- `node --check ".trellis/backend/src/server.js"`：通过
+- `node --check "services/backend/src/server.js"`：通过
 
 ## 4) 风险与后续建议
 - 财务流水目前为内存态样例数据，建议后续接入持久化与审计追踪。

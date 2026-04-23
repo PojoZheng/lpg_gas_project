@@ -14,9 +14,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BACKEND_DIR="$REPO_ROOT/.trellis/backend"
-FRONTEND_DIR="$REPO_ROOT/.trellis/delivery-app/src"
-PLATFORM_DIR="$REPO_ROOT/.trellis/platform/src"
+BACKEND_DIR="$REPO_ROOT/services/backend"
+FRONTEND_DIR="$REPO_ROOT/apps/delivery-app/src"
+PLATFORM_DIR="$REPO_ROOT/apps/platform/src"
 BACKEND_PORT=3100
 FRONTEND_PORT=5174
 PLATFORM_PORT=5175

@@ -1,30 +1,30 @@
 {
   "01-auth-session": [
-    "node --check \".trellis/backend/src/server.js\"",
-    "node --check \".trellis/backend/src/auth-service.js\""
+    "node --check \"services/backend/src/server.js\"",
+    "node --check \"services/backend/src/auth-service.js\""
   ],
   "02-workbench-aggregation": [
-    "node --check \".trellis/backend/src/server.js\"",
-    "node --check \".trellis/delivery-app/src/auth-client.js\"",
-    "node --check \".trellis/delivery-app/src/workbench-client.js\"",
+    "node --check \"services/backend/src/server.js\"",
+    "node --check \"apps/delivery-app/src/auth-client.js\"",
+    "node --check \"apps/delivery-app/src/workbench-client.js\"",
     "python3 \".trellis/scripts/task02_smoke_test.py\""
   ],
   "03-quick-order": [
-    "node --check \".trellis/backend/src/server.js\"",
-    "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
+    "node --check \"services/backend/src/server.js\"",
+    "node --check \"apps/delivery-app/src/quick-order-client.js\"",
     "python3 \".trellis/scripts/task03_smoke_test.py\"",
     "python3 \".trellis/scripts/pm_review_check.py\" --task 03-quick-order"
   ],
   "15-login-e2e-regression": [
-    "node --check \".trellis/backend/src/server.js\"",
-    "node --check \".trellis/delivery-app/src/auth-client.js\"",
+    "node --check \"services/backend/src/server.js\"",
+    "node --check \"apps/delivery-app/src/auth-client.js\"",
     "python3 \".trellis/scripts/task15_login_e2e_regression.py\""
   ],
   "16-workbench-experience-polish": [
     "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ],
   "20-safety-complete-mobile-layout": [
-    "node --check \".trellis/delivery-app/src/delivery-complete-client.js\"",
+    "node --check \"apps/delivery-app/src/delivery-complete-client.js\"",
     "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
   ],
   "22-workbench-bottom-nav-and-header-polish": [
@@ -34,8 +34,8 @@
     "python3 \".trellis/scripts/task24_ui_refactor_smoke.py\""
   ],
   "27-quick-order-submit-integration-fix": [
-    "node --check \".trellis/backend/src/server.js\"",
-    "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
+    "node --check \"services/backend/src/server.js\"",
+    "node --check \"apps/delivery-app/src/quick-order-client.js\"",
     "python3 \".trellis/scripts/task27_quick_order_integration.py\""
   ],
   "31-app-design-md-refactor": [
@@ -49,33 +49,55 @@
     "python3 \".trellis/scripts/verify_two_entry_runtime.py\""
   ],
   "18-customer-account-persistence-history": [
-    "node --check \".trellis/backend/src/server.js\"",
+    "node --check \"services/backend/src/server.js\"",
     "python3 \".trellis/scripts/task18_customer_persistence_smoke.py\""
   ],
   "36-workbench-01-req-spec-alignment": [
     "python3 \".trellis/scripts/task36_workbench_coverage_doc.py\""
   ],
   "37-workbench-p0-view-all-pending": [
-    "node --check \".trellis/delivery-app/src/workbench-client.js\"",
-    "node --check \".trellis/delivery-app/src/delivery-complete-client.js\"",
+    "node --check \"apps/delivery-app/src/workbench-client.js\"",
+    "node --check \"apps/delivery-app/src/delivery-complete-client.js\"",
     "python3 \".trellis/scripts/task37_workbench_view_all_smoke.py\"",
     "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ],
   "38-workbench-p1-income-expand-placeholders": [
-    "node --check \".trellis/delivery-app/src/workbench-client.js\"",
+    "node --check \"apps/delivery-app/src/workbench-client.js\"",
     "python3 \".trellis/scripts/task38_income_expand_smoke.py\"",
     "python3 \".trellis/scripts/task16_workbench_closure.py\"",
     "python3 \".trellis/scripts/task22_workbench_nav_header_polish.py\""
   ],
   "39-workbench-p1-next-card-fields": [
-    "node --check \".trellis/backend/src/server.js\"",
-    "node --check \".trellis/delivery-app/src/workbench-client.js\"",
+    "node --check \"services/backend/src/server.js\"",
+    "node --check \"apps/delivery-app/src/workbench-client.js\"",
     "python3 \".trellis/scripts/task39_workbench_next_card_smoke.py\"",
     "python3 \".trellis/scripts/task16_workbench_closure.py\""
   ],
   "41-order-continuous-quick-order-mode": [
-    "node --check \".trellis/delivery-app/src/quick-order-client.js\"",
+    "node --check \"apps/delivery-app/src/quick-order-client.js\"",
     "python3 \".trellis/scripts/task41_continuous_quick_order_smoke.py\"",
     "python3 \".trellis/scripts/task33_app_layout_overhaul.py\""
+  ],
+  "48-debt-management": [
+    "node --check \"services/backend/src/server.js\"",
+    "node --experimental-default-type=module --check \"apps/delivery-app/src/debt-client.js\"",
+    "python3 \".trellis/tests/stories/story_customer_debt_collection.py\""
+  ],
+  "69-debt-cross-page-e2e": [
+    "node --check \"services/backend/src/server.js\"",
+    "node --experimental-default-type=module --check \"apps/delivery-app/src/debt-client.js\"",
+    "python3 \".trellis/tests/stories/story_customer_debt_cross_page_e2e.py\""
+  ],
+  "72-delivery-complete-validation-rules": [
+    "node --check \"services/backend/src/server.js\"",
+    "python3 \".trellis/tests/stories/story_delivery_complete_validation.py\"",
+    "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
+  ],
+  "74-delivery-complete-regression-suite": [
+    "node --check \"services/backend/src/server.js\"",
+    "python3 \".trellis/tests/stories/story_order_contract_consistency.py\"",
+    "python3 \".trellis/tests/stories/story_delivery_complete_validation.py\"",
+    "python3 \".trellis/tests/stories/story_delivery_complete_flow_e2e.py\"",
+    "python3 \".trellis/scripts/task20_safety_layout_smoke.py\""
   ]
 }

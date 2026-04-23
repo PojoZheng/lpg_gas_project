@@ -1,0 +1,23 @@
+{
+  "id": "53-workbench-next-card-simplified",
+  "title": "工作台 IA：下一配送卡片减信息并移除操作按钮",
+  "status": "completed",
+  "depends_on": [
+    "39-workbench-p1-next-card-fields",
+    "50-secondary-pages-remove-bottom-nav"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-workbench-next-card-simplified.md",
+    "product/decisions/2026-04-14-home-my-boundary.md",
+    ".trellis/spec/delivery-app/ui-manifest.md"
+  ],
+  "acceptance": [
+    "首页下一配送卡片仅保留客户、地址、规格数量、应收金额",
+    "移除预约时间、欠瓶、欠款、订单号等次级字段",
+    "移除卡片内操作按钮，首页通过“查看全部待配送”进入待配送链路",
+    "本次不改动待配送页与订单流程逻辑"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/workbench.html"
+  ]
+}

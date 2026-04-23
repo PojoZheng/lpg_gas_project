@@ -176,11 +176,11 @@ completed → returned
 ## 涉及文件
 
 ### 后端
-- `.trellis/backend/src/server.js` - 新增 API 路由和业务逻辑
+- `services/backend/src/server.js` - 新增 API 路由和业务逻辑
 
 ### 前端
-- `.trellis/delivery-app/src/delivery-complete.html` - 完单页面新增快捷换货按钮
-- `.trellis/delivery-app/src/delivery-complete-client.js` - 换货逻辑
+- `apps/delivery-app/src/delivery-complete.html` - 完单页面新增快捷换货按钮
+- `apps/delivery-app/src/delivery-complete-client.js` - 换货逻辑
 - （新增）订单详情页 - 退货入口（如不存在需新建）
 
 ---

@@ -1,12 +1,12 @@
 # 06-customer-account-linkage completion
 
 ## 1) 交付范围（文件/页面/接口）
-- 后端文件：`/.trellis/backend/src/server.js`
+- 后端文件：`/services/backend/src/server.js`
   - 增加客户账户摘要构建与欠款/欠瓶联动逻辑
   - 增加催收状态更新处理
 - 前端页面与脚本：
-  - `/.trellis/delivery-app/src/delivery-complete.html`
-  - `/.trellis/delivery-app/src/delivery-complete-client.js`
+  - `/apps/delivery-app/src/delivery-complete.html`
+  - `/apps/delivery-app/src/delivery-complete-client.js`
 - 接口范围：
   - 客户详情查询接口（含账户摘要）
   - 客户催收状态更新接口
@@ -22,7 +22,7 @@
 ## 3) 执行过的验证命令与结果
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`：通过
 - `python3 ./.trellis/scripts/task_conflict_check.py`：通过（无阻断冲突）
-- `node --check ".trellis/backend/src/server.js"`：通过
+- `node --check "services/backend/src/server.js"`：通过
 
 ## 4) 风险与后续建议
 - 当前账户数据为进程内存态，重启后会丢失；建议后续接入持久化存储。

@@ -9,7 +9,7 @@
 - [x] 界面文案必须为中文且严禁 emoji：新增文案均为中文且无 emoji。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 新增离线队列模型与同步处理状态机（含 `nextRetryAt` 退避重试时间）
   - 新增接口：
     - `GET /sync/queue`
@@ -20,14 +20,14 @@
   - 队列查询支持筛选参数：`status/entityType/keyword/manualOnly/conflictOnly`
   - 增加 `filteredStats` 用于前端展示筛选命中统计
   - 工作台同步概览改为基于离线队列统计
-- 前端：`/.trellis/delivery-app/src/sync-queue-client.js`
+- 前端：`/apps/delivery-app/src/sync-queue-client.js`
   - 新增同步队列 API 调用封装
   - `fetchSyncQueue` 支持查询参数拼装
-- 前端：`/.trellis/delivery-app/src/sync-queue.html`
+- 前端：`/apps/delivery-app/src/sync-queue.html`
   - 新增同步队列页面，支持入队、批量同步、冲突回显、失败重试与转人工
   - 回显“等待重试”统计与“下次重试时间”字段
   - 新增状态/实体/关键词筛选，以及“仅冲突/仅人工处理”快捷视图
-- 前端：`/.trellis/delivery-app/src/workbench.html`
+- 前端：`/apps/delivery-app/src/workbench.html`
   - 新增“同步队列”入口
 
 ## 3. 测试与风险

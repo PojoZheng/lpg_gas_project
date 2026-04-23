@@ -1,0 +1,22 @@
+{
+  "id": "65-quick-order-flow-optimization-v2",
+  "title": "快速开单流程 V2：主链路聚焦与动态提交流程",
+  "status": "completed",
+  "depends_on": [
+    "64-mobile-flow-focus-and-copy-cap"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-quick-order-flow-optimization-v2.md"
+  ],
+  "acceptance": [
+    "快速开单主链路保持选客户-填订单-提交",
+    "当场完成点击主按钮后进入收款确认，不直接提交",
+    "默认客户优先最近客户（连续模式除外）",
+    "低频设置折叠到高级项，首屏信息密度降低",
+    "本次改动范围内按钮文案不超过 6 个字"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/quick-order.html"
+  ]
+}

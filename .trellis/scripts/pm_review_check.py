@@ -43,7 +43,7 @@ def keyword_missing(content: str, keywords: list[str]) -> list[str]:
 def review_task_03() -> dict:
     requirements = read_text(ROOT / "requirements/01_工作台/需求.md")
     specs = read_text(ROOT / "requirements/01_工作台/规格.md")
-    page = read_text(TRELLIS / "delivery-app/src/quick-order.html")
+    page = read_text(ROOT / "apps/delivery-app/src/quick-order.html")
 
     findings_p0: list[str] = []
     findings_p1: list[str] = []

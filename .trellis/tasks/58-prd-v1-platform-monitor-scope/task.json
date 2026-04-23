@@ -1,0 +1,22 @@
+{
+  "id": "58-prd-v1-platform-monitor-scope",
+  "title": "PRD 收敛：平台监控范围仅保留安检与气瓶合规",
+  "status": "completed",
+  "depends_on": [
+    "57-prd-v1-baseline"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-prd-v1-baseline.md"
+  ],
+  "acceptance": [
+    "PRD 明确平台端不关注完单、库存、财务等经营监控",
+    "PRD 明确平台端只监控安检覆盖、隐患与气瓶追溯",
+    "PRD 明确平台仅管理已配置扫码区域",
+    "PRD 明确移动端同步仅保留低配离线列表入口与手动提交"
+  ],
+  "output_artifacts": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-prd-v1-baseline.md"
+  ]
+}

@@ -23,9 +23,9 @@
     "界面中文、无emoji，符合品牌色 #4799a0"
   ],
   "output_artifacts": [
-    "delivery-app/src/order-detail.html",
-    "delivery-app/src/order-detail-client.js",
-    "delivery-app/src/return-panel.html（退货面板，可复用 order-detail 内部弹层）",
-    "backend/src/routes/orders.js（扩展 POST /:id/return 与 POST /:id/exchange）"
+    "apps/delivery-app/src/order-detail.html",
+    "apps/delivery-app/src/order-detail-client.js",
+    "apps/delivery-app/src/return-panel.html（退货面板，可复用 order-detail 内部弹层）",
+    "services/backend/src/routes/orders.js（扩展 POST /:id/return 与 POST /:id/exchange）"
   ]
 }

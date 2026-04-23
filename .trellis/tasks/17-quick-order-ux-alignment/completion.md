@@ -2,10 +2,10 @@
 
 ## 1) 交付范围（文件/页面/接口）
 - 前端页面与脚本：
-  - `/.trellis/delivery-app/src/quick-order.html`
-  - `/.trellis/delivery-app/src/quick-order-client.js`
+  - `/apps/delivery-app/src/quick-order.html`
+  - `/apps/delivery-app/src/quick-order-client.js`
 - 关联页面（导航与反馈对齐）：
-  - `/.trellis/delivery-app/src/workbench.html`
+  - `/apps/delivery-app/src/workbench.html`
 - 接口范围（保持契约不变）：
   - 快速开单接口
   - 库存校验接口

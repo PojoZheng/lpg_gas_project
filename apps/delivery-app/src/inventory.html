@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>库存管理</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page {
+        min-height: 100vh;
+        padding: 16px 14px calc(182px + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* 库存概览 */
+      .inventory-overview {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .overview-metric {
+        background: linear-gradient(180deg, #f8fbfb 0%, #f0f6f7 100%);
+        border: 1px solid #dbe8ea;
+        border-radius: 14px;
+        padding: 12px 10px;
+      }
+      .overview-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+      }
+      .overview-value {
+        font-size: 22px;
+        line-height: 1;
+        font-weight: 700;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+      }
+      .overview-note {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+      }
+      .inventory-list {
+        display: grid;
+        gap: 10px;
+      }
+      .overview-title {
+        font-size: 16px;
+        font-weight: 600;
+        font-family: var(--font-title);
+        margin: 0 0 12px;
+        color: var(--text-primary);
+      }
+      .inventory-item {
+        border: 1px solid #dce6e8;
+        border-radius: 16px;
+        padding: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fcfc 100%);
+      }
+      .inventory-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .inventory-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+      }
+      .inventory-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .inventory-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 72px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+      .status-safe {
+        color: #0f766e;
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+      }
+      .status-warning {
+        color: #b45309;
+        background: #fffbeb;
+        border-color: #fde68a;
+      }
+      .status-danger {
+        color: #b91c1c;
+        background: #fef2f2;
+        border-color: #fecaca;
+      }
+      .inventory-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .metric-chip {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f5f8f9;
+        border: 1px solid #e1eaec;
+      }
+      .metric-chip strong {
+        display: flex;
+        font-size: 17px;
+        line-height: 1.1;
+        color: var(--text-primary);
+        font-family: var(--font-title);
+        margin-bottom: 4px;
+      }
+      .metric-chip span {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .metric-chip.compact {
+        text-align: center;
+      }
+      .metric-chip.compact strong {
+        justify-content: center;
+      }
+      .metric-chip.compact span {
+        display: block;
+        line-height: 1.2;
+      }
+      .metric-chip.highlight {
+        background: #f0f9ff;
+        border-color: #bae6fd;
+      }
+      .metric-chip.warning {
+        background: #fff7ed;
+        border-color: #fdba74;
+      }
+
+      /* 预警卡片 */
+      .alert-card {
+        background: #fff5f5;
+        border: 1px solid #fecaca;
+        border-radius: var(--radius-card);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .alert-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .alert-badge {
+        width: 20px;
+        height: 20px;
+        background: var(--error);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .alert-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--error);
+      }
+      .alert-text {
+        font-size: 13px;
+        color: #b91c1c;
+        margin-bottom: 10px;
+      }
+      .alert-btn {
+        height: 32px;
+        padding: 0 14px;
+        border: 1px solid var(--error);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--error);
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      /* 最近操作 */
+      .log-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        font-family: var(--font-title);
+        margin: 0 0 12px;
+        color: var(--text-primary);
+      }
+      .log-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .log-item:last-child {
+        border-bottom: none;
+      }
+      .log-info {
+        flex: 1;
+      }
+      .log-type {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+      }
+      .log-detail {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .log-time {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      /* 快捷操作 */
+      .action-section {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+        z-index: 22;
+        padding: 0 14px;
+        margin: 0;
+      }
+      .action-panel {
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 10px;
+        max-width: 460px;
+        margin: 0 auto;
+        box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+        backdrop-filter: blur(6px);
+      }
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .quick-action {
+        min-height: 74px;
+        border: 1px solid #d5e5e8;
+        border-radius: 14px;
+        background: #fff;
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 600;
+        font-family: var(--font-body);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease,
+          background 120ms ease;
+      }
+      .quick-action:hover {
+        border-color: #bdd8dc;
+        box-shadow: 0 6px 14px rgba(17, 24, 39, 0.08);
+        background: linear-gradient(180deg, #ffffff, #f7fcfd);
+      }
+      .quick-action:active {
+        transform: scale(0.98);
+        background: #eef7f8;
+      }
+      .action-icon {
+        width: 22px;
+        height: 22px;
+        stroke: var(--brand);
+        fill: none;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .action-spacer {
+        height: 132px;
+      }
+      .sheet-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .sheet-overlay.show {
+        display: flex;
+      }
+      .sheet-scrim {
+        position: absolute;
+        inset: 0;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: rgba(17, 24, 39, 0.36);
+      }
+      .sheet-panel {
+        position: relative;
+        width: 100%;
+        max-width: 460px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        padding: 14px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -10px 28px rgba(17, 24, 39, 0.16);
+        transform: translateY(100%);
+        transition: transform 180ms ease;
+      }
+      .sheet-overlay.show .sheet-panel {
+        transform: translateY(0);
+      }
+      .sheet-handle {
+        width: 40px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--border);
+        margin: 0 auto 10px;
+      }
+      .sheet-title {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .sheet-row {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .sheet-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .sheet-actions {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .sheet-hint {
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-height: 18px;
+      }
+      .sheet-toggle-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .sheet-toggle {
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid #d7e4e7;
+        background: #f8fbfb;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .sheet-toggle.active {
+        color: var(--brand);
+        border-color: #93c5cf;
+        background: #eef7f8;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">库存管理</h1>
+        <div style="width: 38px;"></div>
+      </header>
+
+      <!-- 库存概览 -->
+      <div class="inventory-overview">
+        <h2 class="overview-title">库存概览</h2>
+        <div class="overview-grid" id="overviewGrid"></div>
+        <div class="overview-note">锁定表示已被待配送订单占用，暂时不能再次开单。</div>
+        <div id="inventoryList" class="inventory-list">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+
+      <!-- 库存预警 -->
+      <div class="alert-card" id="alertCard" style="display: none;">
+        <div class="alert-header">
+          <span class="alert-badge">!</span>
+          <span class="alert-title">库存预警</span>
+        </div>
+        <div class="alert-text" id="alertText">低库存请及时补货</div>
+        <button class="alert-btn" id="alertBtn">查看详情</button>
+      </div>
+
+      <!-- 最近操作 -->
+      <div class="log-section">
+        <h2 class="section-title">最近操作</h2>
+        <div id="logList">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+      <div class="state-block info" id="tip" hidden></div>
+
+      <!-- 快捷操作 -->
+      <div class="action-section">
+        <div class="action-panel">
+          <div class="action-grid">
+            <button class="quick-action" id="purchaseBtn">
+              <svg class="action-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              <span>采购入库</span>
+            </button>
+            <button class="quick-action" id="refillBtn">
+              <svg class="action-icon" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg>
+              <span>气瓶充装</span>
+            </button>
+            <button class="quick-action" id="checkBtn">
+              <svg class="action-icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+              <span>库存盘点</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="action-spacer" aria-hidden="true"></div>
+    </main>
+    <div class="sheet-overlay" id="actionSheetOverlay" aria-hidden="true">
+      <button class="sheet-scrim" id="actionSheetScrim" aria-label="关闭弹层"></button>
+      <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="actionSheetTitle">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <h3 class="sheet-title" id="actionSheetTitle">库存操作</h3>
+        <div class="sheet-row">
+          <label class="sheet-label" for="actionSpec">规格</label>
+          <select id="actionSpec" class="app-select">
+            <option value="10kg">10kg</option>
+            <option value="15kg">15kg</option>
+            <option value="50kg">50kg</option>
+          </select>
+        </div>
+        <div class="sheet-row">
+          <label class="sheet-label" for="actionQty" id="actionQtyLabel">数量</label>
+          <input id="actionQty" class="app-input" type="number" min="1" step="1" inputmode="numeric" />
+        </div>
+        <div class="sheet-row" id="actionWeightRow" hidden style="display: none;">
+          <label class="sheet-label" for="actionWeight">充装重量（kg）</label>
+          <input
+            id="actionWeight"
+            class="app-input"
+            type="number"
+            min="0.1"
+            step="0.1"
+            inputmode="decimal"
+            placeholder="请输入本次充装总重量"
+          />
+        </div>
+        <div class="sheet-row" id="actionStockTypeRow" hidden style="display: none;">
+          <div class="sheet-label">盘点对象</div>
+          <div class="sheet-toggle-group">
+            <button type="button" class="sheet-toggle active" data-stock-type="heavy" id="stockTypeHeavyBtn">重瓶在库</button>
+            <button type="button" class="sheet-toggle" data-stock-type="empty" id="stockTypeEmptyBtn">空瓶在库</button>
+          </div>
+        </div>
+        <div class="sheet-hint" id="actionSheetHint"></div>
+        <div class="sheet-actions">
+          <button type="button" class="app-btn ghost" id="actionSheetCancelBtn">取消</button>
+          <button type="button" class="app-btn primary" id="actionSheetSubmitBtn">确认</button>
+        </div>
+      </section>
+    </div>
+
+    <script type="module">
+      import { ensureAuthenticatedPage, authFetchJson } from "./auth-client.js";
+      import { goBackOr } from "./app-shell.js";
+      const API_BASE_URL = "http://localhost:3100";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const inventoryData = [];
+      const operationLogs = [];
+      const inventoryAlertBySpec = new Map();
+      const tip = document.getElementById("tip");
+      const actionSheetOverlay = document.getElementById("actionSheetOverlay");
+      const actionSheetScrim = document.getElementById("actionSheetScrim");
+      const actionSheetTitle = document.getElementById("actionSheetTitle");
+      const actionSpec = document.getElementById("actionSpec");
+      const actionQty = document.getElementById("actionQty");
+      const actionQtyLabel = document.getElementById("actionQtyLabel");
+      const actionWeightRow = document.getElementById("actionWeightRow");
+      const actionWeight = document.getElementById("actionWeight");
+      const actionStockTypeRow = document.getElementById("actionStockTypeRow");
+      const actionSheetHint = document.getElementById("actionSheetHint");
+      const actionSheetCancelBtn = document.getElementById("actionSheetCancelBtn");
+      const actionSheetSubmitBtn = document.getElementById("actionSheetSubmitBtn");
+      const stockTypeButtons = Array.from(document.querySelectorAll("[data-stock-type]"));
+      let actionMode = "";
+      let actionStockType = "heavy";
+      let actionSubmitting = false;
+
+      function setTip(text = "", type = "info") {
+        const msg = String(text || "").trim();
+        if (!msg) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = msg;
+        tip.className = `state-block ${type}`;
+      }
+
+      function formatTime(ts) {
+        const value = Number(ts || 0);
+        if (!value) return "--";
+        const date = new Date(value);
+        const hh = String(date.getHours()).padStart(2, "0");
+        const mm = String(date.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      }
+
+      function logTypeLabel(type) {
+        const map = {
+          purchase_in: "采购入库",
+          refill_in: "气瓶充装",
+          stocktake_adjust: "库存盘点",
+          direct_consume: "直接扣减",
+          consume: "锁定消耗",
+          lock: "库存锁定",
+          release: "释放锁定",
+          order_return: "订单退货",
+          delivery_empty_return: "回收空瓶",
+          undo_empty_return: "撤销回收",
+          to_inspection: "送检登记",
+        };
+        return map[String(type || "").trim()] || "库存变更";
+      }
+
+      function normalizeSpec(input) {
+        const val = String(input || "").trim().toLowerCase().replace(/\s+/g, "");
+        if (val === "10" || val === "10kg" || val === "10公斤") return "10kg";
+        if (val === "15" || val === "15kg" || val === "15公斤") return "15kg";
+        if (val === "50" || val === "50kg" || val === "50公斤") return "50kg";
+        return "";
+      }
+
+      function parsePositiveInt(input) {
+        const n = Number(String(input || "").trim());
+        return Number.isInteger(n) && n > 0 ? n : 0;
+      }
+
+      function parseNonNegativeInt(input) {
+        const n = Number(String(input || "").trim());
+        return Number.isInteger(n) && n >= 0 ? n : -1;
+      }
+
+      function parsePositiveDecimal(input) {
+        const n = Number(String(input || "").trim());
+        if (!Number.isFinite(n) || n <= 0) return 0;
+        return Number(n.toFixed(2));
+      }
+
+      function toggleSheetRow(node, visible) {
+        if (!node) return;
+        node.hidden = !visible;
+        node.style.display = visible ? "grid" : "none";
+      }
+
+      function openActionSheet(mode, defaults = {}) {
+        actionMode = mode;
+        actionStockType = defaults.stockType === "empty" ? "empty" : "heavy";
+        syncStockTypeButtons();
+        if (mode === "purchase") {
+          actionQty.min = "1";
+          actionSheetTitle.textContent = "采购入库";
+          actionQtyLabel.textContent = "采购数量";
+          actionSheetHint.textContent = "确认采购入库后会直接增加在库数量。";
+          toggleSheetRow(actionWeightRow, false);
+          toggleSheetRow(actionStockTypeRow, false);
+          actionWeight.value = "";
+        } else if (mode === "refill") {
+          actionQty.min = "1";
+          actionSheetTitle.textContent = "气瓶充装";
+          actionQtyLabel.textContent = "充装数量";
+          actionSheetHint.textContent = "充装会消耗对应规格空瓶，并增加重瓶在库。";
+          toggleSheetRow(actionWeightRow, true);
+          toggleSheetRow(actionStockTypeRow, false);
+          actionWeight.value = String(defaults.weight || 0);
+        } else {
+          actionQty.min = "0";
+          actionSheetTitle.textContent = "库存盘点";
+          actionQtyLabel.textContent = actionStockType === "empty" ? "盘点后空瓶数量" : "盘点后重瓶数量";
+          actionSheetHint.textContent = "盘点会直接把对应库存更新为录入值。";
+          toggleSheetRow(actionWeightRow, false);
+          toggleSheetRow(actionStockTypeRow, true);
+          actionWeight.value = "";
+        }
+        actionSpec.value = defaults.spec || "15kg";
+        actionQty.value = String(defaults.qty || (mode === "stocktake" ? 10 : 5));
+        actionSubmitting = false;
+        actionSheetSubmitBtn.disabled = false;
+        actionSheetOverlay.classList.add("show");
+        actionSheetOverlay.setAttribute("aria-hidden", "false");
+        setTimeout(() => actionQty.focus(), 80);
+      }
+
+      function syncStockTypeButtons() {
+        stockTypeButtons.forEach((btn) => {
+          const active = btn.dataset.stockType === actionStockType;
+          btn.classList.toggle("active", active);
+        });
+        if (actionMode === "stocktake") {
+          actionQtyLabel.textContent = actionStockType === "empty" ? "盘点后空瓶数量" : "盘点后重瓶数量";
+        }
+      }
+
+      function closeActionSheet() {
+        if (actionSubmitting) return;
+        actionSheetOverlay.classList.remove("show");
+        actionSheetOverlay.setAttribute("aria-hidden", "true");
+        actionMode = "";
+      }
+
+      async function fetchInventorySnapshot() {
+        return authFetchJson(`${API_BASE_URL}/inventory/snapshot`);
+      }
+
+      async function fetchInventoryAlerts() {
+        return authFetchJson(`${API_BASE_URL}/inventory/alerts`);
+      }
+
+      async function submitInventoryAction(route, payload) {
+        return authFetchJson(`${API_BASE_URL}${route}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload || {}),
+        });
+      }
+
+      async function reloadAll() {
+        setTip("正在加载库存...", "loading");
+        const [snapshotRes, alertRes] = await Promise.all([
+          fetchInventorySnapshot(),
+          fetchInventoryAlerts(),
+        ]);
+        if (!snapshotRes?.success) {
+          setTip(snapshotRes?.error || "库存加载失败", "error");
+          return;
+        }
+        inventoryData.length = 0;
+        const snapshotItems = Array.isArray(snapshotRes.data) ? snapshotRes.data : [];
+        snapshotItems.forEach((item) => {
+          inventoryData.push({
+            spec: item.spec,
+            onHand: Number(item.onHand || 0),
+            emptyOnHand: Number(item.emptyOnHand || 0),
+            locked: Number(item.locked || 0),
+            pendingInspection: Number(item.pendingInspection || 0),
+            available: Number(item.available || 0),
+          });
+        });
+        operationLogs.length = 0;
+        const logs = Array.isArray(snapshotRes.logs) ? snapshotRes.logs : [];
+        logs.slice(0, 8).forEach((x) => {
+          operationLogs.push({
+            type: logTypeLabel(x.type),
+            detail: [
+              `${x.spec || "--"}`,
+              `重瓶${x.deltaOnHand > 0 ? "+" : ""}${Number(x.deltaOnHand || 0)}`,
+              `空瓶${x.deltaEmptyOnHand > 0 ? "+" : ""}${Number(x.deltaEmptyOnHand || 0)}`,
+              `锁定${x.deltaLocked > 0 ? "+" : ""}${Number(x.deltaLocked || 0)}`,
+            ].join(" "),
+            time: formatTime(x.createdAt),
+          });
+        });
+        inventoryAlertBySpec.clear();
+        if (alertRes?.success) {
+          const alertItems = Array.isArray(alertRes?.data?.items) ? alertRes.data.items : [];
+          alertItems.forEach((x) => inventoryAlertBySpec.set(x.spec, x));
+          const card = document.getElementById("alertCard");
+          const textEl = document.getElementById("alertText");
+          if (Number(alertRes?.data?.lowCount || 0) > 0) {
+            card.style.display = "block";
+            textEl.textContent = alertRes?.data?.message || "存在低库存预警";
+          } else {
+            card.style.display = "none";
+            textEl.textContent = "当前无低库存预警";
+          }
+        }
+        renderInventory();
+        renderLogs();
+        setTip("", "info");
+      }
+
+      // 渲染库存列表
+      function renderInventory() {
+        const overviewGrid = document.getElementById("overviewGrid");
+        const listEl = document.getElementById("inventoryList");
+        const totalHeavy = inventoryData.reduce((sum, item) => sum + item.onHand, 0);
+        const totalEmpty = inventoryData.reduce((sum, item) => sum + item.emptyOnHand, 0);
+        const totalLocked = inventoryData.reduce((sum, item) => sum + item.locked, 0);
+        overviewGrid.innerHTML = `
+          <div class="overview-metric">
+            <div class="overview-label">重瓶在库</div>
+            <div class="overview-value">${totalHeavy}</div>
+          </div>
+          <div class="overview-metric">
+            <div class="overview-label">空瓶在库</div>
+            <div class="overview-value">${totalEmpty}</div>
+          </div>
+          <div class="overview-metric">
+            <div class="overview-label">已锁定</div>
+            <div class="overview-value">${totalLocked}</div>
+          </div>
+        `;
+        listEl.innerHTML = inventoryData.map((item) => {
+          const alertMeta = inventoryAlertBySpec.get(item.spec);
+          const heavyLow = Boolean(alertMeta?.heavyLow);
+          const emptyLow = Boolean(alertMeta?.emptyLow);
+          const isLow = Boolean(alertMeta?.isLow);
+          const statusClass = item.available <= 0 ? "status-danger" : isLow ? "status-warning" : "status-safe";
+          let statusText = "充足";
+          if (item.available <= 0) {
+            statusText = "缺货";
+          } else if (heavyLow && emptyLow) {
+            statusText = "双预警";
+          } else if (heavyLow) {
+            statusText = "重瓶偏紧";
+          } else if (emptyLow) {
+            statusText = "空瓶偏紧";
+          }
+          const subtitleParts = [];
+          subtitleParts.push(`可配送 ${item.available} 瓶`);
+          if (item.pendingInspection > 0) subtitleParts.push(`待检 ${item.pendingInspection} 瓶`);
+          if (heavyLow) subtitleParts.push(`重瓶阈值 ${Number(alertMeta?.heavyThreshold || 0)}`);
+          if (emptyLow) subtitleParts.push(`空瓶阈值 ${Number(alertMeta?.emptyThreshold || 0)}`);
+          return `
+            <div class="inventory-item">
+              <div class="inventory-head">
+                <div>
+                  <div class="inventory-name">${item.spec}</div>
+                  <div class="inventory-subtitle">${subtitleParts.join("，")}</div>
+                </div>
+                <div class="inventory-status ${statusClass}">${statusText}</div>
+              </div>
+              <div class="inventory-metrics">
+                <div class="metric-chip highlight compact">
+                  <strong>${item.onHand}</strong>
+                  <span>重瓶在库</span>
+                </div>
+                <div class="metric-chip compact">
+                  <strong>${item.emptyOnHand}</strong>
+                  <span>空瓶在库</span>
+                </div>
+                <div class="metric-chip compact ${item.locked > 0 ? "warning" : ""}">
+                  <strong>${item.locked}</strong>
+                  <span>锁定待送</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      // 渲染操作日志
+      function renderLogs() {
+        const logEl = document.getElementById("logList");
+        if (!operationLogs.length) {
+          logEl.innerHTML = '<div class="log-item"><div class="log-detail">暂无库存操作记录</div></div>';
+          return;
+        }
+        logEl.innerHTML = operationLogs.map(log => `
+          <div class="log-item">
+            <div class="log-info">
+              <div class="log-type">${log.type}</div>
+              <div class="log-detail">${log.detail}</div>
+            </div>
+            <span class="log-time">${log.time}</span>
+          </div>
+        `).join("");
+      }
+
+      // 事件绑定
+      document.getElementById("backBtn").addEventListener("click", () => {
+        goBackOr("./my.html");
+      });
+
+      document.getElementById("alertBtn").addEventListener("click", () => {
+        const lowList = [...inventoryAlertBySpec.values()].filter((x) => x.isLow);
+        if (!lowList.length) {
+          setTip("当前无低库存预警", "info");
+          return;
+        }
+        setTip(
+          `预警明细：${lowList.map((x) => `${x.spec}${x.warningText}`).join("；")}`,
+          "warning"
+        );
+      });
+
+      document.getElementById("purchaseBtn").addEventListener("click", () => {
+        openActionSheet("purchase", { spec: "15kg", qty: 5 });
+      });
+
+      document.getElementById("refillBtn").addEventListener("click", () => {
+        openActionSheet("refill", { spec: "15kg", qty: 3, weight: 45 });
+      });
+
+      document.getElementById("checkBtn").addEventListener("click", () => {
+        openActionSheet("stocktake", { spec: "15kg", qty: 10 });
+      });
+
+      actionSheetScrim.addEventListener("click", closeActionSheet);
+      actionSheetCancelBtn.addEventListener("click", closeActionSheet);
+      stockTypeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          actionStockType = btn.dataset.stockType === "empty" ? "empty" : "heavy";
+          syncStockTypeButtons();
+        });
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeActionSheet();
+      });
+      actionSheetSubmitBtn.addEventListener("click", async () => {
+        if (!actionMode || actionSubmitting) return;
+        const spec = normalizeSpec(actionSpec.value);
+        if (!spec) {
+          setTip("规格不合法", "error");
+          return;
+        }
+        let route = "";
+        let payload = {};
+        let loadingText = "";
+        let successText = "";
+        if (actionMode === "purchase") {
+          const qty = parsePositiveInt(actionQty.value);
+          if (!qty) {
+            setTip("数量必须为正整数", "error");
+            return;
+          }
+          route = "/inventory/purchase";
+          payload = { spec, quantity: qty };
+          loadingText = "正在提交采购入库...";
+          successText = `已入库：${spec} × ${qty}`;
+        } else if (actionMode === "refill") {
+          const qty = parsePositiveInt(actionQty.value);
+          if (!qty) {
+            setTip("数量必须为正整数", "error");
+            return;
+          }
+          const refillWeightKg = parsePositiveDecimal(actionWeight.value);
+          if (!refillWeightKg) {
+            setTip("请填写有效的充装重量（kg）", "error");
+            return;
+          }
+          route = "/inventory/refill";
+          payload = { spec, quantity: qty, refillWeightKg };
+          loadingText = "正在提交气瓶充装...";
+          successText = `已充装：${spec} × ${qty}（${refillWeightKg}kg）`;
+        } else {
+          const qty = parseNonNegativeInt(actionQty.value);
+          if (qty < 0) {
+            setTip("盘点数量必须为非负整数", "error");
+            return;
+          }
+          route = "/inventory/stocktake";
+          payload = { spec, countedOnHand: qty, stockType: actionStockType };
+          loadingText = "正在提交库存盘点...";
+          successText = `盘点完成：${spec}${actionStockType === "empty" ? "空瓶" : "重瓶"} ${qty}`;
+        }
+        actionSubmitting = true;
+        actionSheetSubmitBtn.disabled = true;
+        setTip(loadingText, "loading");
+        const result = await submitInventoryAction(route, payload);
+        actionSubmitting = false;
+        actionSheetSubmitBtn.disabled = false;
+        if (!result?.success) {
+          setTip(result?.error || "库存操作失败", "error");
+          return;
+        }
+        closeActionSheet();
+        await reloadAll();
+        setTip(successText, "success");
+      });
+
+      // 初始化
+      reloadAll();
+    </script>
+  </body>
+</html>

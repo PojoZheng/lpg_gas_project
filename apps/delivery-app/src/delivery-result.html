@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>完单结果</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px; }
+      .line { margin-bottom: 8px; font-size: 14px; }
+      .actions { display: grid; gap: 8px; margin-top: 10px; }
+      .tip { margin-top: 8px; font-size: 13px; }
+      .err { color: #b42318; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">完单结果</h1>
+        <div style="width:38px"></div>
+      </header>
+      <section class="card">
+        <div class="line" id="summary"></div>
+        <div class="line" id="orderLine"></div>
+        <div class="actions">
+          <button class="app-btn" id="undoBtn">撤销本次操作</button>
+          <button class="app-btn primary" id="nextBtn">下一单</button>
+          <button class="app-btn" id="detailBtn">去订单详情</button>
+          <button class="app-btn" id="debtBtn">去债务管理</button>
+        </div>
+        <div id="tip" class="tip"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { undoOrderAction } from "./delivery-complete-client.js";
+      import { clearFlowState, getFlowState } from "./delivery-flow-state.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const flow = getFlowState();
+      const orderId = flow.lastComplete?.orderId || flow.selectedOrderId || "";
+      if (!orderId) window.location.href = "./pending-delivery-list.html";
+
+      const tipEl = document.getElementById("tip");
+      function tip(text, err = false) {
+        tipEl.textContent = text || "";
+        tipEl.className = `tip ${err ? "err" : ""}`;
+      }
+
+      document.getElementById("summary").textContent = `完单成功：欠款 ${Number(flow.lastComplete?.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(flow.lastComplete?.owedEmptyCount || 0)} 瓶。`;
+      document.getElementById("orderLine").textContent = `订单号 ${orderId}`;
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        clearFlowState();
+        window.location.href = "./pending-delivery-list.html";
+      });
+      document.getElementById("nextBtn").addEventListener("click", () => {
+        clearFlowState();
+        window.location.href = "./pending-delivery-list.html";
+      });
+      document.getElementById("detailBtn").addEventListener("click", () => {
+        window.location.href = `./order-detail.html?orderId=${encodeURIComponent(orderId)}`;
+      });
+      document.getElementById("debtBtn").addEventListener("click", () => {
+        window.location.href = "./debt-overview.html";
+      });
+      document.getElementById("undoBtn").addEventListener("click", async () => {
+        tip("正在撤销...");
+        const res = await undoOrderAction(orderId);
+        if (!res.success) return tip(res.error || "撤销失败", true);
+        clearFlowState();
+        tip("撤销成功，返回待配送列表");
+        window.setTimeout(() => (window.location.href = "./pending-delivery-list.html"), 500);
+      });
+    </script>
+  </body>
+</html>

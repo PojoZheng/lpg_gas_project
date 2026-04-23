@@ -1,0 +1,28 @@
+{
+  "id": "74-delivery-complete-regression-suite",
+  "title": "待配送完单链路回归测试包（结构+契约+校验）",
+  "status": "completed",
+  "depends_on": [
+    "71-order-contract-unification",
+    "72-delivery-complete-validation-rules",
+    "73-cross-domain-capability-relocation"
+  ],
+  "input_spec": [
+    ".trellis/spec/guides/story-testing-guide.md",
+    ".trellis/spec/shared/api-contracts.md",
+    "requirements/02_订单/需求.md"
+  ],
+  "acceptance": [
+    "新增完单主链路故事测试：待配送选择 -> 完单提交 -> 安检闭环（按策略）",
+    "新增订单契约一致性测试：列表/待配送/详情关键字段对齐",
+    "新增完单规则测试：覆盖非法输入组合与错误码断言",
+    "test-commands.json 接入 74 任务专属测试命令，auto_test_runner 可独立执行"
+  ],
+  "output_artifacts": [
+    ".trellis/tests/stories/story_delivery_complete_flow_e2e.py",
+    ".trellis/tests/stories/story_order_contract_consistency.py",
+    ".trellis/tests/stories/story_delivery_complete_validation.py",
+    ".trellis/tasks/test-commands.json",
+    ".trellis/tasks/74-delivery-complete-regression-suite/completion.md"
+  ]
+}

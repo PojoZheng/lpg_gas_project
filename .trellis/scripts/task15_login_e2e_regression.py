@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVER_ENTRY = ROOT / ".trellis/backend/src/server.js"
+SERVER_ENTRY = ROOT / "services/backend/src/server.js"
 BASE_URL = "http://127.0.0.1:3100"
 
 

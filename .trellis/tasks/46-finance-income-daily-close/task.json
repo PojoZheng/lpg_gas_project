@@ -22,9 +22,9 @@
     "日结确认后生成不可篡改记录"
   ],
   "output_artifacts": [
-    "delivery-app/src/finance-overview.html",
-    "delivery-app/src/finance-daily-close.html",
-    "delivery-app/src/finance-client.js",
-    "backend/src/routes/finance.js"
+    "apps/delivery-app/src/finance-overview.html",
+    "apps/delivery-app/src/finance-daily-close.html",
+    "apps/delivery-app/src/finance-client.js",
+    "services/backend/src/routes/finance.js"
   ]
 }

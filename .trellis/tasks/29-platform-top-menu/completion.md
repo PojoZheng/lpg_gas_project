@@ -1,7 +1,7 @@
 # 29-platform-top-menu completion
 
 ## 变更概览
-- 新增平台单入口页面：`/.trellis/platform/src/index.html`，作为 platform 验收主链接。
+- 新增平台单入口页面：`/apps/platform/src/index.html`，作为 platform 验收主链接。
 - 为 `platform-monitor.html`、`policy-release.html`、`sync-queue.html` 增加统一顶部菜单（monitor/policy/sync）。
 - 顶部菜单支持当前页高亮，页面状态可识别。
 - 三个平台页面的返回按钮统一改为“返回平台入口”，并跳转 `./index.html`，减少多链接记忆成本。

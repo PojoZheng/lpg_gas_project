@@ -1,0 +1,22 @@
+{
+  "id": "61-mobile-voice-strong-parse",
+  "title": "移动端语音开单：字段级强解析并自动回填",
+  "status": "completed",
+  "depends_on": [
+    "55-voice-draft-to-quick-order",
+    "57-prd-v1-baseline"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-voice-strong-parse-mobile.md"
+  ],
+  "acceptance": [
+    "quick-order.html 可对语音草稿解析客户关键词、规格、数量、单价、订单类型",
+    "解析结果自动回填开单表单并同步客户筛选",
+    "解析失败或不完整时不阻塞手动开单流程",
+    "本次不改动订单提交与库存校验接口"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/quick-order.html"
+  ]
+}

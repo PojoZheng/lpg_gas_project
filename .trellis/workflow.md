@@ -103,14 +103,27 @@ cat .trellis/spec/backend/logging-guidelines.md    # For logging
 ### Core Principles
 
 1. **Read Before Write** - Understand context before starting
-2. **Follow Standards** - [!] **MUST read `.trellis/spec/` guidelines before coding**
-3. **Incremental Development** - Complete one task at a time
-4. **Record Promptly** - Update tracking files immediately after completion
-5. **Document Limits** - [!] **Max 2000 lines per journal document**
+2. **Clarify Before Spec** - If requirements are ambiguous, refine them in `product/` before locking spec/task
+3. **Follow Standards** - [!] **MUST read `.trellis/spec/` guidelines before coding**
+4. **Incremental Development** - Complete one task at a time
+5. **Record Promptly** - Update tracking files immediately after completion
+6. **Document Limits** - [!] **Max 2000 lines per journal document**
 
 ### File System
 
 ```
+. 
+|-- product/             # Product clarification layer
+|   |-- scenarios/       # User stories and scenario narratives
+|   |-- interaction/     # Page responsibility and interaction constraints
+|   |-- decisions/       # Product decisions and pending questions
+|   +-- templates/       # Reusable product templates
+|-- requirements/        # Raw requirements and source business docs
+|-- apps/                # Visible frontend application roots
+|   |-- delivery-app/
+|   +-- platform/
+|-- services/            # Visible backend service roots
+|   +-- backend/
 .trellis/
 |-- .developer           # Developer identity (gitignored)
 |-- scripts/
@@ -153,6 +166,28 @@ cat .trellis/spec/backend/logging-guidelines.md    # For logging
 +-- workflow.md             # This document
 ```
 
+Canonical implementation paths:
+
+- `apps/delivery-app/src`
+- `apps/platform/src`
+- `services/backend/src`
+
+Compatibility symlinks remain under `.trellis/` during transition, but new work should reference the canonical paths above.
+
+### Role Model
+
+Recommended collaboration roles:
+
+1. `Product Designer`
+   - Turns ambiguous requirements into user scenarios, page responsibilities, and interaction priorities
+   - Owns `product/`
+2. `Planner`
+   - Converts stable product decisions into spec-aligned tasks and acceptance criteria
+3. `Builder`
+   - Implements code within explicit file ownership
+4. `Integrator`
+   - Runs regression, story validation, doc closure, and integration checks
+
 ---
 
 ## Session Start Process
@@ -189,6 +224,14 @@ python3 ./.trellis/scripts/get_context.py --json
 
 **[!] CRITICAL: MUST read guidelines before writing any code**
 
+If the requirement is still ambiguous, read or create the corresponding `product/` documents first:
+
+```bash
+cat product/README.md
+cat product/scenarios/<story>.md
+cat product/interaction/<flow>.md
+```
+
 Based on what you'll develop, read the corresponding guidelines:
 
 **Frontend Development** (if applicable):
@@ -220,6 +263,28 @@ python3 ./.trellis/scripts/task.py list
 # Create new task (creates directory with task.json)
 python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
 ```
+
+### Product-First Path (Recommended for Codex)
+
+When users are still exploring the requirement, use this sequence instead of jumping directly to implementation:
+
+1. Capture raw demand in `requirements/` or chat notes
+2. Write / refine `product/scenarios/`
+3. Write / refine `product/interaction/`
+4. Record key conclusions in `product/decisions/`
+5. Sync stable constraints into `.trellis/spec/`
+6. Create or update `.trellis/tasks/`
+7. Implement and verify with story tests
+
+### Story-Based Validation
+
+In addition to task-specific smoke scripts, prefer story-based validation under:
+
+```bash
+.trellis/tests/stories/
+```
+
+These tests should validate complete user journeys, not just spec compliance or interface existence.
 
 ---
 

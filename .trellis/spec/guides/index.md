@@ -23,6 +23,8 @@ These guides help you **ask the right questions before coding**.
 |-------|---------|-------------|
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
+| [Codex Collaboration Guide](./codex-collaboration-guide.md) | Split product discussion and execution cleanly | When using Codex as both collaborator and executor |
+| [Story Testing Guide](./story-testing-guide.md) | Validate complete user outcomes | When spec compliance alone is insufficient |
 
 ---
 
@@ -36,6 +38,22 @@ These guides help you **ask the right questions before coding**.
 - [ ] You're not sure where to put some logic
 
 → Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md)
+
+### When to Switch Into Product Discussion Mode
+
+- [ ] The requirement still has obvious ambiguity
+- [ ] You are debating whether something belongs in `delivery-app` or `platform`
+- [ ] The interface feels crowded even if the functions are correct
+
+→ Read [Codex Collaboration Guide](./codex-collaboration-guide.md)
+
+### When to Add Story Tests
+
+- [ ] The task spans multiple pages or layers
+- [ ] The user cares about end-to-end experience, not just fields and buttons
+- [ ] A regression could still pass smoke checks but break the real workflow
+
+→ Read [Story Testing Guide](./story-testing-guide.md)
 
 ### When to Think About Code Reuse
 

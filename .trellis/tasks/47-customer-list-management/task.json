@@ -22,8 +22,8 @@
     "界面中文、无 emoji，主色 #4799a0"
   ],
   "output_artifacts": [
-    "delivery-app/src/customer-list.html",
-    "delivery-app/src/customer-detail.html",
-    "delivery-app/src/customer-client.js"
+    "apps/delivery-app/src/customer-list.html",
+    "apps/delivery-app/src/customer-detail.html",
+    "apps/delivery-app/src/customer-client.js"
   ]
 }

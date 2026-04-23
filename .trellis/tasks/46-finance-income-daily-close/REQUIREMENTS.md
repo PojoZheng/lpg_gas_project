@@ -41,9 +41,9 @@
 
 | 文件 | 变更类型 | 说明 |
 |------|----------|------|
-| `.trellis/delivery-app/src/finance-daily-close.html` | 重写 | 完整的日结对账页面，含收入/支出/利润统计和核对确认功能 |
-| `.trellis/delivery-app/src/finance-daily-close-client.js` | 修改 | 完善 API 客户端，添加支出查询和历史记录功能 |
-| `.trellis/delivery-app/src/my.html` | 修改 | 添加「今日对账」入口按钮 |
+| `apps/delivery-app/src/finance-daily-close.html` | 重写 | 完整的日结对账页面，含收入/支出/利润统计和核对确认功能 |
+| `apps/delivery-app/src/finance-daily-close-client.js` | 修改 | 完善 API 客户端，添加支出查询和历史记录功能 |
+| `apps/delivery-app/src/my.html` | 修改 | 添加「今日对账」入口按钮 |
 
 ## 界面设计
 

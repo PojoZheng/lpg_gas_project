@@ -5,9 +5,9 @@
 - `/critique` 与 `/audit`：围绕本轮责任页面执行等效审查并形成可落地改造项。
 
 ## 审查页面
-- `/.trellis/delivery-app/src/workbench.html`
-- `/.trellis/delivery-app/src/quick-order.html`
-- `/.trellis/delivery-app/src/delivery-complete.html`
+- `/apps/delivery-app/src/workbench.html`
+- `/apps/delivery-app/src/quick-order.html`
+- `/apps/delivery-app/src/delivery-complete.html`
 
 ## /critique 关键结论
 1. 首页混入低频入口（平台/同步/策略），主流程焦点被稀释。

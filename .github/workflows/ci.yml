@@ -55,8 +55,8 @@ jobs:
       - name: Backend syntax check
         run: |
           set -e
-          if [ -d .trellis/backend/src ]; then
-            for f in .trellis/backend/src/*.js; do
+          if [ -d services/backend/src ]; then
+            for f in services/backend/src/*.js; do
               [ -f "$f" ] || continue
               node --check "$f"
             done

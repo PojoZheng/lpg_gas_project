@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PLATFORM_SRC = ROOT / ".trellis/platform/src"
+PLATFORM_SRC = ROOT / "apps/platform/src"
 
 
 def main() -> int:
-    bad = '/delivery-app/src/auth-client.js'
+    bad = '/apps/delivery-app/src/auth-client.js'
     for p in sorted(PLATFORM_SRC.glob("*.js")):
         if bad in p.read_text(encoding="utf-8"):
             print(f"[verify-two-entry-runtime] FAIL: {p} still imports {bad}", file=sys.stderr)
@@ -22,11 +22,11 @@ def main() -> int:
         return 1
 
     checks = [
-        ROOT / ".trellis/platform/src/platform-auth.js",
-        ROOT / ".trellis/platform/src/platform-monitor-client.js",
-        ROOT / ".trellis/platform/src/policy-release-client.js",
-        ROOT / ".trellis/platform/src/sync-queue-client.js",
-        ROOT / ".trellis/delivery-app/src/auth-client.js",
+        ROOT / "apps/platform/src/platform-auth.js",
+        ROOT / "apps/platform/src/platform-monitor-client.js",
+        ROOT / "apps/platform/src/policy-release-client.js",
+        ROOT / "apps/platform/src/sync-queue-client.js",
+        ROOT / "apps/delivery-app/src/auth-client.js",
     ]
     for js in checks:
         r = subprocess.run(

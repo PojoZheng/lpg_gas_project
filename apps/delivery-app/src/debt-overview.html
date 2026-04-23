@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>债务管理</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .hero-card { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-soft); }
+      .hero-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+      .hero-title { font-size: 14px; color: var(--text-secondary); }
+      .hero-main { font-size: 40px; line-height: 1; letter-spacing: -0.8px; margin: 10px 0 0; }
+      .hero-note { margin-top: 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+      .hero-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 12px; }
+      .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+      .overview-card { border: 1px solid var(--border); border-radius: var(--radius-card); background: #fff; padding: 12px; }
+      .overview-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+      .overview-value { font-size: 24px; font-weight: 700; font-family: var(--font-title); }
+      .overview-meta { margin-top: 6px; font-size: 12px; color: var(--text-secondary); }
+      .overview-card.warn { background: #fff8f1; border-color: #f5d7b0; }
+      .overview-card.warn .overview-value { color: #b45309; }
+      .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+      .filter-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+      .filter-row::-webkit-scrollbar { display: none; }
+      .filter-btn { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: #fff; color: var(--text-secondary); white-space: nowrap; cursor: pointer; }
+      .filter-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+      .state-inline { font-size: 13px; color: var(--text-secondary); }
+      .debt-list { display: grid; gap: 12px; }
+      .debt-card { border: 1px solid var(--border); border-radius: var(--radius-card); background: #fff; padding: 14px; box-shadow: var(--shadow-soft); }
+      .debt-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+      .debt-name { font-size: 17px; font-weight: 700; font-family: var(--font-title); }
+      .debt-subline { margin-top: 4px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+      .amount-block { text-align: right; }
+      .amount-label { font-size: 12px; color: var(--text-secondary); }
+      .amount-value { margin-top: 4px; font-size: 24px; font-weight: 700; font-family: var(--font-title); color: var(--brand); }
+      .risk-pill { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; }
+      .risk-pill.normal { background: #eefaf2; color: #1f7a43; }
+      .risk-pill.warning { background: #fff7ed; color: #b45309; }
+      .risk-pill.overdue { background: #fff1f2; color: #b91c1c; }
+      .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .meta-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; background: #f8fbfc; color: var(--text-secondary); font-size: 12px; border: 1px solid #d7e9eb; }
+      .action-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+      .action-row .app-btn { min-height: 42px; height: 42px; font-size: 14px; }
+      .detail-panel { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; display: grid; gap: 10px; }
+      .detail-panel[hidden] { display: none; }
+      .detail-section { border: 1px solid var(--border); border-radius: var(--radius-input); background: #f8fbfc; padding: 12px; }
+      .detail-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; font-family: var(--font-title); }
+      .detail-list { display: grid; gap: 8px; }
+      .detail-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; font-size: 13px; }
+      .detail-row strong { color: var(--text-primary); }
+      .detail-note { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+      .empty-state { text-align: center; padding: 28px 16px; border: 1px dashed #d7e9eb; border-radius: var(--radius-card); color: var(--text-secondary); background: #fff; }
+      .sheet-overlay { position: fixed; inset: 0; display: none; align-items: flex-end; background: rgba(17, 17, 17, 0.3); z-index: 80; }
+      .sheet-overlay.show { display: flex; }
+      .sheet { width: 100%; max-width: 460px; margin: 0 auto; background: #fff; border: 1px solid var(--border); border-radius: 18px 18px 0 0; padding: 14px; max-height: 88vh; overflow: auto; }
+      .sheet-handle { width: 44px; height: 4px; border-radius: 999px; background: #d7e9eb; margin: 0 auto 12px; }
+      .sheet-title { margin: 0; font-size: 18px; font-weight: 700; font-family: var(--font-title); }
+      .sheet-subtitle { margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+      .sheet-group { margin-top: 14px; }
+      .sheet-label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }
+      .sheet-input, .sheet-select, .sheet-textarea { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-input); background: #fff; color: var(--text-primary); font: inherit; padding: 12px; }
+      .sheet-textarea { min-height: 106px; resize: vertical; line-height: 1.5; }
+      .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+      .shortcut-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+      .shortcut-row .app-btn { min-height: 42px; height: 42px; }
+      .repayment-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">债务管理</h1>
+        <div style="width: 38px;"></div>
+      </header>
+
+      <section class="hero-card app-card">
+        <div class="hero-header">
+          <div>
+            <div class="hero-title">待处理欠款</div>
+            <div class="hero-main" id="heroAmount">--</div>
+          </div>
+          <div class="hero-chip" id="heroChip">今日需催 -- 人</div>
+        </div>
+        <div class="hero-note" id="heroNote">催收状态编辑统一在本页处理（完单页仅保留结果展示）。优先处理逾期客户，记录后列表会立即更新。</div>
+        <div class="overview-grid">
+          <article class="overview-card">
+            <div class="overview-label">总欠款</div>
+            <div class="overview-value" id="totalDebtAmount">--</div>
+            <div class="overview-meta" id="totalDebtMeta">--</div>
+          </article>
+          <article class="overview-card warn">
+            <div class="overview-label">逾期欠款</div>
+            <div class="overview-value" id="overdueDebtAmount">--</div>
+            <div class="overview-meta" id="overdueDebtMeta">--</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <div class="section-head">
+          <h2 class="app-card-title">快速筛选</h2>
+          <div class="state-inline" id="listMeta">加载中</div>
+        </div>
+        <div class="filter-row" id="filterRow">
+          <button class="filter-btn active" data-filter="all">全部欠款</button>
+          <button class="filter-btn" data-filter="overdue">逾期未还</button>
+          <button class="filter-btn" data-filter="today">今日需催</button>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <div class="section-head">
+          <h2 class="app-card-title">待催收列表</h2>
+          <button class="app-btn ghost" id="refreshBtn">刷新</button>
+        </div>
+        <div class="debt-list" id="debtList"></div>
+        <div class="empty-state" id="emptyState" hidden>当前筛选下没有待处理欠款。</div>
+      </section>
+    </main>
+
+    <div class="sheet-overlay" id="reminderSheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title" id="reminderTitle">催款</h2>
+        <p class="sheet-subtitle" id="reminderSubtitle"></p>
+        <div class="sheet-group">
+          <label class="sheet-label" for="reminderScript">催款话术</label>
+          <textarea class="sheet-textarea" id="reminderScript"></textarea>
+        </div>
+        <div class="shortcut-row">
+          <button class="app-btn ghost" id="copyReminderBtn">复制话术</button>
+          <button class="app-btn ghost" id="callReminderBtn">拨打电话</button>
+          <button class="app-btn ghost" id="smsReminderBtn">发送短信</button>
+        </div>
+        <div class="sheet-group">
+          <label class="sheet-label" for="reminderType">催款方式</label>
+          <select class="sheet-select" id="reminderType">
+            <option value="call">电话催款</option>
+            <option value="sms">短信催款</option>
+            <option value="wechat">微信催款</option>
+            <option value="visit">上门提醒</option>
+          </select>
+        </div>
+        <div class="sheet-group">
+          <label class="sheet-label" for="reminderResult">催款结果</label>
+          <select class="sheet-select" id="reminderResult">
+            <option value="promised">客户承诺还款</option>
+            <option value="no_answer">无人接听</option>
+            <option value="unreachable">未回复</option>
+            <option value="refused">拒绝沟通</option>
+          </select>
+        </div>
+        <div class="sheet-group">
+          <label class="sheet-label" for="promisedAt">承诺还款日期</label>
+          <input class="sheet-input" id="promisedAt" type="date" />
+        </div>
+        <div class="sheet-actions">
+          <button class="app-btn" id="closeReminderBtn">取消</button>
+          <button class="app-btn primary" id="submitReminderBtn">记录催款</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-overlay" id="repaymentSheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title" id="repaymentTitle">记录还款</h2>
+        <p class="sheet-subtitle" id="repaymentSubtitle"></p>
+        <div class="sheet-group">
+          <label class="sheet-label" for="repaymentAmount">还款金额</label>
+          <div class="repayment-grid">
+            <input class="sheet-input" id="repaymentAmount" type="number" min="0" step="0.01" placeholder="输入金额" />
+            <button class="app-btn ghost" id="repayAllBtn">全部还清</button>
+          </div>
+        </div>
+        <div class="sheet-group">
+          <label class="sheet-label" for="repaymentMethod">还款方式</label>
+          <select class="sheet-select" id="repaymentMethod">
+            <option value="cash">现金</option>
+            <option value="wechat">微信</option>
+            <option value="alipay">支付宝</option>
+            <option value="transfer">转账</option>
+          </select>
+        </div>
+        <div class="sheet-group">
+          <label class="sheet-label" for="repaymentNote">备注</label>
+          <input class="sheet-input" id="repaymentNote" type="text" maxlength="200" placeholder="可选，如现场补收" />
+        </div>
+        <div class="sheet-actions">
+          <button class="app-btn" id="closeRepaymentBtn">取消</button>
+          <button class="app-btn primary" id="submitRepaymentBtn">确认还款</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { goBackOr } from "./app-shell.js";
+      import {
+        fetchDebtOverview,
+        fetchDebtList,
+        fetchDebtCustomerDetail,
+        submitDebtReminder,
+        submitDebtRepayment,
+      } from "./debt-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const state = {
+        filter: "all",
+        overview: null,
+        items: [],
+        details: new Map(),
+        expandedId: "",
+        activeCustomer: null,
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const debtList = $("debtList");
+      const emptyState = $("emptyState");
+      const listMeta = $("listMeta");
+
+      $("backBtn").addEventListener("click", () => {
+        goBackOr("./my.html");
+      });
+      $("refreshBtn").addEventListener("click", () => loadPage(true));
+      $("filterRow").addEventListener("click", (event) => {
+        const btn = event.target.closest(".filter-btn");
+        if (!btn) return;
+        [...$("filterRow").querySelectorAll(".filter-btn")].forEach((item) => item.classList.remove("active"));
+        btn.classList.add("active");
+        state.filter = btn.dataset.filter;
+        loadList();
+      });
+
+      debtList.addEventListener("click", async (event) => {
+        const action = event.target.closest("[data-action]");
+        if (!action) return;
+        const customerId = action.dataset.customerId;
+        if (!customerId) return;
+        if (action.dataset.action === "detail") {
+          await toggleDetail(customerId);
+          return;
+        }
+        const item = await ensureCustomerDetail(customerId);
+        if (!item) return;
+        if (action.dataset.action === "remind") {
+          openReminderSheet(item);
+          return;
+        }
+        if (action.dataset.action === "repay") {
+          openRepaymentSheet(item);
+        }
+      });
+
+      $("copyReminderBtn").addEventListener("click", async () => {
+        const text = $("reminderScript").value.trim();
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          $("reminderSubtitle").textContent = "话术已复制，可直接拨号或发送短信。";
+        } catch (_error) {
+          $("reminderSubtitle").textContent = "当前环境不支持自动复制，请手动复制话术。";
+        }
+      });
+
+      $("callReminderBtn").addEventListener("click", () => {
+        if (!state.activeCustomer?.phone) return;
+        $("reminderType").value = "call";
+        window.location.href = `tel:${state.activeCustomer.phone}`;
+      });
+      $("smsReminderBtn").addEventListener("click", () => {
+        if (!state.activeCustomer?.phone) return;
+        $("reminderType").value = "sms";
+        const phone = encodeURIComponent(state.activeCustomer.phone);
+        const body = encodeURIComponent($("reminderScript").value.trim());
+        window.location.href = `sms:${phone}?body=${body}`;
+      });
+
+      $("closeReminderBtn").addEventListener("click", closeReminderSheet);
+      $("closeRepaymentBtn").addEventListener("click", closeRepaymentSheet);
+      $("reminderSheet").addEventListener("click", (event) => {
+        if (event.target === $("reminderSheet")) closeReminderSheet();
+      });
+      $("repaymentSheet").addEventListener("click", (event) => {
+        if (event.target === $("repaymentSheet")) closeRepaymentSheet();
+      });
+
+      $("submitReminderBtn").addEventListener("click", async () => {
+        if (!state.activeCustomer) return;
+        const payload = {
+          customerId: state.activeCustomer.customerId,
+          type: $("reminderType").value,
+          content: $("reminderScript").value.trim(),
+          result: $("reminderResult").value,
+          promisedAt: $("promisedAt").value,
+        };
+        const result = await submitDebtReminder(payload);
+        if (!result.success) {
+          $("reminderSubtitle").textContent = result.error || "催款记录失败，请稍后重试。";
+          return;
+        }
+        closeReminderSheet();
+        await refreshCustomer(result.data.customer.customerId);
+      });
+
+      $("repayAllBtn").addEventListener("click", () => {
+        if (!state.activeCustomer) return;
+        $("repaymentAmount").value = String(state.activeCustomer.debtAmount);
+      });
+
+      $("submitRepaymentBtn").addEventListener("click", async () => {
+        if (!state.activeCustomer) return;
+        const payload = {
+          customerId: state.activeCustomer.customerId,
+          amount: Number($("repaymentAmount").value || 0),
+          method: $("repaymentMethod").value,
+          note: $("repaymentNote").value.trim(),
+        };
+        const result = await submitDebtRepayment(payload);
+        if (!result.success) {
+          $("repaymentSubtitle").textContent = result.error || "还款记录失败，请稍后重试。";
+          return;
+        }
+        closeRepaymentSheet();
+        await refreshCustomer(result.data.customer.customerId);
+      });
+
+      async function loadPage(withTip = false) {
+        listMeta.textContent = "加载中";
+        const [overviewRes, listRes] = await Promise.all([fetchDebtOverview(), fetchDebtList({ filter: state.filter })]);
+        if (!overviewRes.success) {
+          listMeta.textContent = overviewRes.error || "概览读取失败";
+          return;
+        }
+        state.overview = overviewRes.data;
+        renderOverview();
+        if (!listRes.success) {
+          listMeta.textContent = listRes.error || "列表读取失败";
+          return;
+        }
+        state.items = listRes.data.items || [];
+        renderList();
+        if (withTip) {
+          listMeta.textContent = `共 ${state.items.length} 位客户`;
+        }
+      }
+
+      async function loadList() {
+        listMeta.textContent = "筛选中";
+        const listRes = await fetchDebtList({ filter: state.filter });
+        if (!listRes.success) {
+          listMeta.textContent = listRes.error || "列表读取失败";
+          return;
+        }
+        state.items = listRes.data.items || [];
+        renderList();
+      }
+
+      function renderOverview() {
+        const data = state.overview;
+        if (!data) return;
+        $("heroAmount").textContent = money(data.totalDebt.amount);
+        $("heroChip").textContent = `今日需催 ${Math.max(0, data.overdueDebt.customerCount)} 人`;
+        $("heroNote").textContent = `总欠款 ${money(data.totalDebt.amount)}，其中逾期 ${data.overdueDebt.customerCount} 人，今天新增 ${data.recentChanges.newToday} 笔记账。`;
+        $("totalDebtAmount").textContent = money(data.totalDebt.amount);
+        $("totalDebtMeta").textContent = `${data.totalDebt.customerCount} 位客户`;
+        $("overdueDebtAmount").textContent = money(data.overdueDebt.amount);
+        $("overdueDebtMeta").textContent = `${data.overdueDebt.customerCount} 位客户，超 ${data.overdueDebt.thresholdDays} 天`;
+      }
+
+      function renderList() {
+        debtList.innerHTML = state.items.map(renderDebtCard).join("");
+        const hasItems = state.items.length > 0;
+        debtList.hidden = !hasItems;
+        emptyState.hidden = hasItems;
+        listMeta.textContent = hasItems ? `共 ${state.items.length} 位客户` : "暂无待处理欠款";
+      }
+
+      function renderDebtCard(item) {
+        const riskLabel =
+          item.status === "overdue" ? `逾期 ${item.debtDays} 天` : item.status === "warning" ? `提醒 ${item.debtDays} 天` : "今日记账";
+        const detail = state.expandedId === item.customerId ? state.details.get(item.customerId) || item : null;
+        return `
+          <article class="debt-card">
+            <div class="debt-card-top">
+              <div>
+                <div class="debt-name">${escapeHtml(item.customerName)}</div>
+                <div class="debt-subline">${escapeHtml(item.address || "暂无地址")} · ${maskPhone(item.phone || "")}</div>
+              </div>
+              <div class="amount-block">
+                <div class="amount-label">当前欠款</div>
+                <div class="amount-value">${money(item.debtAmount)}</div>
+              </div>
+            </div>
+            <div class="meta-row">
+              <span class="risk-pill ${item.status}">${riskLabel}</span>
+              <span class="meta-chip">最近催款 ${formatDate(item.lastReminderAt)}</span>
+              <span class="meta-chip">状态 ${formatCollection(item.collectionStatus)}</span>
+            </div>
+            <div class="action-row">
+              <button class="app-btn soft" data-action="remind" data-customer-id="${item.customerId}">催款</button>
+              <button class="app-btn ghost" data-action="repay" data-customer-id="${item.customerId}">记录还款</button>
+              <button class="app-btn" data-action="detail" data-customer-id="${item.customerId}">${detail ? "收起明细" : "查看明细"}</button>
+            </div>
+            ${detail ? renderDetail(detail) : ""}
+          </article>
+        `;
+      }
+
+      function renderDetail(detail) {
+        const reminderRows = (detail.reminderHistory || [])
+          .map((item) => `<div class="detail-row"><span>${formatDate(item.createdAt)} · ${formatReminderType(item.type)}</span><strong>${formatReminderResult(item.result)}</strong></div>`)
+          .join("") || '<div class="detail-note">暂无催款记录。</div>';
+        const repaymentRows = (detail.repaymentHistory || [])
+          .map((item) => `<div class="detail-row"><span>${formatDate(item.createdAt)} · ${formatPaymentMethod(item.method)}</span><strong>${money(item.amount)}</strong></div>`)
+          .join("") || '<div class="detail-note">暂无还款记录。</div>';
+        return `
+          <div class="detail-panel">
+            <section class="detail-section">
+              <h3 class="detail-title">欠款摘要</h3>
+              <div class="detail-list">
+                <div class="detail-row"><span>欠款起始</span><strong>${formatDate(detail.debtSinceAt)}</strong></div>
+                <div class="detail-row"><span>当前说明</span><strong>${escapeHtml(detail.collectionNote || "暂无备注")}</strong></div>
+              </div>
+            </section>
+            <section class="detail-section">
+              <h3 class="detail-title">催款记录</h3>
+              <div class="detail-list">${reminderRows}</div>
+            </section>
+            <section class="detail-section">
+              <h3 class="detail-title">还款历史</h3>
+              <div class="detail-list">${repaymentRows}</div>
+            </section>
+          </div>
+        `;
+      }
+
+      async function toggleDetail(customerId) {
+        if (state.expandedId === customerId) {
+          state.expandedId = "";
+          renderList();
+          return;
+        }
+        const detail = await ensureCustomerDetail(customerId);
+        if (!detail) return;
+        state.expandedId = customerId;
+        renderList();
+      }
+
+      async function ensureCustomerDetail(customerId) {
+        if (state.details.has(customerId)) return state.details.get(customerId);
+        const detailRes = await fetchDebtCustomerDetail(customerId);
+        if (!detailRes.success) {
+          listMeta.textContent = detailRes.error || "明细读取失败";
+          return null;
+        }
+        state.details.set(customerId, detailRes.data);
+        return detailRes.data;
+      }
+
+      async function refreshCustomer(customerId) {
+        state.details.delete(customerId);
+        await loadPage(true);
+        if (!customerId) return;
+        const updatedItem = state.items.find((item) => item.customerId === customerId);
+        if (!updatedItem) {
+          state.expandedId = "";
+          renderList();
+          listMeta.textContent = `共 ${state.items.length} 位客户，当前客户欠款已结清`;
+          return;
+        }
+        const detail = await ensureCustomerDetail(customerId);
+        if (!detail) return;
+        state.expandedId = customerId;
+        renderList();
+      }
+
+      function openReminderSheet(customer) {
+        state.activeCustomer = customer;
+        $("reminderTitle").textContent = `催款 - ${customer.customerName}`;
+        $("reminderSubtitle").textContent = `当前欠款 ${money(customer.debtAmount)}，建议优先通过电话或短信提醒。`;
+        $("reminderScript").value = customer.reminderTemplate || "";
+        $("reminderType").value = "call";
+        $("reminderResult").value = "promised";
+        $("promisedAt").value = "";
+        $("reminderSheet").classList.add("show");
+      }
+
+      function closeReminderSheet() {
+        $("reminderSheet").classList.remove("show");
+        state.activeCustomer = null;
+      }
+
+      function openRepaymentSheet(customer) {
+        state.activeCustomer = customer;
+        $("repaymentTitle").textContent = `记录还款 - ${customer.customerName}`;
+        $("repaymentSubtitle").textContent = `当前欠款 ${money(customer.debtAmount)}，支持部分还款或全部结清。`;
+        $("repaymentAmount").value = "";
+        $("repaymentMethod").value = "cash";
+        $("repaymentNote").value = "";
+        $("repaymentSheet").classList.add("show");
+      }
+
+      function closeRepaymentSheet() {
+        $("repaymentSheet").classList.remove("show");
+        state.activeCustomer = null;
+      }
+
+      function money(value) {
+        return `¥${Number(value || 0).toFixed(2)}`;
+      }
+
+      function formatDate(value) {
+        if (!value) return "暂无";
+        const date = new Date(Number(value));
+        if (Number.isNaN(date.getTime())) return "暂无";
+        return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function formatCollection(status) {
+        return {
+          none: "未跟进",
+          pending: "待跟进",
+          contacted: "已联系",
+          promised: "已承诺",
+          resolved: "已解决",
+        }[status] || "待跟进";
+      }
+
+      function formatReminderType(type) {
+        return {
+          call: "电话催款",
+          sms: "短信催款",
+          wechat: "微信提醒",
+          visit: "上门提醒",
+        }[type] || "催款";
+      }
+
+      function formatReminderResult(result) {
+        return {
+          promised: "已承诺",
+          no_answer: "无人接听",
+          unreachable: "未回复",
+          refused: "拒绝沟通",
+        }[result] || "已记录";
+      }
+
+      function formatPaymentMethod(method) {
+        return {
+          cash: "现金",
+          wechat: "微信",
+          alipay: "支付宝",
+          transfer: "转账",
+        }[method] || "其他";
+      }
+
+      function maskPhone(phone) {
+        return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2") : "暂无电话";
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = String(text || "");
+        return div.innerHTML;
+      }
+
+      loadPage();
+    </script>
+  </body>
+</html>

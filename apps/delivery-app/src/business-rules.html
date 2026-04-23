@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>业务规则</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { min-height: 100vh; padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px)); }
+      .section { margin-bottom: 12px; }
+      .grid { display: grid; gap: 10px; }
+      .row { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 8px; }
+      .row label { font-size: 13px; color: var(--text-secondary); }
+      .row input, .row select { width: 100%; height: 42px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
+      .unit { font-size: 12px; color: var(--text-secondary); }
+      .price-grid { display: grid; gap: 12px; }
+      .price-control {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid #d8e7ea;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%);
+      }
+      .price-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .price-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .price-unit-note { font-size: 12px; color: var(--text-secondary); }
+      .price-stepper {
+        display: grid;
+        grid-template-columns: 44px 1fr 44px;
+        gap: 8px;
+        align-items: center;
+      }
+      .stepper-btn {
+        width: 44px;
+        height: 44px;
+        border: 1px solid #cfe1e5;
+        border-radius: 14px;
+        background: #fff;
+        color: var(--brand);
+        font-size: 22px;
+        line-height: 1;
+      }
+      .stepper-input {
+        height: 44px;
+        border: 1px solid #cfe1e5;
+        border-radius: 14px;
+        background: #fff;
+        padding: 0 14px;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .price-presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .preset-chip {
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid #d6e8ea;
+        background: #fff;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .preset-chip.active {
+        background: var(--brand-soft);
+        border-color: var(--brand);
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .checks { display: flex; gap: 12px; flex-wrap: wrap; }
+      .checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+      .tag-options { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tag-option {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid #d6e8ea;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text-secondary);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .tag-option.active {
+        background: var(--brand-soft);
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+      .group-block { border-top: 1px solid var(--border); padding-top: 10px; }
+      .group-block:first-child { border-top: none; padding-top: 0; }
+      .group-title {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: var(--font-title);
+      }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .tip { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+      .tip.err { color: #b42318; }
+      .entry-list { display: grid; gap: 10px; }
+      .entry-btn {
+        width: 100%;
+        min-height: 60px;
+        border: 1px solid #d6e8ea;
+        border-radius: var(--radius-button);
+        background: #fff;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .entry-arrow { color: var(--text-secondary); }
+      .switch-row { display: flex; justify-content: space-between; align-items: center; }
+      .switch-row label { font-size: 14px; }
+      .app-switch {
+        position: relative;
+        width: 44px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+      }
+      .app-switch input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .app-switch-track {
+        width: 100%;
+        height: 100%;
+        border-radius: 999px;
+        background: #d8e6e9;
+        transition: background 160ms ease;
+        display: inline-flex;
+        align-items: center;
+        padding: 2px;
+      }
+      .app-switch-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(17, 17, 17, 0.15);
+        transition: transform 160ms ease;
+      }
+      .app-switch input:checked + .app-switch-track {
+        background: var(--brand);
+      }
+      .app-switch input:checked + .app-switch-track .app-switch-thumb {
+        transform: translateX(18px);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title" id="pageTitle">业务规则</h1>
+        <div style="width:38px"></div>
+      </header>
+
+      <section class="app-card section" id="rulesEntryCard">
+        <div class="entry-list">
+          <button class="entry-btn" type="button" data-section="pricing">
+            <span>开单与价格</span><span class="entry-arrow">›</span>
+          </button>
+          <button class="entry-btn" type="button" data-section="debt">
+            <span>欠瓶与欠款</span><span class="entry-arrow">›</span>
+          </button>
+          <button class="entry-btn" type="button" data-section="inventory">
+            <span>库存预警与推送</span><span class="entry-arrow">›</span>
+          </button>
+        </div>
+      </section>
+
+      <div id="rulesDetailWrap" hidden>
+      <section class="app-card section" data-rule-section="pricing">
+        <h2 class="app-card-title">开单与价格</h2>
+        <div class="grid">
+          <div class="group-block">
+            <h3 class="group-title">开单默认单价</h3>
+            <div class="price-grid">
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">15kg 单价</span>
+                  <span class="price-unit-note">元/瓶</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="orderPrice15" aria-label="减少15kg单价">-</button>
+                  <input class="stepper-input" id="orderPrice15" type="number" min="0" step="5" data-step="5" inputmode="decimal" data-price-unit="元/瓶" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="orderPrice15" aria-label="增加15kg单价">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="orderPrice15" data-value="100">100</button>
+                  <button class="preset-chip" type="button" data-target="orderPrice15" data-value="120">120</button>
+                  <button class="preset-chip" type="button" data-target="orderPrice15" data-value="140">140</button>
+                </div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">10kg 单价</span>
+                  <span class="price-unit-note">元/瓶</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="orderPrice10" aria-label="减少10kg单价">-</button>
+                  <input class="stepper-input" id="orderPrice10" type="number" min="0" step="5" data-step="5" inputmode="decimal" data-price-unit="元/瓶" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="orderPrice10" aria-label="增加10kg单价">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="orderPrice10" data-value="80">80</button>
+                  <button class="preset-chip" type="button" data-target="orderPrice10" data-value="100">100</button>
+                  <button class="preset-chip" type="button" data-target="orderPrice10" data-value="120">120</button>
+                </div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">50kg 单价</span>
+                  <span class="price-unit-note">元/瓶</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="orderPrice50" aria-label="减少50kg单价">-</button>
+                  <input class="stepper-input" id="orderPrice50" type="number" min="0" step="10" data-step="10" inputmode="decimal" data-price-unit="元/瓶" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="orderPrice50" aria-label="增加50kg单价">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="orderPrice50" data-value="260">260</button>
+                  <button class="preset-chip" type="button" data-target="orderPrice50" data-value="300">300</button>
+                  <button class="preset-chip" type="button" data-target="orderPrice50" data-value="360">360</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">押金与租金</h3>
+            <div class="price-grid">
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">15kg 押金</span>
+                  <span class="price-unit-note">元/瓶</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="deposit15" aria-label="减少15kg押金">-</button>
+                  <input class="stepper-input" id="deposit15" type="number" min="0" step="10" data-step="10" inputmode="decimal" data-price-unit="元/瓶" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="deposit15" aria-label="增加15kg押金">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="deposit15" data-value="100">100</button>
+                  <button class="preset-chip" type="button" data-target="deposit15" data-value="150">150</button>
+                  <button class="preset-chip" type="button" data-target="deposit15" data-value="200">200</button>
+                </div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">10kg 押金</span>
+                  <span class="price-unit-note">元/瓶</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="deposit10" aria-label="减少10kg押金">-</button>
+                  <input class="stepper-input" id="deposit10" type="number" min="0" step="10" data-step="10" inputmode="decimal" data-price-unit="元/瓶" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="deposit10" aria-label="增加10kg押金">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="deposit10" data-value="80">80</button>
+                  <button class="preset-chip" type="button" data-target="deposit10" data-value="100">100</button>
+                  <button class="preset-chip" type="button" data-target="deposit10" data-value="120">120</button>
+                </div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">50kg 押金</span>
+                  <span class="price-unit-note">元/瓶</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="deposit50" aria-label="减少50kg押金">-</button>
+                  <input class="stepper-input" id="deposit50" type="number" min="0" step="20" data-step="20" inputmode="decimal" data-price-unit="元/瓶" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="deposit50" aria-label="增加50kg押金">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="deposit50" data-value="300">300</button>
+                  <button class="preset-chip" type="button" data-target="deposit50" data-value="400">400</button>
+                  <button class="preset-chip" type="button" data-target="deposit50" data-value="500">500</button>
+                </div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">月租金</span>
+                  <span class="price-unit-note">元/瓶/月</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="rentMonthly" aria-label="减少月租金">-</button>
+                  <input class="stepper-input" id="rentMonthly" type="number" min="0" step="1" data-step="1" inputmode="decimal" data-price-unit="元/瓶/月" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="rentMonthly" aria-label="增加月租金">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="rentMonthly" data-value="0">0</button>
+                  <button class="preset-chip" type="button" data-target="rentMonthly" data-value="5">5</button>
+                  <button class="preset-chip" type="button" data-target="rentMonthly" data-value="8">8</button>
+                </div>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">年租金</span>
+                  <span class="price-unit-note">元/瓶/年</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="rentYearly" aria-label="减少年租金">-</button>
+                  <input class="stepper-input" id="rentYearly" type="number" min="0" step="5" data-step="5" inputmode="decimal" data-price-unit="元/瓶/年" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="rentYearly" aria-label="增加年租金">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="rentYearly" data-value="0">0</button>
+                  <button class="preset-chip" type="button" data-target="rentYearly" data-value="50">50</button>
+                  <button class="preset-chip" type="button" data-target="rentYearly" data-value="80">80</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">残液处理</h3>
+            <div class="grid">
+              <div class="switch-row">
+                <label for="residualEnabled">启用残液记录</label>
+                <label class="app-switch" for="residualEnabled">
+                  <input id="residualEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
+              <div class="price-control">
+                <div class="price-head">
+                  <span class="price-label">残液单价</span>
+                  <span class="price-unit-note">元/kg</span>
+                </div>
+                <div class="price-stepper">
+                  <button class="stepper-btn" type="button" data-stepper-action="decrease" data-target="residualPrice" aria-label="减少残液单价">-</button>
+                  <input class="stepper-input" id="residualPrice" type="number" min="0" step="1" data-step="1" inputmode="decimal" data-price-unit="元/kg" />
+                  <button class="stepper-btn" type="button" data-stepper-action="increase" data-target="residualPrice" aria-label="增加残液单价">+</button>
+                </div>
+                <div class="price-presets">
+                  <button class="preset-chip" type="button" data-target="residualPrice" data-value="0">0</button>
+                  <button class="preset-chip" type="button" data-target="residualPrice" data-value="5">5</button>
+                  <button class="preset-chip" type="button" data-target="residualPrice" data-value="8">8</button>
+                </div>
+              </div>
+              <div class="row">
+                <label>默认方式</label>
+                <select id="residualMode">
+                  <option value="deduct">抵扣气款</option>
+                  <option value="separate">单独收入</option>
+                  <option value="ignore">忽略</option>
+                </select>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card section" data-rule-section="debt">
+        <h2 class="app-card-title">欠瓶与欠款</h2>
+        <div class="grid">
+          <div class="group-block">
+            <h3 class="group-title">欠瓶管理</h3>
+            <div class="grid">
+              <div class="switch-row">
+                <label for="owedEnabled">启用欠瓶跟踪</label>
+                <label class="app-switch" for="owedEnabled">
+                  <input id="owedEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
+              <div>
+                <div class="unit" style="margin-bottom:6px">提醒天数</div>
+                <div class="tag-options" id="owedDaysWrap">
+                  <button type="button" class="tag-option" data-value="7" aria-pressed="false">7天</button>
+                  <button type="button" class="tag-option" data-value="15" aria-pressed="false">15天</button>
+                  <button type="button" class="tag-option" data-value="30" aria-pressed="false">30天</button>
+                </div>
+              </div>
+              <div class="row"><label>最长欠瓶</label><input id="owedMaxDays" type="number" min="7" /><span class="unit">天</span></div>
+              <div class="row">
+                <label>超期处理</label>
+                <select id="owedAction">
+                  <option value="convert">转为收入</option>
+                  <option value="continue">继续欠着</option>
+                </select>
+                <span></span>
+              </div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">欠款管理</h3>
+            <div class="grid">
+              <div class="switch-row">
+                <label for="debtEnabled">启用欠款管理</label>
+                <label class="app-switch" for="debtEnabled">
+                  <input id="debtEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
+              <div class="row"><label>最大额度</label><input id="debtMaxAmount" type="number" min="0" /><span class="unit">元/客户</span></div>
+              <div class="row"><label>最长欠款</label><input id="debtMaxDays" type="number" min="7" /><span class="unit">天</span></div>
+              <div>
+                <div class="unit" style="margin-bottom:6px">提醒天数</div>
+                <div class="tag-options" id="debtDaysWrap">
+                  <button type="button" class="tag-option" data-value="7" aria-pressed="false">7天</button>
+                  <button type="button" class="tag-option" data-value="15" aria-pressed="false">15天</button>
+                  <button type="button" class="tag-option" data-value="25" aria-pressed="false">25天</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card section" data-rule-section="inventory">
+        <h2 class="app-card-title">库存预警</h2>
+        <div class="grid">
+          <div class="group-block">
+            <h3 class="group-title">库存阈值</h3>
+            <div class="grid">
+              <div class="switch-row">
+                <label for="invEnabled">启用库存预警</label>
+                <label class="app-switch" for="invEnabled">
+                  <input id="invEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
+              <div class="row"><label>15kg重瓶</label><input id="warn15" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>15kg空瓶</label><input id="warnEmpty15" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>10kg重瓶</label><input id="warn10" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>10kg空瓶</label><input id="warnEmpty10" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>50kg重瓶</label><input id="warn50" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>50kg空瓶</label><input id="warnEmpty50" type="number" min="0" /><span class="unit">瓶</span></div>
+              <div class="row"><label>超期锁定</label><input id="lockDays" type="number" min="1" /><span class="unit">天</span></div>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3 class="group-title">推送提醒</h3>
+            <div class="grid">
+              <div class="switch-row">
+                <label for="noticeEnabled">开启推送</label>
+                <label class="app-switch" for="noticeEnabled">
+                  <input id="noticeEnabled" type="checkbox" />
+                  <span class="app-switch-track"><span class="app-switch-thumb"></span></span>
+                </label>
+              </div>
+              <div class="row"><label>开始时段</label><input id="noticeStart" type="time" /><span class="unit"></span></div>
+              <div class="row"><label>结束时段</label><input id="noticeEnd" type="time" /><span class="unit"></span></div>
+              <div>
+                <div class="unit" style="margin-bottom:6px">提醒类型</div>
+                <div class="tag-options" id="noticeTypeWrap">
+                  <button type="button" class="tag-option" id="noticeInventoryLow" aria-pressed="false">库存不足</button>
+                  <button type="button" class="tag-option" id="noticeOwedBottle" aria-pressed="false">欠瓶超期</button>
+                  <button type="button" class="tag-option" id="noticeDebt" aria-pressed="false">欠款超期</button>
+                  <button type="button" class="tag-option" id="noticeDailyClose" aria-pressed="false">日结提醒</button>
+                  <button type="button" class="tag-option" id="noticeSafety" aria-pressed="false">定期安检</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <div class="actions">
+          <button class="app-btn ghost" id="resetBtn">恢复默认</button>
+          <button class="app-btn primary" id="saveBtn">保存设置</button>
+        </div>
+        <div class="tip" id="tip"></div>
+      </section>
+      </div>
+    </main>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { goBackOr } from "./app-shell.js";
+      import { fetchBusinessRules, saveBusinessRules, resetBusinessRules } from "./business-rules-client.js";
+
+      if (!ensureAuthenticatedPage()) throw new Error("未登录");
+
+      const $ = (id) => document.getElementById(id);
+      const pageTitle = $("pageTitle");
+      const rulesEntryCard = $("rulesEntryCard");
+      const rulesDetailWrap = $("rulesDetailWrap");
+      const tip = $("tip");
+      const qs = new URLSearchParams(window.location.search);
+      const sectionParam = String(qs.get("section") || "").trim();
+      const sectionTitleMap = {
+        pricing: "开单与价格",
+        debt: "欠瓶与欠款",
+        inventory: "库存预警与推送",
+      };
+      let activeSection = "";
+
+      function setTip(text, isError = false) {
+        tip.textContent = text || "";
+        tip.className = `tip ${isError ? "err" : ""}`;
+      }
+
+      function setTagActive(node, active) {
+        if (!node) return;
+        node.classList.toggle("active", Boolean(active));
+        node.setAttribute("aria-pressed", active ? "true" : "false");
+      }
+
+      function isTagActive(id) {
+        return document.getElementById(id)?.classList.contains("active") || false;
+      }
+
+      function readCheckedDays(wrapId) {
+        return [...document.querySelectorAll(`#${wrapId} .tag-option.active`)].map((x) => Number(x.dataset.value));
+      }
+
+      function writeCheckedDays(wrapId, days = []) {
+        const set = new Set((days || []).map((x) => Number(x)));
+        [...document.querySelectorAll(`#${wrapId} .tag-option`)].forEach((x) => {
+          setTagActive(x, set.has(Number(x.dataset.value)));
+        });
+      }
+
+      function bindTagToggle(wrapId) {
+        const wrap = $(wrapId);
+        if (!wrap) return;
+        wrap.addEventListener("click", (event) => {
+          const btn = event.target.closest(".tag-option");
+          if (!btn || !wrap.contains(btn)) return;
+          setTagActive(btn, !btn.classList.contains("active"));
+        });
+      }
+
+      function syncPresetState(input) {
+        if (!input?.id) return;
+        const currentValue = String(input.value || "");
+        document.querySelectorAll(`.preset-chip[data-target="${input.id}"]`).forEach((chip) => {
+          setTagActive(chip, String(chip.dataset.value || "") === currentValue);
+        });
+      }
+
+      function normalizeStepperValue(input) {
+        if (!input) return 0;
+        const step = Number(input.dataset.step || input.step || 1) || 1;
+        const min = Number(input.min || 0);
+        const raw = Number(input.value || min);
+        const safeValue = Number.isFinite(raw) ? raw : min;
+        const normalized = Math.max(min, Math.round((safeValue - min) / step) * step + min);
+        input.value = String(normalized);
+        syncPresetState(input);
+        return normalized;
+      }
+
+      function adjustStepperValue(input, delta) {
+        if (!input) return;
+        const step = Number(input.dataset.step || input.step || 1) || 1;
+        const nextValue = Number(input.value || 0) + delta * step;
+        input.value = String(nextValue);
+        normalizeStepperValue(input);
+      }
+
+      function bindPriceControls() {
+        document.querySelectorAll(".stepper-input").forEach((input) => {
+          input.addEventListener("input", () => syncPresetState(input));
+          input.addEventListener("blur", () => normalizeStepperValue(input));
+          normalizeStepperValue(input);
+        });
+        document.querySelectorAll("[data-stepper-action]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const target = document.getElementById(String(button.dataset.target || ""));
+            const delta = button.dataset.stepperAction === "decrease" ? -1 : 1;
+            adjustStepperValue(target, delta);
+          });
+        });
+        document.querySelectorAll(".preset-chip").forEach((chip) => {
+          chip.addEventListener("click", () => {
+            const input = document.getElementById(String(chip.dataset.target || ""));
+            if (!input) return;
+            input.value = String(chip.dataset.value || 0);
+            normalizeStepperValue(input);
+          });
+        });
+      }
+
+      function applyData(data) {
+        if (!data) return;
+        $("orderPrice15").value = Number(data.orderPricing?.kg15 || 120);
+        $("orderPrice10").value = Number(data.orderPricing?.kg10 || 100);
+        $("orderPrice50").value = Number(data.orderPricing?.kg50 || 300);
+
+        $("deposit15").value = Number(data.deposit?.kg15 || 0);
+        $("deposit10").value = Number(data.deposit?.kg10 || 0);
+        $("deposit50").value = Number(data.deposit?.kg50 || 0);
+        $("rentMonthly").value = Number(data.rent?.monthly || 0);
+        $("rentYearly").value = Number(data.rent?.yearly || 0);
+
+        $("residualEnabled").checked = Boolean(data.residual?.enabled);
+        $("residualPrice").value = Number(data.residual?.price || 0);
+        $("residualMode").value = data.residual?.defaultMode || "deduct";
+
+        $("owedEnabled").checked = Boolean(data.owedBottle?.enabled);
+        writeCheckedDays("owedDaysWrap", data.owedBottle?.remindDays || [7, 15, 30]);
+        $("owedMaxDays").value = Number(data.owedBottle?.maxDays || 60);
+        $("owedAction").value = data.owedBottle?.overdueAction || "convert";
+
+        $("debtEnabled").checked = Boolean(data.debt?.enabled);
+        $("debtMaxAmount").value = Number(data.debt?.maxAmount || 1000);
+        $("debtMaxDays").value = Number(data.debt?.maxDays || 30);
+        writeCheckedDays("debtDaysWrap", data.debt?.remindDays || [7, 15, 25]);
+
+        $("invEnabled").checked = Boolean(data.inventoryWarning?.enabled);
+        $("warn15").value = Number(data.inventoryWarning?.heavy?.kg15 || 5);
+        $("warnEmpty15").value = Number(data.inventoryWarning?.empty?.kg15 || 3);
+        $("warn10").value = Number(data.inventoryWarning?.heavy?.kg10 || 3);
+        $("warnEmpty10").value = Number(data.inventoryWarning?.empty?.kg10 || 2);
+        $("warn50").value = Number(data.inventoryWarning?.heavy?.kg50 || 2);
+        $("warnEmpty50").value = Number(data.inventoryWarning?.empty?.kg50 || 1);
+        $("lockDays").value = Number(data.inventoryWarning?.lockDays || 3);
+
+        $("noticeEnabled").checked = Boolean(data.notification?.enabled ?? true);
+        $("noticeStart").value = String(data.notification?.startTime || "08:00");
+        $("noticeEnd").value = String(data.notification?.endTime || "20:00");
+        setTagActive($("noticeInventoryLow"), Boolean(data.notification?.types?.inventoryLow ?? true));
+        setTagActive($("noticeOwedBottle"), Boolean(data.notification?.types?.owedBottleOverdue ?? true));
+        setTagActive($("noticeDebt"), Boolean(data.notification?.types?.debtOverdue ?? true));
+        setTagActive($("noticeDailyClose"), Boolean(data.notification?.types?.dailyClose ?? true));
+        setTagActive($("noticeSafety"), Boolean(data.notification?.types?.safetyDue ?? false));
+        document.querySelectorAll(".stepper-input").forEach(normalizeStepperValue);
+      }
+
+      function buildPayload() {
+        return {
+          orderPricing: {
+            kg15: Number($("orderPrice15").value || 0),
+            kg10: Number($("orderPrice10").value || 0),
+            kg50: Number($("orderPrice50").value || 0),
+          },
+          deposit: {
+            kg15: Number($("deposit15").value || 0),
+            kg10: Number($("deposit10").value || 0),
+            kg50: Number($("deposit50").value || 0),
+          },
+          rent: {
+            monthly: Number($("rentMonthly").value || 0),
+            yearly: Number($("rentYearly").value || 0),
+          },
+          residual: {
+            enabled: $("residualEnabled").checked,
+            price: Number($("residualPrice").value || 0),
+            defaultMode: $("residualMode").value,
+          },
+          owedBottle: {
+            enabled: $("owedEnabled").checked,
+            remindDays: readCheckedDays("owedDaysWrap"),
+            maxDays: Number($("owedMaxDays").value || 60),
+            overdueAction: $("owedAction").value,
+          },
+          debt: {
+            enabled: $("debtEnabled").checked,
+            maxAmount: Number($("debtMaxAmount").value || 1000),
+            maxDays: Number($("debtMaxDays").value || 30),
+            remindDays: readCheckedDays("debtDaysWrap"),
+          },
+          inventoryWarning: {
+            enabled: $("invEnabled").checked,
+            heavy: {
+              kg15: Number($("warn15").value || 0),
+              kg10: Number($("warn10").value || 0),
+              kg50: Number($("warn50").value || 0),
+            },
+            empty: {
+              kg15: Number($("warnEmpty15").value || 0),
+              kg10: Number($("warnEmpty10").value || 0),
+              kg50: Number($("warnEmpty50").value || 0),
+            },
+            lockDays: Number($("lockDays").value || 3),
+          },
+          notification: {
+            enabled: $("noticeEnabled").checked,
+            startTime: String($("noticeStart").value || "08:00"),
+            endTime: String($("noticeEnd").value || "20:00"),
+            types: {
+              inventoryLow: isTagActive("noticeInventoryLow"),
+              owedBottleOverdue: isTagActive("noticeOwedBottle"),
+              debtOverdue: isTagActive("noticeDebt"),
+              dailyClose: isTagActive("noticeDailyClose"),
+              safetyDue: isTagActive("noticeSafety"),
+            },
+          },
+        };
+      }
+
+      async function load() {
+        setTip("加载配置中...");
+        const res = await fetchBusinessRules();
+        if (!res.success) return setTip(res.error || "读取配置失败", true);
+        applyData(res.data);
+        setTip("");
+      }
+
+      function setSectionMode(section) {
+        const normalized = Object.prototype.hasOwnProperty.call(sectionTitleMap, section) ? section : "";
+        activeSection = normalized;
+        const isEntry = !normalized;
+        rulesEntryCard.hidden = !isEntry;
+        rulesDetailWrap.hidden = isEntry;
+        pageTitle.textContent = isEntry ? "业务规则" : sectionTitleMap[normalized];
+        document.querySelectorAll("[data-rule-section]").forEach((node) => {
+          node.hidden = normalized ? node.getAttribute("data-rule-section") !== normalized : true;
+        });
+      }
+
+      $("backBtn").addEventListener("click", () => {
+        if (activeSection) {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = "./business-rules.html";
+          }
+          return;
+        }
+        window.location.href = "./my.html";
+      });
+      document.querySelectorAll("[data-section]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const section = String(btn.getAttribute("data-section") || "").trim();
+          if (!section) return;
+          window.location.href = `./business-rules.html?section=${encodeURIComponent(section)}`;
+        });
+      });
+      bindTagToggle("owedDaysWrap");
+      bindTagToggle("debtDaysWrap");
+      bindPriceControls();
+      bindTagToggle("noticeTypeWrap");
+      $("saveBtn").addEventListener("click", async () => {
+        setTip("保存中...");
+        const res = await saveBusinessRules(buildPayload());
+        if (!res.success) return setTip(res.error || "保存失败", true);
+        applyData(res.data);
+        setTip("业务规则已保存");
+      });
+      $("resetBtn").addEventListener("click", async () => {
+        setTip("恢复默认中...");
+        const res = await resetBusinessRules();
+        if (!res.success) return setTip(res.error || "恢复默认失败", true);
+        applyData(res.data);
+        setTip("已恢复默认");
+      });
+
+      setSectionMode(sectionParam);
+      void load();
+    </script>
+  </body>
+</html>

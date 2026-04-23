@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>客户详情</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page {
+        min-height: 100vh;
+        padding: 16px 14px calc(96px + env(safe-area-inset-bottom, 0px));
+      }
+      .customer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .customer-name {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .tag-row {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .tag-chip {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+      .field-row {
+        margin-top: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .field-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .field-value {
+        color: var(--text-primary);
+        font-size: 14px;
+      }
+      .field-label {
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .summary-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 12px;
+      }
+      .summary-label {
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+      .summary-value {
+        margin-top: 6px;
+        font-size: 24px;
+        font-family: var(--font-title);
+        font-weight: 700;
+      }
+      .summary-desc {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .summary-value.warning {
+        color: var(--error);
+      }
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .action-btn {
+        height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--text-primary);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .action-btn.primary {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+      }
+      .order-list {
+        display: grid;
+        gap: 8px;
+      }
+      .order-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+      }
+      .order-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .order-time {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .order-status {
+        font-size: 12px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+      .order-main {
+        font-size: 14px;
+      }
+      .order-empty {
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+      .mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 60;
+        display: none;
+      }
+      .mask.show {
+        display: block;
+      }
+      .sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 61;
+        background: #fff;
+        border-radius: 16px 16px 0 0;
+        padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+        transform: translateY(100%);
+        transition: transform 0.2s ease;
+      }
+      .sheet.show {
+        transform: translateY(0);
+      }
+      .sheet-title {
+        margin: 0 0 10px;
+        font-size: 17px;
+        font-family: var(--font-title);
+      }
+      .sheet-script {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 10px;
+      }
+      .sheet-actions {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .sheet-close {
+        width: 100%;
+        margin-top: 8px;
+        height: 40px;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page">
+      <header class="app-header">
+        <button class="back-icon-btn" id="backBtn" aria-label="返回上一页"></button>
+        <h1 class="app-title">客户详情</h1>
+        <button class="app-btn" id="editBtn">编辑</button>
+      </header>
+
+      <section class="app-card">
+        <div class="customer-head">
+          <h2 class="customer-name" id="customerName">加载中...</h2>
+          <button class="app-btn" id="callBtn">拨打电话</button>
+        </div>
+        <div class="tag-row" id="tagRow"></div>
+        <div class="field-row">
+          <div class="field-item">
+            <span class="field-label">电话</span>
+            <span class="field-value" id="customerPhone">-</span>
+          </div>
+          <div class="field-item" style="align-items: flex-start;">
+            <span class="field-label">地址</span>
+            <span class="field-value" id="customerAddress" style="text-align: right;">-</span>
+          </div>
+          <div class="field-item" id="noteRow" style="display: none; align-items: flex-start;">
+            <span class="field-label">备注</span>
+            <span class="field-value" id="customerNote" style="text-align: right;">-</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">台账汇总</h2>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">欠瓶</div>
+            <div class="summary-value" id="owedBottle">0</div>
+            <div class="summary-desc" id="owedBottleSpec">-</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">欠款</div>
+            <div class="summary-value warning" id="owedAmount">¥0.00</div>
+            <div class="summary-desc" id="owedSince">暂无欠款</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">历史统计</h2>
+        <div class="field-row">
+          <div class="field-item">
+            <span class="field-label">累计订单</span>
+            <span class="field-value" id="totalOrders">0 单</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">累计消费</span>
+            <span class="field-value" id="totalAmount">¥0.00</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">最近下单</span>
+            <span class="field-value" id="lastOrderAt">暂无记录</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">快捷操作</h2>
+        <div class="action-grid">
+          <button class="action-btn primary" id="quickOrderBtn">一键开单</button>
+          <button class="action-btn" id="reminderBtn">催款话术</button>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="app-card-title">历史订单</h2>
+        <div class="order-list" id="recentOrderList">
+          <div class="order-empty">加载中...</div>
+        </div>
+      </section>
+      <div class="state-block info" id="tip" hidden></div>
+    </main>
+
+    <div class="mask" id="reminderMask"></div>
+    <section class="sheet" id="reminderSheet">
+      <h3 class="sheet-title">催款话术</h3>
+      <div class="sheet-script" id="reminderText"></div>
+      <div class="sheet-actions">
+        <button class="action-btn" id="copyReminderBtn">复制话术</button>
+        <button class="action-btn" id="callReminderBtn">拨打电话</button>
+        <button class="action-btn" id="smsReminderBtn">发送短信</button>
+      </div>
+      <button class="sheet-close" id="closeReminderBtn">关闭</button>
+    </section>
+
+    <script type="module">
+      import { ensureAuthenticatedPage } from "./auth-client.js";
+      import { getCustomerDetail, listCustomerOrders, updateCustomer } from "./customer-client.js";
+
+      if (!ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const qs = new URLSearchParams(window.location.search);
+      const customerId = String(qs.get("id") || "").trim();
+
+      const tip = document.getElementById("tip");
+      const nameEl = document.getElementById("customerName");
+      const phoneEl = document.getElementById("customerPhone");
+      const addressEl = document.getElementById("customerAddress");
+      const noteRow = document.getElementById("noteRow");
+      const noteEl = document.getElementById("customerNote");
+      const tagRow = document.getElementById("tagRow");
+      const owedBottleEl = document.getElementById("owedBottle");
+      const owedBottleSpecEl = document.getElementById("owedBottleSpec");
+      const owedAmountEl = document.getElementById("owedAmount");
+      const owedSinceEl = document.getElementById("owedSince");
+      const totalOrdersEl = document.getElementById("totalOrders");
+      const totalAmountEl = document.getElementById("totalAmount");
+      const lastOrderAtEl = document.getElementById("lastOrderAt");
+      const recentOrderList = document.getElementById("recentOrderList");
+
+      const reminderMask = document.getElementById("reminderMask");
+      const reminderSheet = document.getElementById("reminderSheet");
+      const reminderText = document.getElementById("reminderText");
+      const editBtn = document.getElementById("editBtn");
+
+      let currentCustomer = null;
+      let currentOrders = [];
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = String(text || "");
+        return div.innerHTML;
+      }
+
+      function maskPhone(phone) {
+        const text = String(phone || "");
+        if (!/^1\d{10}$/.test(text)) return text;
+        return text.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+      }
+
+      function formatDateTime(ts) {
+        const value = Number(ts || 0);
+        if (!value) return "暂无记录";
+        const date = new Date(value);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        const hh = String(date.getHours()).padStart(2, "0");
+        const mm = String(date.getMinutes()).padStart(2, "0");
+        return `${y}-${m}-${d} ${hh}:${mm}`;
+      }
+
+      function formatRelative(ts) {
+        const value = Number(ts || 0);
+        if (!value) return "暂无记录";
+        const diff = Date.now() - value;
+        if (diff < 60 * 1000) return "刚刚";
+        if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))} 分钟前`;
+        if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))} 小时前`;
+        return `${Math.floor(diff / (24 * 60 * 60 * 1000))} 天前`;
+      }
+
+      function statusText(status) {
+        const map = {
+          completed: "已完成",
+          pending_delivery: "待配送",
+          cancelled: "已取消",
+          returned: "已退货",
+        };
+        return map[String(status || "")] || "处理中";
+      }
+
+      function setTip(message, type = "info") {
+        const text = String(message || "").trim();
+        if (!text) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = text;
+        tip.className = `state-block ${type}`;
+      }
+
+      function buildReminderScript() {
+        const name = currentCustomer?.name || "客户";
+        const amount = Number(currentCustomer?.ledger?.owedAmount || 0);
+        if (amount > 0) {
+          return `您好，${name}。您当前仍有 ¥${amount.toFixed(2)} 气款未结，方便时请安排结清，感谢配合。`;
+        }
+        return `您好，${name}。本次主要做服务回访，如有补气需求可随时联系。`;
+      }
+
+      function openReminderSheet() {
+        reminderText.textContent = buildReminderScript();
+        reminderMask.classList.add("show");
+        reminderSheet.classList.add("show");
+      }
+
+      function closeReminderSheet() {
+        reminderMask.classList.remove("show");
+        reminderSheet.classList.remove("show");
+      }
+
+      function renderCustomer() {
+        const customer = currentCustomer;
+        nameEl.textContent = customer.name || "未命名客户";
+        phoneEl.textContent = maskPhone(customer.phone || "-");
+        addressEl.textContent = customer.address || "-";
+
+        tagRow.innerHTML = "";
+        const tags = Array.isArray(customer.tags) ? customer.tags : [];
+        if (!tags.length) {
+          tagRow.innerHTML = '<span class="tag-chip">普通客户</span>';
+        } else {
+          tagRow.innerHTML = tags.map((x) => `<span class="tag-chip">${escapeHtml(x)}</span>`).join("");
+        }
+
+        const note = String(customer.note || "").trim();
+        if (note) {
+          noteRow.style.display = "flex";
+          noteEl.textContent = note;
+        } else {
+          noteRow.style.display = "none";
+          noteEl.textContent = "";
+        }
+
+        const owedBottle = Number(customer.ledger?.owedEmptyCount || 0);
+        const owedAmount = Number(customer.ledger?.owedAmount || 0);
+        owedBottleEl.textContent = String(owedBottle);
+        owedBottleSpecEl.textContent = customer.ledger?.owedEmptySpec
+          ? `${customer.ledger.owedEmptySpec} 未回收`
+          : "无规格欠瓶";
+        owedAmountEl.textContent = `¥${owedAmount.toFixed(2)}`;
+        owedSinceEl.textContent = customer.ledger?.owedSince
+          ? `欠款起始：${formatDateTime(customer.ledger.owedSince)}`
+          : "暂无欠款";
+
+        totalOrdersEl.textContent = `${Number(customer.stats?.totalOrders || 0)} 单`;
+        totalAmountEl.textContent = `¥${Number(customer.stats?.totalAmount || 0).toFixed(2)}`;
+        lastOrderAtEl.textContent = formatRelative(customer.stats?.lastOrderAt);
+      }
+
+      function renderRecentOrders() {
+        if (!currentOrders.length) {
+          recentOrderList.innerHTML = '<div class="order-empty">暂无历史订单</div>';
+          return;
+        }
+        recentOrderList.innerHTML = currentOrders
+          .map((order) => {
+            const specQty = order.spec ? `${order.spec} × ${order.quantity}` : `${order.quantity} 瓶`;
+            return `
+              <div class="order-item">
+                <div class="order-top">
+                  <span class="order-time">${escapeHtml(formatDateTime(order.createdAt))}</span>
+                  <span class="order-status">${escapeHtml(statusText(order.status))}</span>
+                </div>
+                <div class="order-main">${escapeHtml(specQty)} · ¥${Number(order.amount || 0).toFixed(2)}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function copyReminder() {
+        const text = reminderText.textContent || "";
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          setTip("催款话术已复制", "success");
+          return;
+        } catch (_err) {
+          const area = document.createElement("textarea");
+          area.value = text;
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand("copy");
+          document.body.removeChild(area);
+          setTip("催款话术已复制", "success");
+        }
+      }
+
+      function bindEvents() {
+        document.getElementById("backBtn").addEventListener("click", () => {
+          window.location.href = "./customer-list.html";
+        });
+        document.getElementById("callBtn").addEventListener("click", () => {
+          if (!currentCustomer?.phone) return;
+          window.location.href = `tel:${currentCustomer.phone}`;
+        });
+        document.getElementById("quickOrderBtn").addEventListener("click", () => {
+          if (!currentCustomer) return;
+          window.location.href = `./quick-order.html?from=customer-detail&customerId=${encodeURIComponent(currentCustomer.id)}`;
+        });
+        document.getElementById("reminderBtn").addEventListener("click", openReminderSheet);
+        document.getElementById("closeReminderBtn").addEventListener("click", closeReminderSheet);
+        reminderMask.addEventListener("click", closeReminderSheet);
+        document.getElementById("copyReminderBtn").addEventListener("click", copyReminder);
+        document.getElementById("callReminderBtn").addEventListener("click", () => {
+          if (!currentCustomer?.phone) return;
+          window.location.href = `tel:${currentCustomer.phone}`;
+        });
+        document.getElementById("smsReminderBtn").addEventListener("click", () => {
+          if (!currentCustomer?.phone) return;
+          const body = encodeURIComponent(reminderText.textContent || "");
+          window.location.href = `sms:${currentCustomer.phone}?body=${body}`;
+        });
+        editBtn.addEventListener("click", async () => {
+          if (!currentCustomer) return;
+          const name = window.prompt("客户姓名", currentCustomer.name || "");
+          if (name == null) return;
+          const phone = window.prompt("手机号", currentCustomer.phone || "");
+          if (phone == null) return;
+          const address = window.prompt("地址", currentCustomer.address || "");
+          if (address == null) return;
+          const tagsText = window.prompt(
+            "标签（逗号分隔）",
+            Array.isArray(currentCustomer.tags) ? currentCustomer.tags.join(",") : ""
+          );
+          if (tagsText == null) return;
+          const note = window.prompt("备注", currentCustomer.note || "");
+          if (note == null) return;
+          editBtn.disabled = true;
+          setTip("正在保存客户信息...", "loading");
+          const payload = {
+            name: String(name || "").trim(),
+            phone: String(phone || "").trim(),
+            address: String(address || "").trim(),
+            tags: String(tagsText || "")
+              .split(",")
+              .map((x) => String(x || "").trim())
+              .filter(Boolean),
+            note: String(note || "").trim(),
+          };
+          const result = await updateCustomer(currentCustomer.id, payload);
+          editBtn.disabled = false;
+          if (!result?.success || !result.data) {
+            setTip(result?.error || "客户保存失败", "error");
+            return;
+          }
+          currentCustomer = {
+            ...currentCustomer,
+            ...result.data,
+          };
+          renderCustomer();
+          setTip("客户信息已更新", "success");
+        });
+
+      }
+
+      async function init() {
+        try {
+          bindEvents();
+          if (!customerId) {
+            setTip("缺少客户ID，无法加载详情", "error");
+            return;
+          }
+          const [detailRes, ordersRes] = await Promise.all([
+            getCustomerDetail(customerId),
+            listCustomerOrders(customerId, { page: 1, size: 100 }),
+          ]);
+
+          if (!detailRes?.success || !detailRes?.data) {
+            setTip(detailRes?.error || "客户详情加载失败", "error");
+            recentOrderList.innerHTML = '<div class="order-empty">暂无可展示订单</div>';
+            return;
+          }
+
+          currentCustomer = detailRes.data;
+          const orderItems =
+            ordersRes?.success && Array.isArray(ordersRes?.data?.items)
+              ? ordersRes.data.items
+              : ordersRes?.success && Array.isArray(ordersRes?.data?.list)
+                ? ordersRes.data.list
+                : [];
+          currentOrders = orderItems;
+          renderCustomer();
+          renderRecentOrders();
+          if (!ordersRes?.success) {
+            setTip("历史订单暂不可用", "info");
+          } else {
+            setTip("");
+          }
+        } catch (err) {
+          setTip(`客户详情加载失败：${err?.message || "请稍后重试"}`, "error");
+          recentOrderList.innerHTML = '<div class="order-empty">暂无可展示订单</div>';
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

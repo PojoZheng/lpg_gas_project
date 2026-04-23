@@ -8,18 +8,18 @@
 - [x] 界面文案必须为中文且严禁 emoji：新增与调整的 UI 文案均为中文，未使用 emoji。
 
 ## 2. 关键改动
-- 后端：`.trellis/backend/src/server.js`
+- 后端：`services/backend/src/server.js`
   - 新增 `GET /orders/pending-delivery`
   - 新增 `POST /orders/:id/complete`
   - 新增 `POST /orders/:id/cancel`
   - 新增 `PATCH /orders/:id/basic-update`
   - 新增 `POST /orders/:id/undo`
   - 扩展工作台概览为动态收款与待配送读取
-- 前端：`.trellis/delivery-app/src/delivery-complete.html`
+- 前端：`apps/delivery-app/src/delivery-complete.html`
   - 新增待配送到完单页面，包含完单、取消、修改与撤销交互
-- 前端：`.trellis/delivery-app/src/delivery-complete-client.js`
+- 前端：`apps/delivery-app/src/delivery-complete-client.js`
   - 新增完单流程 API 调用封装
-- 前端：`.trellis/delivery-app/src/workbench.html`
+- 前端：`apps/delivery-app/src/workbench.html`
   - 新增「待配送完单」快捷入口
 
 ## 3. 测试与风险

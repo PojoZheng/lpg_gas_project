@@ -1,0 +1,21 @@
+{
+  "id": "57-prd-v1-baseline",
+  "title": "产品基线：建立 LPG 配送员端主 PRD（V1）并作为后续任务上位输入",
+  "status": "completed",
+  "depends_on": [],
+  "input_spec": [
+    "requirements/00_全局/产品概述.md",
+    "requirements/00_全局/核心认知.md",
+    "requirements/00_全局/业务流程.md",
+    "requirements/00_全局/入口对齐说明.md"
+  ],
+  "acceptance": [
+    "形成单一主 PRD，覆盖产品定位、闭环、版本边界与指标体系",
+    "明确后续任务需引用该 PRD 作为上位输入",
+    "记录 PRD 基线决策，作为需求冲突时的优先依据"
+  ],
+  "output_artifacts": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-prd-v1-baseline.md"
+  ]
+}

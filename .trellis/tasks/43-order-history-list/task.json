@@ -23,8 +23,8 @@
     "界面中文、无 emoji，符合品牌色 #4799a0"
   ],
   "output_artifacts": [
-    "delivery-app/src/order-list.html",
-    "delivery-app/src/order-list-client.js",
-    "backend/src/routes/orders.js（扩展 GET /orders 与 GET /:id）"
+    "apps/delivery-app/src/order-list.html",
+    "apps/delivery-app/src/order-list-client.js",
+    "services/backend/src/routes/orders.js（扩展 GET /orders 与 GET /:id）"
   ]
 }

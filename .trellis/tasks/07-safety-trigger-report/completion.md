@@ -8,7 +8,7 @@
 - [x] 界面文案必须为中文且严禁 emoji：新增页面提示、状态、按钮文案均为中文，无 emoji。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 新增安检记录内存模型与状态机
   - 完单后自动触发安检记录
   - 新增接口：
@@ -16,9 +16,9 @@
     - `POST /safety/by-order/:orderId`
     - `POST /safety/:safetyId/retry`
   - 上报失败重试留痕：记录 `reportAttempts/reportLogs/lastError`
-- 前端：`/.trellis/delivery-app/src/delivery-complete-client.js`
+- 前端：`/apps/delivery-app/src/delivery-complete-client.js`
   - 新增安检查询、提交、失败重试 API 封装
-- 前端：`/.trellis/delivery-app/src/delivery-complete.html`
+- 前端：`/apps/delivery-app/src/delivery-complete.html`
   - 新增“完单安检与上报”卡片
   - 完单后自动加载安检状态
   - 支持安检检查项、照片编号、异常说明填写

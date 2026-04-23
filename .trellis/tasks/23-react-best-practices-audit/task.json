@@ -9,9 +9,9 @@
   "input_spec": [
     ".trellis/spec/delivery-app/ui-manifest.md",
     ".trellis/spec/delivery-app/ui-copy-policy.md",
-    ".trellis/delivery-app/src/workbench.html",
-    ".trellis/delivery-app/src/quick-order.html",
-    ".trellis/delivery-app/src/delivery-complete.html"
+    "apps/delivery-app/src/workbench.html",
+    "apps/delivery-app/src/quick-order.html",
+    "apps/delivery-app/src/delivery-complete.html"
   ],
   "acceptance": [
     "按 vercel-react-best-practices 输出现状审查清单（性能、状态管理、可维护性、可访问性）",

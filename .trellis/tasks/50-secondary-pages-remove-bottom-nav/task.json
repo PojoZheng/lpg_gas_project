@@ -1,0 +1,26 @@
+{
+  "id": "50-secondary-pages-remove-bottom-nav",
+  "title": "配送员端 IA：二级与三级页面移除底部导航",
+  "status": "completed",
+  "depends_on": [
+    "49-bottom-nav-borderless"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-secondary-pages-no-bottom-nav.md",
+    "product/decisions/2026-04-14-home-my-boundary.md",
+    ".trellis/spec/delivery-app/ui-manifest.md"
+  ],
+  "acceptance": [
+    "底部导航仅保留在首页、客户列表、我的三个一级主入口页面",
+    "二级与三级页面移除 appBottomNav 容器与 mountAppBottomNav 调用",
+    "流程页固定操作区不再叠加底部导航",
+    "本次改动不扩展到页面流程重设计，仅收口导航层级"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/quick-order.html",
+    "apps/delivery-app/src/order-list.html",
+    "apps/delivery-app/src/customer-detail.html",
+    "apps/delivery-app/src/inventory.html",
+    "apps/delivery-app/src/delivery-complete.html"
+  ]
+}

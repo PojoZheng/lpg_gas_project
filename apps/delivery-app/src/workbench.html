@@ -1,0 +1,1532 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工作台</title>
+    <link rel="stylesheet" href="./delivery-shell.css" />
+    <style>
+      .page { padding: 18px 14px calc(228px + env(safe-area-inset-bottom, 0px)); }
+      .next-delivery-section { margin-bottom: 12px; }
+      .next-delivery-card {
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .next-delivery-card:hover,
+      .next-delivery-card:focus-visible {
+        border-color: #cfe1e5;
+        box-shadow: 0 8px 20px rgba(53, 96, 101, 0.08);
+        transform: translateY(-1px);
+      }
+      .next-delivery-card:focus-visible {
+        outline: 2px solid #9ec8cc;
+        outline-offset: 2px;
+      }
+      .section-kicker {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: #1f6f76;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      a.view-all-pending-link {
+        width: 100%;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 14px;
+        white-space: nowrap;
+      }
+      .line {
+        margin: 10px 0 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .line strong { color: var(--text-primary); }
+      .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .next-customer-block { margin-bottom: 4px; }
+      .next-name-tags {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+        row-gap: 6px;
+      }
+      .next-name {
+        font-size: 20px;
+        font-weight: 700;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+        line-height: 1.18;
+        letter-spacing: -0.2px;
+      }
+      .next-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 22px; }
+      .next-tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        background: #fff;
+        white-space: nowrap;
+      }
+      .next-address-line {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+      }
+      .next-metrics {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .next-metric {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+      .next-metric:last-child {
+        text-align: right;
+      }
+      .next-metric-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .next-metric-value {
+        font-size: 17px;
+        line-height: 1.2;
+        font-weight: 600;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+      }
+      .next-amount-brand {
+        color: var(--brand);
+        font-weight: 700;
+        letter-spacing: -0.2px;
+      }
+      .income-card { position: relative; }
+      .income-toggle-btn {
+        min-height: 48px;
+        font-size: 14px;
+      }
+      .hero-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .income-expand-panel {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .income-expand-panel[hidden] {
+        display: none !important;
+      }
+      .income-placeholder-block {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        padding: 12px;
+        margin-bottom: 10px;
+        background: #f8fbfc;
+      }
+      .income-placeholder-title {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+      }
+      .income-placeholder-value {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+        font-family: var(--font-title);
+        color: var(--text-primary);
+        letter-spacing: 0.2px;
+      }
+      .income-trend-chart {
+        position: relative;
+        margin-top: 8px;
+        min-height: 140px;
+        border-radius: var(--radius-input);
+        border: 1px solid #d6e8ea;
+        background: #fff;
+        overflow: hidden;
+      }
+      .income-trend-svg {
+        width: 100%;
+        height: 118px;
+        display: block;
+      }
+      .income-trend-labels {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 2px;
+        padding: 0 6px 8px;
+      }
+      .income-trend-label {
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+      .tip-block { margin-top: 12px; }
+      .workbench-action-zone {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .workbench-action-floating {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+        z-index: 35;
+        pointer-events: none;
+      }
+      .workbench-action-floating-inner {
+        max-width: 460px;
+        margin: 0 auto;
+        padding: 0 14px;
+      }
+      .workbench-action-floating .workbench-action-zone {
+        pointer-events: auto;
+      }
+      .action-hero {
+        width: 100%;
+        min-height: 96px;
+        border: 1px solid var(--brand);
+        border-radius: var(--radius-page-card);
+        background: var(--brand);
+        color: #fff;
+        padding: 18px;
+        text-align: left;
+        box-shadow: var(--shadow-soft);
+        font: inherit;
+        cursor: pointer;
+      }
+      .action-hero-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .action-hero-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .action-hero .icon-svg {
+        stroke: #fff;
+      }
+      .voice-entry .icon-svg {
+        stroke: currentColor;
+      }
+      .action-hero-title {
+        font-size: 24px;
+        line-height: 1.05;
+        font-weight: 700;
+        font-family: var(--font-title);
+        letter-spacing: -0.3px;
+      }
+      .voice-entry {
+        width: 100%;
+        min-height: 96px;
+        border: 1px solid #d6e8ea;
+        border-radius: var(--radius-page-card);
+        background: #fff;
+        color: var(--text-primary);
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        box-shadow: var(--shadow-soft);
+        font: inherit;
+        cursor: pointer;
+      }
+      .voice-entry-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .voice-entry-text {
+        font-size: 24px;
+        line-height: 1.05;
+        font-weight: 700;
+        font-family: var(--font-title);
+        letter-spacing: -0.2px;
+      }
+      @media (max-width: 360px) {
+        .workbench-action-zone {
+          grid-template-columns: 1fr;
+        }
+      }
+      /* 快速开单底部 Sheet（对齐 requirements/01 规格 §1.2） */
+      .action-hero.qo-launch-anim {
+        transform: scale(0.96);
+        transition: transform 150ms ease-out;
+      }
+      .qo-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 75;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .qo-overlay.show {
+        display: flex;
+        pointer-events: auto;
+      }
+      .qo-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(17, 17, 17, 0.35);
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+      }
+      .qo-sheet-wrap {
+        position: relative;
+        width: 100%;
+        max-width: 460px;
+        transform: translateY(100%);
+        transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .qo-overlay.show.qo-sheet-open .qo-sheet-wrap {
+        transform: translateY(0);
+      }
+      .qo-sheet {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card) var(--radius-card) 0 0;
+        padding: var(--space-3);
+        max-height: min(88vh, 640px);
+        overflow: auto;
+        box-shadow: 0 -8px 28px rgba(17, 24, 39, 0.12);
+      }
+      .qo-handle {
+        width: 40px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--border);
+        margin: 0 auto 10px;
+      }
+      .qo-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .qo-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-title);
+      }
+      .qo-close {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: var(--radius-button);
+        min-height: 40px;
+        padding: 0 12px;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+      .qo-search {
+        width: 100%;
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        padding: 0 10px;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .qo-list-btn {
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-button);
+        background: #fff;
+        cursor: pointer;
+      }
+      .qo-list-btn.active {
+        border-color: var(--brand);
+        background: #f0f9fa;
+      }
+      .qo-line2 {
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      .qo-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .qo-row[hidden] {
+        display: none !important;
+      }
+      .qo-row label {
+        width: 72px;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+      .qo-field-label {
+        width: 72px;
+        font-size: 14px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+      }
+      .qo-row input,
+      .qo-row select {
+        flex: 1;
+        min-width: 0;
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-input);
+        padding: 0 10px;
+        font-size: 14px;
+      }
+      .qo-type-switch {
+        position: relative;
+        width: 100%;
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-button);
+        background: #f3f6f8;
+        padding: 3px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+      }
+      .qo-type-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        height: calc(100% - 6px);
+        border-radius: calc(var(--radius-button) - 3px);
+        background: #fff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        transition: transform 180ms ease;
+      }
+      .qo-type-switch[data-active-type="immediate_complete"] .qo-type-thumb {
+        transform: translateX(100%);
+      }
+      .qo-type-option {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+      }
+      .qo-type-option.active {
+        color: var(--brand);
+        font-weight: 700;
+      }
+      .qo-step-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-button);
+        background: #fff;
+        cursor: pointer;
+      }
+      .qo-qty-control {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+      .qo-qty {
+        min-width: 52px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+      .qo-empty {
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .qo-suggest-wrap {
+        margin-bottom: 8px;
+      }
+      .qo-selected {
+        margin-bottom: 8px;
+      }
+      .qo-tip {
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      .qo-switch-row {
+        margin-bottom: 10px;
+        justify-content: space-between;
+      }
+      .qo-switch {
+        width: auto;
+        min-height: auto;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0;
+        cursor: pointer;
+      }
+      .qo-switch input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        pointer-events: none;
+      }
+      .qo-switch-track {
+        width: 44px;
+        height: 26px;
+        border-radius: 999px;
+        background: #d1d5db;
+        position: relative;
+        transition: background 160ms ease;
+      }
+      .qo-switch-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+        transition: transform 160ms ease;
+      }
+      .qo-switch input:checked + .qo-switch-track {
+        background: var(--brand);
+      }
+      .qo-switch input:checked + .qo-switch-track .qo-switch-thumb {
+        transform: translateX(18px);
+      }
+      .qo-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .qo-actions .app-btn {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-page page" id="page">
+      <section class="app-card hero-card income-card" aria-labelledby="incomeHeroTitle">
+        <h2 class="hero-title" id="incomeHeroTitle">今日收入</h2>
+        <div class="hero-main" id="totalToday">￥0.00</div>
+        <div class="hero-split">
+          <div class="hero-item">
+            <div class="hero-label">已收</div>
+            <div class="hero-value" id="receivedToday">￥0.00</div>
+          </div>
+          <div class="hero-item">
+            <div class="hero-label">待收</div>
+            <div class="hero-value" id="pendingToday">￥0.00</div>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button type="button" class="app-btn" id="incomeDetailBtn">查看收入明细</button>
+        </div>
+        <div
+          id="incomeExpandPanel"
+          class="income-expand-panel"
+          role="region"
+          aria-label="今日毛利与近 7 日趋势"
+        >
+          <div class="income-placeholder-block">
+            <p class="income-placeholder-title">今日毛利</p>
+            <p class="income-placeholder-value" id="grossProfitToday">￥0.00</p>
+          </div>
+          <div class="income-placeholder-block" aria-label="近 7 日毛利趋势">
+            <p class="income-placeholder-title">近 7 日趋势</p>
+            <div class="income-trend-chart" id="grossTrendChart"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="next-delivery-section" id="nextDeliverySection" aria-label="待配送概览">
+        <div class="app-card next-delivery-card" id="nextDeliveryCard" role="link" tabindex="0" aria-label="查看待配送订单详情">
+          <div class="next-customer-block">
+            <div class="next-name-tags">
+              <span class="section-kicker">待配送</span>
+              <span class="next-name" id="nextCustomer">--</span>
+              <span id="nextTags" class="next-tags" aria-label="客户标签"></span>
+            </div>
+          </div>
+          <p class="line">地址：<strong id="nextAddress" class="next-address-line">--</strong></p>
+          <div class="next-metrics">
+            <div class="next-metric">
+              <span class="next-metric-label">规格</span>
+              <strong id="nextSpecQty" class="next-metric-value">--</strong>
+            </div>
+            <div class="next-metric">
+              <span class="next-metric-label">应收</span>
+              <strong id="nextAmount" class="next-metric-value next-amount-brand">--</strong>
+            </div>
+          </div>
+        </div>
+        <a
+          class="app-btn ghost view-all-pending-link"
+          id="viewAllPendingLink"
+          href="./pending-delivery-list.html?from=workbench&amp;view=pending"
+          >查看待配送</a>
+      </section>
+
+      <div class="state-block info tip-block" id="tip" hidden></div>
+    </main>
+
+    <div class="workbench-action-floating" aria-label="开单操作区">
+      <div class="workbench-action-floating-inner">
+        <section class="workbench-action-zone">
+          <button class="action-hero" id="quickOrderBtn">
+            <span class="action-hero-main">
+              <span class="action-hero-title">快速开单</span>
+              <span class="action-hero-icon" aria-hidden="true">
+                <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-quick-order"></use></svg>
+              </span>
+            </span>
+          </button>
+          <button type="button" class="voice-entry" id="voiceOrderBtn">
+            <span class="action-hero-main">
+              <span class="voice-entry-text">语音开单</span>
+              <span class="voice-entry-icon" aria-hidden="true">
+                <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-microphone"></use></svg>
+              </span>
+            </span>
+          </button>
+        </section>
+      </div>
+    </div>
+
+    <div class="qo-overlay" id="qoOverlay" aria-hidden="true">
+      <button type="button" class="qo-scrim" id="qoScrim" aria-label="关闭快速开单面板"></button>
+      <div class="qo-sheet-wrap">
+        <div class="qo-sheet" id="qoSheet" role="dialog" aria-modal="true" aria-labelledby="qoTitle">
+          <div class="qo-handle" id="qoHandle" aria-hidden="true"></div>
+          <div class="qo-head">
+            <h2 class="qo-title" id="qoTitle">快速开单</h2>
+            <button type="button" class="qo-close" id="qoCloseBtn">关闭</button>
+          </div>
+          <div id="qoStepPick">
+            <input
+              type="search"
+              class="qo-search app-input"
+              id="qoSearch"
+              placeholder="搜索客户姓名、手机号或地址"
+              autocomplete="off"
+            />
+            <div class="qo-suggest-wrap" id="qoSuggestWrap" hidden>
+              <div id="qoCustomerSuggest"></div>
+            </div>
+            <div class="state-block info qo-selected" id="qoSelectedSummary" hidden></div>
+            <button type="button" class="app-btn ghost" id="qoCreateCustomerBtn" style="width: 100%; margin-top: 4px" hidden>
+              创建新客户
+            </button>
+            <button type="button" class="app-btn primary" id="qoNextBtn" style="width: 100%; margin-top: 4px">下一步</button>
+          </div>
+          <div id="qoStepConfirm" hidden>
+            <div class="state-block info" id="qoCustomerSummary" style="margin-bottom: 10px"></div>
+            <div class="qo-row">
+              <div class="qo-type-switch" id="qoTypeSwitch" role="tablist" aria-label="配送方式">
+                <div class="qo-type-thumb" aria-hidden="true"></div>
+                <div
+                  class="qo-type-option active"
+                  data-qo-type="later_delivery"
+                  role="tab"
+                  tabindex="0"
+                  aria-selected="true"
+                >
+                  稍后配送
+                </div>
+                <div class="qo-type-option" data-qo-type="immediate_complete" role="tab" tabindex="-1" aria-selected="false">
+                  当场完成
+                </div>
+              </div>
+            </div>
+            <div class="qo-row">
+              <span class="qo-field-label">气瓶数量</span>
+              <div class="qo-qty-control">
+                <button type="button" class="qo-step-btn" id="qoMinusBtn" aria-label="减少气瓶数量">-</button>
+                <div class="qo-qty" id="qoQtyText" aria-live="polite">1</div>
+                <button type="button" class="qo-step-btn" id="qoPlusBtn" aria-label="增加气瓶数量">+</button>
+              </div>
+            </div>
+            <div class="qo-row">
+              <label for="qoSpec">规格</label>
+              <select class="app-select" id="qoSpec">
+                <option value="10kg">10kg</option>
+                <option value="15kg" selected>15kg</option>
+                <option value="50kg">50kg</option>
+              </select>
+            </div>
+            <div class="qo-row">
+              <label for="qoPrice">单价</label>
+              <input id="qoPrice" type="number" min="0" step="0.01" value="120" />
+            </div>
+            <div class="qo-row qo-switch-row" id="qoCollectRow" hidden>
+              <span class="qo-field-label">收款</span>
+              <label class="qo-switch" for="qoCollectToggle">
+                <input id="qoCollectToggle" type="checkbox" />
+                <span class="qo-switch-track"><span class="qo-switch-thumb"></span></span>
+              </label>
+            </div>
+            <div class="qo-row" id="qoPayRow" hidden>
+              <label for="qoPayMethod">渠道</label>
+              <select class="app-select" id="qoPayMethod">
+                <option value="cash">现金</option>
+                <option value="wechat">微信收款</option>
+                <option value="alipay">支付宝收款</option>
+                <option value="transfer">转账</option>
+              </select>
+            </div>
+            <div class="qo-row" id="qoReceivedRow" hidden>
+              <label for="qoReceived">金额</label>
+              <input id="qoReceived" type="number" min="0" step="0.01" placeholder="请输入收款金额（元）" />
+            </div>
+            <div class="qo-actions">
+              <button type="button" class="app-btn ghost" id="qoBackPickBtn">返回</button>
+              <button type="button" class="app-btn primary" id="qoSubmitBtn">确认开单</button>
+            </div>
+            <div class="state-block info qo-tip" id="qoTip" hidden></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="appBottomNav"></div>
+
+    <script type="module">
+      import * as workbenchClient from "./workbench-client.js";
+      import * as auth from "./auth-client.js";
+      import { mountAppBottomNav } from "./app-shell.js";
+      import { fetchBusinessRules } from "./business-rules-client.js";
+      import { clearFlowState, patchFlowState } from "./delivery-flow-state.js";
+      import {
+        fetchQuickCustomers,
+        filterQuickCustomers,
+        createQuickCustomer,
+        checkInventory,
+        quickCreateOrder,
+      } from "./quick-order-client.js";
+
+      if (typeof auth.ensureAuthenticatedPage !== "function") {
+        throw new Error(
+          "认证模块未加载完整（多为缓存旧文件）。请重启本地预览后使用 Cmd+Shift+R 强刷。"
+        );
+      }
+      if (!auth.ensureAuthenticatedPage()) {
+        throw new Error("未登录");
+      }
+
+      const receivedToday = document.getElementById("receivedToday");
+      const pendingToday = document.getElementById("pendingToday");
+      const totalToday = document.getElementById("totalToday");
+      const grossProfitToday = document.getElementById("grossProfitToday");
+      const grossTrendChart = document.getElementById("grossTrendChart");
+      const incomeDetailBtn = document.getElementById("incomeDetailBtn");
+      const incomeExpandPanel = document.getElementById("incomeExpandPanel");
+      const nextDeliverySection = document.getElementById("nextDeliverySection");
+      const nextDeliveryCard = document.getElementById("nextDeliveryCard");
+      const nextCustomer = document.getElementById("nextCustomer");
+      const nextTags = document.getElementById("nextTags");
+      const nextAddress = document.getElementById("nextAddress");
+      const nextSpecQty = document.getElementById("nextSpecQty");
+      const nextAmount = document.getElementById("nextAmount");
+      const quickOrderBtn = document.getElementById("quickOrderBtn");
+      const voiceOrderBtn = document.getElementById("voiceOrderBtn");
+      const tip = document.getElementById("tip");
+      const fetchWorkbenchOverview = workbenchClient.fetchWorkbenchOverview;
+
+      const QO_PREF_KEY = "quick-order-prefs-v1";
+      const VOICE_DRAFT_KEY = "voice-order-draft";
+      const qoOverlay = document.getElementById("qoOverlay");
+      const qoScrim = document.getElementById("qoScrim");
+      const qoSheet = document.getElementById("qoSheet");
+      const qoCloseBtn = document.getElementById("qoCloseBtn");
+      const qoHandle = document.getElementById("qoHandle");
+      const qoStepPick = document.getElementById("qoStepPick");
+      const qoStepConfirm = document.getElementById("qoStepConfirm");
+      const qoSearch = document.getElementById("qoSearch");
+      const qoSuggestWrap = document.getElementById("qoSuggestWrap");
+      const qoCustomerSuggest = document.getElementById("qoCustomerSuggest");
+      const qoSelectedSummary = document.getElementById("qoSelectedSummary");
+      const qoCreateCustomerBtn = document.getElementById("qoCreateCustomerBtn");
+      const qoNextBtn = document.getElementById("qoNextBtn");
+      const qoBackPickBtn = document.getElementById("qoBackPickBtn");
+      const qoSubmitBtn = document.getElementById("qoSubmitBtn");
+      const qoCustomerSummary = document.getElementById("qoCustomerSummary");
+      const qoQtyText = document.getElementById("qoQtyText");
+      const qoMinusBtn = document.getElementById("qoMinusBtn");
+      const qoPlusBtn = document.getElementById("qoPlusBtn");
+      const qoSpec = document.getElementById("qoSpec");
+      const qoPrice = document.getElementById("qoPrice");
+      const qoCollectRow = document.getElementById("qoCollectRow");
+      const qoCollectToggle = document.getElementById("qoCollectToggle");
+      const qoPayRow = document.getElementById("qoPayRow");
+      const qoReceivedRow = document.getElementById("qoReceivedRow");
+      const qoTypeSwitch = document.getElementById("qoTypeSwitch");
+      const qoPayMethod = document.getElementById("qoPayMethod");
+      const qoReceived = document.getElementById("qoReceived");
+      const qoTip = document.getElementById("qoTip");
+      const qoTypeOptions = [...document.querySelectorAll(".qo-type-option")];
+      const qoDefaultPriceBySpec = {
+        "10kg": 100,
+        "15kg": 120,
+        "50kg": 300,
+      };
+
+      let qoAllCustomers = [];
+      let qoSelectedId = "";
+      let qoQuantity = 1;
+      let qoOrderType = "later_delivery";
+      let qoSubmitting = false;
+      let qoCreatingCustomer = false;
+      let qoTouchStartY = 0;
+      let qoPricingReady = false;
+      let currentNextDeliveryOrderId = "";
+      let currentNextDeliveryOrder = null;
+
+      function setMainTip(text = "", level = "info") {
+        const message = String(text || "").trim();
+        if (!message) {
+          tip.hidden = true;
+          tip.textContent = "";
+          tip.className = "state-block info tip-block";
+          return;
+        }
+        tip.hidden = false;
+        tip.textContent = message;
+        tip.className = `state-block ${level} tip-block`;
+      }
+
+      async function qoLoadPricingConfig() {
+        if (qoPricingReady) return;
+        try {
+          const res = await fetchBusinessRules();
+          if (res?.success && res?.data?.orderPricing) {
+            const pricing = res.data.orderPricing;
+            qoDefaultPriceBySpec["10kg"] = Number(pricing.kg10 || qoDefaultPriceBySpec["10kg"]);
+            qoDefaultPriceBySpec["15kg"] = Number(pricing.kg15 || qoDefaultPriceBySpec["15kg"]);
+            qoDefaultPriceBySpec["50kg"] = Number(pricing.kg50 || qoDefaultPriceBySpec["50kg"]);
+          }
+        } catch (_e) {
+          // ignore and keep local fallback prices
+        }
+        qoPricingReady = true;
+      }
+
+      function qoApplySpecPrice(spec = qoSpec.value) {
+        const mapped = Number(qoDefaultPriceBySpec[String(spec || "")]);
+        if (Number.isFinite(mapped) && mapped >= 0) {
+          qoPrice.value = String(mapped);
+        }
+      }
+
+      function qoLoadPrefs() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(QO_PREF_KEY) || "{}");
+          if (parsed.spec) qoSpec.value = parsed.spec;
+          if (parsed.orderType === "immediate_complete" || parsed.orderType === "later_delivery") {
+            qoOrderType = parsed.orderType;
+          }
+          if (parsed.paymentMethod) qoPayMethod.value = parsed.paymentMethod;
+        } catch (_e) {}
+        qoApplySpecPrice(qoSpec.value);
+        qoRenderTypeSwitch();
+        qoSyncPayFields();
+      }
+
+      function qoRenderTypeSwitch() {
+        if (qoTypeSwitch) qoTypeSwitch.dataset.activeType = qoOrderType;
+        qoTypeOptions.forEach((opt) => {
+          const active = opt.dataset.qoType === qoOrderType;
+          opt.classList.toggle("active", active);
+          opt.setAttribute("aria-selected", active ? "true" : "false");
+          opt.tabIndex = active ? 0 : -1;
+        });
+      }
+
+      function qoSyncPayFields() {
+        qoCollectRow.hidden = false;
+        const shouldShowPayFields = Boolean(qoCollectToggle?.checked);
+        qoPayRow.hidden = !shouldShowPayFields;
+        qoReceivedRow.hidden = !shouldShowPayFields;
+        if (shouldShowPayFields) {
+          const unit = Number(qoPrice.value || 0);
+          const amt = Number((unit * qoQuantity).toFixed(2));
+          if (!qoReceived.value) qoReceived.value = String(amt);
+        }
+      }
+
+      function qoSetTip(text, isError = false) {
+        const message = String(text || "").trim();
+        if (!message) {
+          qoTip.hidden = true;
+          qoTip.textContent = "";
+          qoTip.className = "state-block info qo-tip";
+          return;
+        }
+        qoTip.hidden = false;
+        qoTip.textContent = message;
+        qoTip.className = isError ? "state-block error qo-tip" : "state-block info qo-tip";
+      }
+
+      function qoSetSelectedCustomer(item) {
+        qoSelectedId = item?.id || "";
+        if (!qoSelectedId) {
+          qoSelectedSummary.hidden = true;
+          qoSelectedSummary.textContent = "";
+          return;
+        }
+        const phoneText = item?.phone ? `｜${item.phone}` : "";
+        const addressText = item?.address ? `｜${item.address}` : "";
+        qoSelectedSummary.hidden = false;
+        qoSelectedSummary.textContent = `已选择：${item?.name || "-"}${phoneText}${addressText}`;
+      }
+
+      function qoRenderSuggest(list, keyword) {
+        const key = String(keyword || "").trim();
+        qoCustomerSuggest.innerHTML = "";
+        if (!key) {
+          qoSuggestWrap.hidden = true;
+          qoCreateCustomerBtn.hidden = true;
+          return;
+        }
+        if (!list.length) {
+          qoSuggestWrap.hidden = true;
+          qoCreateCustomerBtn.hidden = false;
+          qoCreateCustomerBtn.textContent = `新建客户“${key}”`;
+          return;
+        }
+        qoSuggestWrap.hidden = false;
+        qoCreateCustomerBtn.hidden = true;
+        list.slice(0, 6).forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "qo-list-btn";
+          btn.dataset.customerId = item.id;
+          const subLine = [item.phone, item.address].filter(Boolean).join("｜");
+          btn.innerHTML = `<div>${item.name}</div><div class="qo-line2">${subLine || "暂无手机号/地址"}</div>`;
+          btn.addEventListener("click", () => {
+            qoSearch.value = item.name || "";
+            qoSetSelectedCustomer(item);
+            qoRenderSuggest([], "");
+            qoSetTip(`已选择：${item.name}`);
+          });
+          qoCustomerSuggest.appendChild(btn);
+        });
+      }
+
+      async function qoLoadCustomers() {
+        qoSetTip("正在加载客户…");
+        const res = await fetchQuickCustomers();
+        if (!res?.success) {
+          qoAllCustomers = [];
+          qoSelectedId = "";
+          qoSetSelectedCustomer(null);
+          qoRenderSuggest([], "");
+          qoSetTip(res?.error || "客户加载失败，请稍后重试", true);
+          return;
+        }
+        qoAllCustomers = res.data || [];
+        qoSelectedId = "";
+        qoSetSelectedCustomer(null);
+        qoRenderSuggest([], "");
+        qoSetTip("输入姓名、手机号或地址进行搜索。");
+      }
+
+      function qoResetToPick() {
+        qoStepPick.hidden = false;
+        qoStepConfirm.hidden = true;
+        qoSearch.value = "";
+        qoSuggestWrap.hidden = true;
+        qoCreateCustomerBtn.hidden = true;
+        qoSetSelectedCustomer(null);
+        qoCollectToggle.checked = false;
+        qoQuantity = 1;
+        qoQtyText.textContent = "1";
+        qoLoadPrefs();
+      }
+
+      async function qoCreateCustomerByName() {
+        if (qoCreatingCustomer) return;
+        const name = String(qoSearch.value || "").trim();
+        if (!name) {
+          qoSetTip("请先输入客户名称。", true);
+          return;
+        }
+        qoCreatingCustomer = true;
+        qoCreateCustomerBtn.disabled = true;
+        qoSetTip("正在创建客户…");
+        const res = await createQuickCustomer({ name });
+        qoCreatingCustomer = false;
+        qoCreateCustomerBtn.disabled = false;
+        if (!res?.success || !res?.data?.id) {
+          qoSetTip(res?.error || "客户创建失败，请稍后重试。", true);
+          return;
+        }
+        const created = res.data;
+        qoAllCustomers.unshift(created);
+        qoSearch.value = created.name || name;
+        qoSetSelectedCustomer(created);
+        qoRenderSuggest([], "");
+        qoSetTip(`已创建并选择：${created.name}`);
+      }
+
+      function openQoSheet() {
+        qoResetToPick();
+        qoOverlay.classList.add("show");
+        qoOverlay.setAttribute("aria-hidden", "false");
+        void qoOverlay.offsetWidth;
+        requestAnimationFrame(() => {
+          qoOverlay.classList.add("qo-sheet-open");
+        });
+        qoLoadPricingConfig().then(() => {
+          qoApplySpecPrice(qoSpec.value);
+          qoSyncPayFields();
+        });
+        qoLoadCustomers().then(() => {
+          setTimeout(() => qoSearch.focus(), 280);
+        });
+      }
+
+      function closeQoSheet() {
+        qoOverlay.classList.remove("qo-sheet-open");
+        window.setTimeout(() => {
+          qoOverlay.classList.remove("show");
+          qoOverlay.setAttribute("aria-hidden", "true");
+        }, 250);
+      }
+
+      function qoBuildPayload() {
+        if (!qoSelectedId) {
+          qoSetTip("请先选择客户。", true);
+          return null;
+        }
+        const spec = qoSpec.value;
+        const unitPrice = Number(qoPrice.value || 0);
+        if (unitPrice < 0) {
+          qoSetTip("单价不能为负数。", true);
+          return null;
+        }
+        const amount = Number((unitPrice * qoQuantity).toFixed(2));
+        const collectNow = Boolean(qoCollectToggle?.checked);
+        const payAmount =
+          qoOrderType === "immediate_complete"
+            ? Number(qoReceived.value || amount)
+            : amount;
+        const payload = {
+          customerId: qoSelectedId,
+          orderType: qoOrderType,
+          spec,
+          quantity: qoQuantity,
+          unitPrice,
+          paymentMethod: qoPayMethod.value,
+          receivedAmount: payAmount,
+        };
+        if (qoOrderType === "immediate_complete") {
+          if (!collectNow) {
+            qoSetTip("收款信息默认收起；当场完成请先开启收款录入。", true);
+            return null;
+          }
+          if (!Number.isFinite(payAmount) || payAmount < 0) {
+            qoSetTip("当场完成需填写有效实收金额。", true);
+            return null;
+          }
+          if (payAmount < amount) {
+            qoSetTip("实收金额小于应收金额，请确认后再提交。", true);
+            return null;
+          }
+        }
+        return payload;
+      }
+
+      async function qoSubmit() {
+        const payload = qoBuildPayload();
+        if (!payload || qoSubmitting) return;
+        qoSubmitting = true;
+        qoSubmitBtn.disabled = true;
+        qoSetTip("正在校验库存…");
+        const check = await checkInventory(payload.spec, payload.quantity);
+        if (!check.data?.canCreate) {
+          qoSubmitting = false;
+          qoSubmitBtn.disabled = false;
+          qoSetTip(`库存不足：${payload.spec} 可用 ${check.data?.available ?? 0} 瓶`, true);
+          return;
+        }
+        qoSetTip("正在创建订单…");
+        const result = await quickCreateOrder(payload);
+        qoSubmitting = false;
+        qoSubmitBtn.disabled = false;
+        if (!result.success) {
+          qoSetTip(result.error || "创建失败，请稍后重试。", true);
+          return;
+        }
+        try {
+          const next = {
+            orderType: qoOrderType,
+            spec: qoSpec.value,
+            unitPrice: Number(qoPrice.value || 0),
+            paymentMethod: qoPayMethod.value,
+            rememberDefaults: true,
+          };
+          localStorage.setItem(QO_PREF_KEY, JSON.stringify(next));
+        } catch (_e) {}
+        closeQoSheet();
+        setMainTip(`开单成功，订单号 ${result.data.orderId}。`, "success");
+        await loadData(true);
+      }
+
+      const fmtCurrency = (num) => `￥${Number(num || 0).toFixed(2)}`;
+      let voiceRecognizing = false;
+
+      incomeExpandPanel.hidden = false;
+
+      function renderCustomerTags(container, tags) {
+        container.innerHTML = "";
+        if (!Array.isArray(tags) || !tags.length) return;
+        tags.forEach((label) => {
+          const el = document.createElement("span");
+          el.className = "next-tag";
+          el.textContent = label;
+          container.appendChild(el);
+        });
+      }
+
+      function renderNextDelivery(nextDelivery) {
+        const hasTask = Boolean(nextDelivery?.orderId);
+        currentNextDeliveryOrderId = hasTask ? String(nextDelivery.orderId || "").trim() : "";
+        currentNextDeliveryOrder = hasTask ? nextDelivery : null;
+        if (!hasTask) {
+          nextDeliverySection.hidden = true;
+          nextDeliveryCard.setAttribute("aria-disabled", "true");
+          nextCustomer.textContent = "暂无待配送";
+          renderCustomerTags(nextTags, []);
+          nextAddress.textContent = "可前往快速开单创建新订单";
+          nextSpecQty.textContent = "--";
+          nextAmount.textContent = "--";
+          nextAmount.className = "next-metric-value next-amount-brand";
+          return;
+        }
+        nextDeliverySection.hidden = false;
+        nextDeliveryCard.setAttribute("aria-disabled", "false");
+        nextCustomer.textContent = nextDelivery.customerName || "--";
+        renderCustomerTags(nextTags, nextDelivery.customerTags);
+        nextAddress.textContent = nextDelivery.address || "--";
+        const spec = nextDelivery.spec;
+        const qty = nextDelivery.quantity;
+        if (spec != null && String(spec).trim() !== "" && qty != null && String(qty).trim() !== "" && Number.isFinite(Number(qty))) {
+          nextSpecQty.textContent = `${String(spec).trim()} × ${Number(qty)} 瓶`;
+        } else {
+          nextSpecQty.textContent = "--";
+        }
+        if (nextDelivery.amount != null && String(nextDelivery.amount).trim() !== "" && Number.isFinite(Number(nextDelivery.amount))) {
+          nextAmount.textContent = fmtCurrency(nextDelivery.amount);
+        } else {
+          nextAmount.textContent = "--";
+        }
+        nextAmount.className = "next-metric-value next-amount-brand";
+      }
+
+      function openNextDeliveryDetail() {
+        if (!currentNextDeliveryOrderId) return;
+        clearFlowState();
+        patchFlowState({
+          selectedOrderId: currentNextDeliveryOrderId,
+          selectedOrder: currentNextDeliveryOrder
+            ? {
+                orderId: currentNextDeliveryOrderId,
+                customerId: currentNextDeliveryOrder.customerId || "",
+                customerName: currentNextDeliveryOrder.customerName || "",
+                address: currentNextDeliveryOrder.address || "",
+                scheduleAt: currentNextDeliveryOrder.scheduleAt || "",
+                spec: currentNextDeliveryOrder.spec || "",
+                quantity: Number(currentNextDeliveryOrder.quantity || 0),
+                amount: Number(currentNextDeliveryOrder.amount || 0),
+              }
+            : null,
+        });
+        window.location.href = "./delivery-settlement.html";
+      }
+
+      function openVoiceOrderFallback(message, draft = "") {
+        setMainTip(message, "info");
+        const text = String(draft || "").trim();
+        if (text) {
+          sessionStorage.setItem(VOICE_DRAFT_KEY, text);
+          window.location.href = `./quick-order.html?from=workbench&intent=voice&draft=${encodeURIComponent(text)}`;
+          return;
+        }
+        window.location.href = "./quick-order.html?from=workbench&intent=voice";
+      }
+
+      function startVoiceOrder() {
+        if (voiceRecognizing) return;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          openVoiceOrderFallback("当前浏览器暂不支持语音识别，已进入完整开单页。");
+          return;
+        }
+        voiceRecognizing = true;
+        voiceOrderBtn.disabled = true;
+        voiceOrderBtn.setAttribute("aria-busy", "true");
+        setMainTip("请说出客户、规格和数量。", "loading");
+        const recognition = new SpeechRecognition();
+        recognition.lang = "zh-CN";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        let recognized = false;
+        let settled = false;
+
+        recognition.addEventListener("result", (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript?.trim() || "";
+          if (transcript) {
+            if (settled) return;
+            recognized = true;
+            settled = true;
+            sessionStorage.setItem(VOICE_DRAFT_KEY, transcript);
+            setMainTip(`已识别：${transcript}`, "success");
+            window.setTimeout(() => {
+              window.location.href = `./quick-order.html?from=workbench&intent=voice&draft=${encodeURIComponent(transcript)}`;
+            }, 450);
+            return;
+          }
+          settled = true;
+          openVoiceOrderFallback("未识别到有效内容，已进入完整开单页。");
+        });
+
+        recognition.addEventListener("error", (event) => {
+          if (settled) return;
+          settled = true;
+          const reason =
+            event?.error === "not-allowed"
+              ? "未获得麦克风权限，已进入完整开单页。"
+              : "语音识别失败，已进入完整开单页。";
+          openVoiceOrderFallback(reason);
+        });
+
+        recognition.addEventListener("end", () => {
+          if (!recognized && !settled) {
+            settled = true;
+            openVoiceOrderFallback("未识别到有效内容，已进入完整开单页。");
+          }
+          voiceRecognizing = false;
+          voiceOrderBtn.disabled = false;
+          voiceOrderBtn.removeAttribute("aria-busy");
+        });
+
+        recognition.start();
+      }
+
+      nextDeliveryCard.addEventListener("click", openNextDeliveryDetail);
+      nextDeliveryCard.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openNextDeliveryDetail();
+      });
+
+      function formatTrendLabel(value, index) {
+        const text = String(value || "").trim();
+        if (text) return text.slice(-5);
+        const date = new Date(Date.now() - (6 - index) * 24 * 60 * 60 * 1000);
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${month}-${day}`;
+      }
+
+      function renderGrossTrend(rawPoints) {
+        const incoming = Array.isArray(rawPoints) ? rawPoints.slice(-7) : [];
+        const bucket = new Map();
+        incoming.forEach((item) => {
+          const key = String(item?.date || item?.label || "").slice(-5);
+          if (!key) return;
+          bucket.set(key, Number(item?.grossProfit || 0));
+        });
+        const points = Array.from({ length: 7 }).map((_, index) => {
+          const date = new Date(Date.now() - (6 - index) * 24 * 60 * 60 * 1000);
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const key = `${month}-${day}`;
+          return {
+            label: key,
+            grossProfit: Number(bucket.get(key) || 0),
+          };
+        });
+        const values = points.map((item) => Number(item?.grossProfit || 0));
+        const maxValue = Math.max(...values, 0);
+        const minValue = Math.min(...values, 0);
+        const span = Math.max(1, maxValue - minValue);
+        const width = 320;
+        const height = 118;
+        const padX = 38;
+        const padY = 14;
+        const unitX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
+        const mapY = (value) =>
+          Number((height - padY - ((value - minValue) / span) * (height - padY * 2)).toFixed(2));
+        const mapX = (index) => Number((padX + unitX * index).toFixed(2));
+        const zeroVisible = minValue <= 0 && maxValue >= 0;
+        const zeroY = mapY(0);
+        const dots = points
+          .map((item, index) => {
+            const gross = Number(item?.grossProfit || 0);
+            const x = mapX(index);
+            const y = mapY(gross);
+            const color = gross < 0 ? "#c94f45" : "var(--brand)";
+            return `<circle cx="${x}" cy="${y}" r="2.8" fill="${color}" />`;
+          })
+          .join("");
+        const labels = points
+          .map(
+            (item, index) =>
+              `<span class="income-trend-label">${formatTrendLabel(item?.label || item?.date, index)}</span>`
+          )
+          .join("");
+        const topLabel = `￥${maxValue.toFixed(0)}`;
+        const midLabel = `￥${((maxValue + minValue) / 2).toFixed(0)}`;
+        const bottomLabel = `￥${minValue.toFixed(0)}`;
+        grossTrendChart.innerHTML = `
+          <svg class="income-trend-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="毛利 7 日趋势图">
+            <line x1="${padX}" y1="${padY}" x2="${padX}" y2="${height - padY}" stroke="#d6e8ea" />
+            <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="#d6e8ea" />
+            <line x1="${padX}" y1="${padY}" x2="${width - padX}" y2="${padY}" stroke="#edf4f5" />
+            <line x1="${padX}" y1="${(height / 2).toFixed(2)}" x2="${width - padX}" y2="${(height / 2).toFixed(2)}" stroke="#edf4f5" />
+            ${zeroVisible ? `<line x1="${padX}" y1="${zeroY}" x2="${width - padX}" y2="${zeroY}" stroke="#d6e8ea" stroke-dasharray="3 3" />` : ""}
+            <text x="2" y="${padY + 4}" fill="#8aa1a5" font-size="10">${topLabel}</text>
+            <text x="2" y="${(height / 2 + 4).toFixed(2)}" fill="#8aa1a5" font-size="10">${midLabel}</text>
+            <text x="2" y="${height - padY + 4}" fill="#8aa1a5" font-size="10">${bottomLabel}</text>
+            <polyline points="${points
+              .map((item, index) => `${mapX(index)},${mapY(Number(item?.grossProfit || 0))}`)
+              .join(" ")}" fill="none" stroke="var(--brand)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            ${dots}
+          </svg>
+          <div class="income-trend-labels">${labels}</div>
+        `;
+      }
+
+      async function loadData(fromPull = false) {
+        setMainTip(fromPull ? "正在刷新工作台数据..." : "正在加载工作台数据...", "loading");
+        const res = await fetchWorkbenchOverview();
+        if (!res.success) {
+          setMainTip(res.error || "加载失败，请稍后重试", "error");
+          return;
+        }
+        const { finance, nextDelivery } = res.data;
+        const received = Number(finance.receivedToday || 0);
+        const pending = Number(finance.pendingToday || 0);
+        const gross = Number(
+          finance.grossProfitToday != null ? finance.grossProfitToday : received - pending
+        );
+        totalToday.textContent = fmtCurrency(received + pending);
+        receivedToday.textContent = fmtCurrency(received);
+        pendingToday.textContent = fmtCurrency(pending);
+        grossProfitToday.textContent = fmtCurrency(gross);
+        renderGrossTrend(finance.grossTrend7d);
+        if (received <= 0 && pending <= 0) {
+          setMainTip("今日暂无收款数据，可先去快速开单。", "info");
+        }
+        renderNextDelivery(nextDelivery);
+
+        if (!navigator.onLine) {
+          setMainTip("当前网络不可用，已展示缓存信息", "info");
+          return;
+        }
+        const pendingSync = Number(res.data?.sync?.pendingCount || 0);
+        if (pendingSync > 0) {
+          setMainTip(`有 ${pendingSync} 条离线数据，前往“我的-离线数据”手动提交。`, "info");
+          return;
+        }
+        setMainTip("", "info");
+      }
+
+      quickOrderBtn.addEventListener("click", () => {
+        quickOrderBtn.classList.add("qo-launch-anim");
+        window.setTimeout(() => {
+          quickOrderBtn.classList.remove("qo-launch-anim");
+          openQoSheet();
+        }, 150);
+      });
+      voiceOrderBtn.addEventListener("click", startVoiceOrder);
+      qoScrim.addEventListener("click", closeQoSheet);
+      qoCloseBtn.addEventListener("click", closeQoSheet);
+      qoHandle.addEventListener("touchstart", (e) => {
+        qoTouchStartY = e.touches[0]?.clientY || 0;
+      });
+      qoHandle.addEventListener("touchend", (e) => {
+        const endY = e.changedTouches[0]?.clientY || 0;
+        if (endY - qoTouchStartY > 72) closeQoSheet();
+      });
+      qoSearch.addEventListener("input", () => {
+        const keyword = String(qoSearch.value || "").trim();
+        const current = qoAllCustomers.find((x) => x.id === qoSelectedId);
+        if (!current || current.name !== keyword) {
+          qoSetSelectedCustomer(null);
+        }
+        const matched = filterQuickCustomers(qoAllCustomers, keyword);
+        qoRenderSuggest(matched, keyword);
+      });
+      qoCreateCustomerBtn.addEventListener("click", () => {
+        void qoCreateCustomerByName();
+      });
+      qoNextBtn.addEventListener("click", () => {
+        if (!qoSelectedId) {
+          qoSetTip("请先选择客户。", true);
+          return;
+        }
+        const c = qoAllCustomers.find((x) => x.id === qoSelectedId);
+        qoCustomerSummary.textContent = c
+          ? `客户：${c.name}｜${c.phone}｜${c.address}`
+          : "已选择客户";
+        qoStepPick.hidden = true;
+        qoStepConfirm.hidden = false;
+        qoCollectToggle.checked = false;
+        qoLoadPrefs();
+        qoSetTip("");
+      });
+      qoBackPickBtn.addEventListener("click", () => {
+        qoStepConfirm.hidden = true;
+        qoStepPick.hidden = false;
+        qoSetTip("请继续选择或搜索客户。");
+      });
+      qoMinusBtn.addEventListener("click", () => {
+        qoQuantity = Math.max(1, qoQuantity - 1);
+        qoQtyText.textContent = String(qoQuantity);
+        qoSyncPayFields();
+      });
+      qoPlusBtn.addEventListener("click", () => {
+        qoQuantity = Math.min(99, qoQuantity + 1);
+        qoQtyText.textContent = String(qoQuantity);
+        qoSyncPayFields();
+      });
+      qoSpec.addEventListener("change", () => {
+        qoApplySpecPrice(qoSpec.value);
+        qoSyncPayFields();
+      });
+      qoPrice.addEventListener("change", qoSyncPayFields);
+      qoCollectToggle.addEventListener("change", qoSyncPayFields);
+      qoCollectToggle.addEventListener("input", qoSyncPayFields);
+      function qoSetOrderType(type) {
+        if (type !== "later_delivery" && type !== "immediate_complete") return;
+        qoOrderType = type;
+        qoRenderTypeSwitch();
+        qoSyncPayFields();
+      }
+      qoTypeOptions.forEach((opt) => {
+        opt.addEventListener("click", () => {
+          qoSetOrderType(opt.dataset.qoType);
+        });
+        opt.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            qoSetOrderType(opt.dataset.qoType);
+            return;
+          }
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          e.preventDefault();
+          const nextType = e.key === "ArrowRight" ? "immediate_complete" : "later_delivery";
+          qoSetOrderType(nextType);
+          const target = qoTypeOptions.find((x) => x.dataset.qoType === nextType);
+          if (target) target.focus();
+        });
+      });
+      qoSubmitBtn.addEventListener("click", () => {
+        void qoSubmit();
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && qoOverlay.classList.contains("show")) closeQoSheet();
+      });
+      incomeDetailBtn.addEventListener("click", () => {
+        window.location.href = "./finance-overview.html";
+      });
+
+      window.addEventListener("offline", () => {
+        setMainTip("当前网络不可用，已切换离线提示", "info");
+      });
+      window.addEventListener("online", () => {
+        setMainTip("网络已恢复，可下拉刷新", "info");
+      });
+
+      let startY = 0;
+      let canPull = false;
+      window.addEventListener("touchstart", (e) => {
+        canPull = window.scrollY <= 0;
+        startY = e.touches[0]?.clientY || 0;
+      });
+      window.addEventListener("touchmove", (e) => {
+        if (!canPull) return;
+        const delta = (e.touches[0]?.clientY || 0) - startY;
+        if (delta > 60) setMainTip("松开即可刷新", "info");
+      });
+      window.addEventListener("touchend", async (e) => {
+        if (!canPull) return;
+        const endY = e.changedTouches[0]?.clientY || 0;
+        if (endY - startY > 60) {
+          setMainTip("正在刷新...", "loading");
+          await loadData(true);
+        }
+      });
+
+      mountAppBottomNav("appBottomNav", { active: "workbench" });
+      loadData();
+      window.setInterval(() => {
+        if (!document.hidden) loadData(true);
+      }, 30000);
+    </script>
+  </body>
+</html>

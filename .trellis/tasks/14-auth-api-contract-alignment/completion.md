@@ -8,11 +8,11 @@
 - [x] 自动化测试通过。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 新增认证契约响应工具：`sendContractSuccess`、`sendContractError`
   - 为认证路由增加 `request_id`
   - 统一认证失败映射：`AUTH_401`、`VALIDATION_400`
-- 前端：`/.trellis/delivery-app/src/auth-client.js`
+- 前端：`/apps/delivery-app/src/auth-client.js`
   - 新增 `normalizeApiResult`，兼容 `error` 对象并保留中文提示
 - 文档：`/.trellis/spec/shared/api-contracts.md`
   - 增加“认证接口约定（task-14）”章节

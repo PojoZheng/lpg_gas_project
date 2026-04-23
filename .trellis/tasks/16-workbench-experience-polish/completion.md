@@ -22,8 +22,8 @@
    - 待配送为空时提示“暂无待配送，可前往快速开单创建新订单”。
 
 ## 影响文件
-- `.trellis/delivery-app/src/workbench.html`
-- `.trellis/delivery-app/src/workbench-client.js`
+- `apps/delivery-app/src/workbench.html`
+- `apps/delivery-app/src/workbench-client.js`
 - `.trellis/scripts/task16_workbench_closure.py`
 - `.trellis/scripts/task16_workbench_smoke.py`
 - `.trellis/tasks/16-workbench-experience-polish/task.json`

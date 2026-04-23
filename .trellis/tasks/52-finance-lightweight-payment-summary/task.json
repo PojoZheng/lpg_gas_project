@@ -1,0 +1,21 @@
+{
+  "id": "52-finance-lightweight-payment-summary",
+  "title": "财务域 UI：日结页收款方式区域轻量化",
+  "status": "completed",
+  "depends_on": [
+    "51-finance-lightweight-confirm-section"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-finance-lightweight-cards.md",
+    ".trellis/spec/delivery-app/ui-manifest.md",
+    ".trellis/spec/delivery-app/domain-finance/overview.md"
+  ],
+  "acceptance": [
+    "finance-daily-close.html 的收款方式区域不使用高饱和多色强调",
+    "支付方式名称采用统一轻标签样式，金额仍保持清晰可读",
+    "本次不改动数据结构与统计逻辑，仅调整视觉表达"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/finance-daily-close.html"
+  ]
+}

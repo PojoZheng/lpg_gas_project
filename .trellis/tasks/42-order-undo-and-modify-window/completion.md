@@ -29,6 +29,6 @@
 
 ## 涉及文件
 
-- `.trellis/backend/src/server.js`
-- `.trellis/delivery-app/src/delivery-complete-client.js`
-- `.trellis/delivery-app/src/delivery-complete.html`
+- `services/backend/src/server.js`
+- `apps/delivery-app/src/delivery-complete-client.js`
+- `apps/delivery-app/src/delivery-complete.html`

@@ -8,17 +8,17 @@
 - [x] 界面文案必须为中文且严禁 emoji：新增提示、标签、错误文案均为中文且无 emoji。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 库存结构升级为 `onHand + locked + available`
   - 新增库存事务函数：锁定、释放、正式扣减、直接扣减与事务日志
   - `POST /orders/quick-create` 区分稍后配送锁定与当场完成扣减
   - 完单/取消/撤销流程与库存状态同步
   - 新增 `GET /inventory/snapshot` 返回库存快照与日志
-- 前端：`/.trellis/delivery-app/src/delivery-complete-client.js`
+- 前端：`/apps/delivery-app/src/delivery-complete-client.js`
   - 新增库存快照接口调用
-- 前端：`/.trellis/delivery-app/src/delivery-complete.html`
+- 前端：`/apps/delivery-app/src/delivery-complete.html`
   - 新增库存快照卡片（总库存/锁定库存/可用库存）并在关键动作后刷新
-- 前端：`/.trellis/delivery-app/src/quick-order-client.js`
+- 前端：`/apps/delivery-app/src/quick-order-client.js`
   - mock 库存逻辑对齐为“锁定/扣减”双路径
 
 ## 3. 测试与风险

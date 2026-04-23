@@ -1,0 +1,23 @@
+{
+  "id": "55-voice-draft-to-quick-order",
+  "title": "工作台语音开单：识别草稿回填快速开单搜索",
+  "status": "completed",
+  "depends_on": [
+    "54-workbench-action-zone-reorder",
+    "40-order-bottom-sheet-quick-order-from-home"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-workbench-voice-draft-handoff.md",
+    "requirements/01_工作台/需求.md",
+    ".trellis/spec/delivery-app/domain-workbench/overview.md"
+  ],
+  "acceptance": [
+    "quick-order.html 支持识别 intent=voice 场景",
+    "语音草稿文本会自动回填到客户搜索框并触发筛选",
+    "无草稿时保持原有快速开单流程不变",
+    "本次不改动订单提交与库存校验逻辑"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/quick-order.html"
+  ]
+}
