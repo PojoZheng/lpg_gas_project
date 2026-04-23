@@ -106,7 +106,7 @@
         gap: 10px;
       }
       .record-title {
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 700;
       }
       .record-sub {
@@ -234,7 +234,7 @@
           <div class="page-toolbar">
             <div class="page-toolbar-copy">
               <h2>安检上报</h2>
-              <p>这个页面只查看和处理安检上报失败、补传和人工介入记录，不关心订单和库存同步。</p>
+              <p>集中处理安检上报失败、补传和人工介入记录。</p>
             </div>
             <div class="btn-row">
               <button class="btn secondary" id="batchBtn">批量补传</button>
@@ -247,13 +247,13 @@
               <div class="panel-head">
                 <div class="panel-copy">
                   <h3>安检记录列表</h3>
-                  <p>只展示安检上报相关记录，运营在这里筛查失败、补传和人工处理。</p>
+                  <p>按客户、地区、燃气公司和配送员查看安检上报处理情况。</p>
                 </div>
                 <span class="btn secondary" id="hitCountTag">0 条</span>
               </div>
 
               <div class="filter-stack" style="margin-top: 14px;">
-                <input id="keywordFilter" placeholder="搜索安检单号、订单号、离线记录号" />
+                <input id="keywordFilter" placeholder="搜索客户、地址、订单号、配送员" />
                 <div class="filter-row">
                   <div class="field" style="margin-bottom: 0;">
                     <label>状态</label>
@@ -288,7 +288,7 @@
               <div class="detail-head">
                 <div class="panel-copy">
                   <h3>记录详情</h3>
-                  <p>查看当前安检记录为什么失败，以及下一步该如何处理。</p>
+                  <p>查看这条安检记录的业务信息、上报情况和处理动作。</p>
                 </div>
                 <span class="panel-muted" id="detailTime">--</span>
               </div>
@@ -337,11 +337,25 @@
       }
 
       function getSafetyOrderId(item) {
-        return String(item.payload?.orderId || item.payload?.submitPayload?.orderId || item.payload?.checkId || "--");
+        return String(item.business?.orderId || item.payload?.orderId || item.payload?.submitPayload?.orderId || "--");
       }
 
       function getSafetyCheckId(item) {
-        return String(item.payload?.safetyId || item.payload?.checkId || item.offlineId || "--");
+        return String(item.business?.safetyId || item.payload?.safetyId || item.offlineId || "--");
+      }
+
+      function getBusiness(item) {
+        return item.business || {};
+      }
+
+      function statusLabel(status) {
+        return status === "pending" ? "待上报" : status === "failed" ? "上报失败" : "已完成";
+      }
+
+      function modeLabel(item) {
+        if (item.manualRequired) return "人工处理";
+        if (item.nextRetryAt) return "等待补传";
+        return "自动补传";
       }
 
       function getVisibleItems(items = []) {
@@ -354,11 +368,14 @@
           if (mode === "retry" && !item.nextRetryAt) return false;
           if (mode === "manual" && !item.manualRequired) return false;
           if (!keyword) return true;
+          const business = getBusiness(item);
           const text = [
-            item.offlineId,
-            item.payload?.safetyId,
-            item.payload?.checkId,
-            item.payload?.orderId,
+            business.customerName,
+            business.address,
+            business.regionName,
+            business.companyName,
+            business.driverName,
+            business.orderId,
             item.lastError,
             item.resultSummary,
           ]
@@ -390,31 +407,43 @@
         detailTime.textContent = formatDate(item.updatedAt || item.createdAt);
         const canRetry = !item.manualRequired && (!item.nextRetryAt || Date.now() >= Number(item.nextRetryAt));
         const retryLabel = item.nextRetryAt && Date.now() < Number(item.nextRetryAt) ? `等待至 ${formatDate(item.nextRetryAt)}` : "可立即补传";
+        const business = getBusiness(item);
         detailPanel.innerHTML = `
           <div class="detail-card">
-            <h3>记录信息</h3>
+            <h3>业务信息</h3>
             <div class="summary-list">
-              <div class="summary-line"><span>离线记录号</span><strong>${item.offlineId}</strong></div>
-              <div class="summary-line"><span>安检单号</span><strong>${getSafetyCheckId(item)}</strong></div>
+              <div class="summary-line"><span>客户名称</span><strong>${business.customerName || "--"}</strong></div>
+              <div class="summary-line"><span>配送地址</span><strong>${business.address || "--"}</strong></div>
+              <div class="summary-line"><span>所属地区</span><strong>${business.regionName || "--"}</strong></div>
+              <div class="summary-line"><span>燃气公司</span><strong>${business.companyName || "--"}</strong></div>
+              <div class="summary-line"><span>配送员</span><strong>${business.driverName || "--"}</strong></div>
+              <div class="summary-line"><span>安检时间</span><strong>${formatDate(business.checkedAt)}</strong></div>
+              <div class="summary-line"><span>上报给谁</span><strong>${business.reportTargetName || "--"}</strong></div>
               <div class="summary-line"><span>关联订单号</span><strong>${getSafetyOrderId(item)}</strong></div>
-              <div class="summary-line"><span>当前状态</span><strong><span class="status-pill ${item.syncStatus}">${item.syncStatus === "pending" ? "待上报" : item.syncStatus === "failed" ? "上报失败" : "已完成"}</span></strong></div>
             </div>
           </div>
           <div class="detail-card">
             <h3>处理信息</h3>
             <div class="summary-list">
+              <div class="summary-line"><span>当前状态</span><strong><span class="status-pill ${item.syncStatus}">${statusLabel(item.syncStatus)}</span></strong></div>
+              <div class="summary-line"><span>处理方式</span><strong>${modeLabel(item)}</strong></div>
               <div class="summary-line"><span>重试次数</span><strong>${Number(item.retryCount || 0)}</strong></div>
               <div class="summary-line"><span>下一步</span><strong>${item.manualRequired ? "人工处理" : retryLabel}</strong></div>
               <div class="summary-line"><span>处理结果</span><strong>${item.resultSummary || "待处理"}</strong></div>
             </div>
           </div>
           <div class="detail-card">
-            <h3>失败原因</h3>
-            <div class="payload-box">${item.lastError || "当前无错误信息"}</div>
+            <h3>安检内容</h3>
+            <div class="summary-list">
+              <div class="summary-line"><span>检查项</span><strong>${(business.checkItems || []).length ? business.checkItems.join("、") : "未录入"}</strong></div>
+              <div class="summary-line"><span>照片数量</span><strong>${Number(business.photoCount || 0)} 张</strong></div>
+              <div class="summary-line"><span>异常结果</span><strong>${business.hasAbnormal ? "有异常" : "无异常"}</strong></div>
+              <div class="summary-line"><span>隐患说明</span><strong>${business.hazardNote || "无"}</strong></div>
+            </div>
           </div>
           <div class="detail-card">
-            <h3>上报内容</h3>
-            <div class="payload-box">${JSON.stringify(item.payload || {}, null, 2)}</div>
+            <h3>失败原因</h3>
+            <div class="payload-box">${item.lastError || "当前无错误信息"}</div>
           </div>
           <div class="detail-actions">
             <button class="btn primary" id="retryBtn" ${canRetry ? "" : "disabled"}>重新补传</button>
@@ -447,22 +476,23 @@
         const active = items.find((item) => item.offlineId === state.selectedOfflineId) || items[0];
         state.selectedOfflineId = active.offlineId;
         items.forEach((item) => {
+          const business = getBusiness(item);
           const card = document.createElement("button");
           card.type = "button";
           card.className = item.offlineId === state.selectedOfflineId ? "record-card active" : "record-card";
           card.innerHTML = `
             <div class="record-head">
               <div>
-                <div class="record-title">安检 ${getSafetyCheckId(item)}</div>
-                <div class="record-sub">订单 ${getSafetyOrderId(item)} · ${item.offlineId}</div>
+                <div class="record-title">${business.customerName || "未识别客户"}</div>
+                <div class="record-sub">${business.address || "待补充地址"}<br/>订单 ${getSafetyOrderId(item)} · 安检 ${getSafetyCheckId(item)}</div>
               </div>
-              <span class="status-pill ${item.syncStatus}">${item.syncStatus === "pending" ? "待上报" : item.syncStatus === "failed" ? "上报失败" : "已完成"}</span>
+              <span class="status-pill ${item.syncStatus}">${statusLabel(item.syncStatus)}</span>
             </div>
             <div class="record-meta">
-              <div class="meta-tile"><div class="meta-label">处理方式</div><div class="meta-value">${item.manualRequired ? "人工处理" : item.nextRetryAt ? "等待补传" : "自动补传"}</div></div>
-              <div class="meta-tile"><div class="meta-label">重试次数</div><div class="meta-value">${Number(item.retryCount || 0)}</div></div>
-              <div class="meta-tile"><div class="meta-label">最近结果</div><div class="meta-value">${item.resultSummary || "待处理"}</div></div>
-              <div class="meta-tile"><div class="meta-label">更新时间</div><div class="meta-value">${formatDate(item.updatedAt)}</div></div>
+              <div class="meta-tile"><div class="meta-label">所属地区</div><div class="meta-value">${business.regionName || "--"}</div></div>
+              <div class="meta-tile"><div class="meta-label">燃气公司</div><div class="meta-value">${business.companyName || "--"}</div></div>
+              <div class="meta-tile"><div class="meta-label">配送员</div><div class="meta-value">${business.driverName || "--"}</div></div>
+              <div class="meta-tile"><div class="meta-label">安检时间</div><div class="meta-value">${formatDate(business.checkedAt)}</div></div>
             </div>
           `;
           card.addEventListener("click", () => {

@@ -76,6 +76,10 @@ const policyVersions = [
   },
 ];
 const policyAuditLogs = [];
+const REGION_NAME_MAP = {
+  "CN-DEFAULT": "全国默认区域",
+  "CN-GD-SZ": "广东省 深圳市",
+};
 const DEFAULT_BUSINESS_RULES = {
   orderPricing: {
     kg15: 120,
@@ -1933,13 +1937,103 @@ function getSafetyById(safetyId) {
   return record;
 }
 
+function getRegionName(regionCode = "") {
+  const code = String(regionCode || "CN-DEFAULT").trim() || "CN-DEFAULT";
+  return REGION_NAME_MAP[code] || code;
+}
+
+function buildSafetyOperatorMeta(input = {}) {
+  const regionCode = String(input.regionCode || "CN-DEFAULT").trim() || "CN-DEFAULT";
+  const companyName = String(input.companyName || "").trim() || "多立恒默认燃气公司";
+  const driverName = String(input.driverName || input.nickname || "").trim() || "未识别配送员";
+  return {
+    userId: String(input.userId || "").trim(),
+    dealerId: String(input.dealerId || "").trim(),
+    driverName,
+    companyId: String(input.companyId || "").trim(),
+    companyName,
+    regionCode,
+    regionName: String(input.regionName || "").trim() || getRegionName(regionCode),
+  };
+}
+
+function getSafetyPolicySnapshot(meta = {}) {
+  const context = {
+    dealerId: String(meta.dealerId || "").trim(),
+    companyId: String(meta.companyId || "").trim(),
+    companyName: String(meta.companyName || "").trim(),
+    regionCode: String(meta.regionCode || "CN-DEFAULT").trim() || "CN-DEFAULT",
+  };
+  const policy = getActivePolicy(context);
+  const reportingMode = String(policy?.content?.reporting?.mode || "company_first").trim();
+  let reportTargetName = "燃气公司监管接口";
+  if (reportingMode === "direct") {
+    reportTargetName = "监管平台接口";
+  } else if (reportingMode === "hybrid") {
+    reportTargetName = context.companyName ? `${context.companyName} / 监管平台` : "燃气公司 / 监管平台";
+  } else if (context.companyName) {
+    reportTargetName = `${context.companyName} 监管接口`;
+  }
+  return {
+    reportingMode,
+    reportTargetName,
+  };
+}
+
+function buildSafetyBusinessSummary(record = {}, queueItem = null) {
+  const order = record.orderId ? quickOrders.find((item) => item.orderId === record.orderId) : null;
+  const queueOperator = queueItem?.operator || {};
+  const operator = buildSafetyOperatorMeta({
+    regionCode: record.regionCode || queueOperator.regionCode,
+    regionName: record.regionName || queueOperator.regionName,
+    companyId: record.companyId || queueOperator.companyId,
+    companyName: record.companyName || queueOperator.companyName,
+    dealerId: record.dealerId || queueOperator.dealerId,
+    driverName: record.driverName || queueOperator.driverName,
+    userId: record.userId || queueOperator.userId,
+  });
+  const reportTargetName =
+    String(record.reportTargetName || "").trim() ||
+    getSafetyPolicySnapshot(operator).reportTargetName;
+  return {
+    safetyId: String(record.safetyId || queueItem?.payload?.safetyId || queueItem?.offlineId || ""),
+    orderId: String(record.orderId || queueItem?.payload?.orderId || queueItem?.payload?.submitPayload?.orderId || ""),
+    customerName: String(record.customerName || order?.customerName || "").trim() || "未识别客户",
+    address: String(record.address || order?.address || "").trim() || "待补充地址",
+    regionCode: operator.regionCode,
+    regionName: operator.regionName,
+    companyName: operator.companyName,
+    driverName: operator.driverName,
+    checkedAt: Number(record.checkedAt || record.updatedAt || record.createdAt || queueItem?.updatedAt || 0),
+    reportTargetName,
+    checkItems: Array.isArray(record.checkItems) ? record.checkItems : [],
+    photoCount: Array.isArray(record.photoUrls) ? record.photoUrls.length : 0,
+    hasAbnormal: Boolean(record.hasAbnormal),
+    hazardNote: String(record.hazardNote || "").trim(),
+    reportAttempts: Number(record.reportAttempts || 0),
+    lastError: String(record.lastError || queueItem?.lastError || "").trim(),
+    reportLogs: Array.isArray(record.reportLogs) ? record.reportLogs.slice(0, 5) : [],
+  };
+}
+
 function ensureSafetyTriggered(order) {
   let record = getSafetyByOrderId(order.orderId);
   if (record) return record;
   record = {
     safetyId: `SAFE-${Date.now()}`,
     orderId: order.orderId,
+    customerId: order.customerId,
     customerName: order.customerName,
+    address: order.address || "",
+    regionCode: "CN-DEFAULT",
+    regionName: getRegionName("CN-DEFAULT"),
+    companyId: "",
+    companyName: "",
+    dealerId: "",
+    userId: "",
+    driverName: "",
+    checkedAt: 0,
+    reportTargetName: "",
     status: "pending", // pending -> completed / failed
     checkItems: [],
     photoUrls: [],
@@ -1993,7 +2087,7 @@ function runSafetyReport(record) {
   });
 }
 
-function submitSafetyRecord(orderId, payload) {
+function submitSafetyRecord(orderId, payload, meta = {}) {
   const order = getOrderById(orderId);
   const record = ensureSafetyTriggered(order);
   const checkItems = normalizeSafetyItems(payload.checkItems);
@@ -2006,10 +2100,23 @@ function submitSafetyRecord(orderId, payload) {
     throw new Error("异常安检必须补充隐患说明");
   }
 
+  const operator = buildSafetyOperatorMeta(meta);
+  const policySnapshot = getSafetyPolicySnapshot(operator);
   record.checkItems = checkItems;
   record.photoUrls = photoUrls;
   record.hasAbnormal = hasAbnormal;
   record.hazardNote = hazardNote;
+  record.customerId = order.customerId;
+  record.address = order.address || "";
+  record.regionCode = operator.regionCode;
+  record.regionName = operator.regionName;
+  record.companyId = operator.companyId;
+  record.companyName = operator.companyName;
+  record.dealerId = operator.dealerId;
+  record.userId = operator.userId;
+  record.driverName = operator.driverName;
+  record.checkedAt = Date.now();
+  record.reportTargetName = policySnapshot.reportTargetName;
   record.updatedAt = Date.now();
   runSafetyReport(record);
 
@@ -2040,18 +2147,18 @@ function retrySafetyReport(safetyId) {
   };
 }
 
-function syncSafetyOfflinePayload(payload = {}) {
+function syncSafetyOfflinePayload(payload = {}, meta = {}) {
   const mode = String(payload.mode || "").trim();
   if (mode === "retry" && payload.safetyId) {
     return retrySafetyReport(String(payload.safetyId));
   }
   if (mode === "submit" && payload.orderId) {
-    return submitSafetyRecord(String(payload.orderId), payload.submitPayload || {});
+    return submitSafetyRecord(String(payload.orderId), payload.submitPayload || {}, meta);
   }
   throw new Error("安检离线同步数据不完整");
 }
 
-function enqueueOfflineChange(payload) {
+function enqueueOfflineChange(payload, operator = {}) {
   const entityType = String(payload.entityType || "").trim();
   const action = String(payload.action || "").trim();
   const changePayload = payload.payload || {};
@@ -2070,6 +2177,7 @@ function enqueueOfflineChange(payload) {
     entityType,
     action,
     payload: changePayload,
+    operator: buildSafetyOperatorMeta(operator),
     syncStatus: "pending",
     retryCount: 0,
     manualRequired: false,
@@ -2152,7 +2260,7 @@ function syncOneOfflineItem(item) {
   }
   if (item.entityType === "safety") {
     try {
-      const result = syncSafetyOfflinePayload(item.payload || {});
+      const result = syncSafetyOfflinePayload(item.payload || {}, item.operator || {});
       item.syncStatus = "completed";
       item.conflictType = "";
       item.lastError = "";
@@ -2481,7 +2589,19 @@ function listOfflineQueue(filters) {
     return true;
   });
   return {
-    items: items.slice(0, 100),
+    items: items.slice(0, 100).map((item) => {
+      if (item.entityType !== "safety") return item;
+      const safetyId = String(item.payload?.safetyId || "").trim();
+      const orderId = String(item.payload?.orderId || item.payload?.submitPayload?.orderId || "").trim();
+      const record =
+        (safetyId && safetyRecords.find((entry) => entry.safetyId === safetyId)) ||
+        (orderId && getSafetyByOrderId(orderId)) ||
+        null;
+      return {
+        ...item,
+        business: buildSafetyBusinessSummary(record || { orderId }, item),
+      };
+    }),
     stats: getOfflineQueueStats(offlineQueue),
     filteredStats: getOfflineQueueStats(items),
   };
@@ -3515,10 +3635,17 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && pathname.startsWith("/safety/by-order/")) {
       const accessToken = readAccessToken(req);
-      listDevices(accessToken);
+      const { user } = authByAccessToken(accessToken);
       const orderId = decodeURIComponent(pathname.replace("/safety/by-order/", ""));
       const payload = await readBody(req);
-      const data = submitSafetyRecord(orderId, payload);
+      const data = submitSafetyRecord(orderId, payload, {
+        userId: user.id,
+        dealerId: user.dealerId,
+        driverName: user.nickname,
+        companyId: user.companyId,
+        companyName: user.companyName,
+        regionCode: user.regionCode,
+      });
       return sendJson(res, 200, { success: true, data });
     }
 
@@ -3559,9 +3686,16 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && pathname === "/sync/queue/enqueue") {
       const accessToken = readAccessToken(req);
-      listDevices(accessToken);
+      const { user } = authByAccessToken(accessToken);
       const payload = await readBody(req);
-      const data = enqueueOfflineChange(payload);
+      const data = enqueueOfflineChange(payload, {
+        userId: user.id,
+        dealerId: user.dealerId,
+        driverName: user.nickname,
+        companyId: user.companyId,
+        companyName: user.companyName,
+        regionCode: user.regionCode,
+      });
       return sendJson(res, 200, { success: true, data });
     }
 
