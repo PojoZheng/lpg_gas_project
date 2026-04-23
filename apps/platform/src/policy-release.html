@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>平台规则配置与发布</title>
+    <title>平台策略列表</title>
     <link rel="stylesheet" href="./platform-design-system.css" />
     <style>
       .page-toolbar {
@@ -12,23 +12,19 @@
         align-items: center;
         gap: 12px;
         margin-bottom: 18px;
-        padding: 2px 6px 0;
       }
       .page-toolbar-copy h2 {
         margin: 0;
         font-size: 22px;
       }
       .page-toolbar-copy p {
-        margin: 4px 0 0;
+        margin: 6px 0 0;
         color: var(--text-secondary);
         font-size: 13px;
       }
-      .workspace-shell {
-        position: relative;
-      }
       .page-layout {
         display: grid;
-        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(240px, 280px);
+        grid-template-columns: 360px minmax(0, 1fr);
         gap: 18px;
         align-items: start;
       }
@@ -40,243 +36,36 @@
       .column-stack > .card {
         margin-bottom: 0;
       }
-      .panel-sticky {
-        position: sticky;
-        top: 18px;
-      }
-      .rail-card {
+      .list-card,
+      .detail-card {
         border-radius: 24px;
         padding: 16px;
-        background: linear-gradient(180deg, #fcfdfe 0%, #ffffff 100%);
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
       }
-      .editor-card {
-        border-radius: 28px;
-        padding: 20px;
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.05);
-      }
-      .editor-hero {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        gap: 16px;
-        padding: 2px 2px 18px;
-        margin-bottom: 18px;
-        border-bottom: 1px solid var(--border);
-      }
-      .editor-hero-copy h2 {
-        margin: 0;
-        font-size: 20px;
-      }
-      .editor-hero-copy p {
-        margin: 6px 0 0;
-        max-width: 56ch;
-        color: var(--text-secondary);
-        font-size: 13px;
-        line-height: 1.6;
-      }
-      .editor-hero-meta {
-        display: grid;
-        gap: 8px;
-        min-width: 220px;
-      }
-      .hero-meta-card {
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 12px;
-        background: #f9fcfc;
-      }
-      .hero-meta-card span {
-        display: block;
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
-      .hero-meta-card strong {
-        display: block;
-        margin-top: 6px;
-        font-size: 16px;
-      }
-      .config-section {
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        padding: 16px;
-        background: linear-gradient(180deg, #fcfefe 0%, #f8fbfc 100%);
-        margin-bottom: 14px;
-      }
-      .config-section:last-child {
-        margin-bottom: 0;
-      }
+      .scope-overview-head,
+      .detail-head,
       .section-head {
         display: flex;
         justify-content: space-between;
         align-items: start;
         gap: 12px;
-        margin-bottom: 12px;
       }
-      .section-head h3 {
-        margin: 0;
-        font-size: 16px;
-      }
-      .section-head p {
-        margin: 4px 0 0;
-        color: var(--text-secondary);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-      .mini-tag,
-      .status-pill,
-      .chip-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 32px;
-        padding: 0 12px;
-        border-radius: 999px;
-        border: 1px solid #d4e7ea;
-        background: #fff;
-        font-size: 12px;
-      }
-      .mini-tag {
-        color: var(--brand);
-        background: var(--brand-soft);
-      }
-      .status-pill.active {
-        background: #eff8f1;
-        border-color: #cfe7d5;
-        color: #20804f;
-      }
-      .status-pill.draft {
-        background: #fff7ed;
-        border-color: #fed7aa;
-        color: #b45309;
-      }
-      .status-pill.history {
-        background: #f3f4f6;
-        border-color: #e5e7eb;
-        color: #6b7280;
-      }
-      .field-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-      .toggle-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .toggle-card {
-        min-height: 74px;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 10px 12px;
-        background: #fff;
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        align-items: center;
-      }
-      .toggle-copy strong {
-        display: block;
-        font-size: 14px;
-      }
-      .toggle-copy span {
-        display: block;
+      .panel-muted {
         margin-top: 4px;
-        font-size: 12px;
         color: var(--text-secondary);
+        font-size: 12px;
         line-height: 1.5;
-      }
-      .app-switch {
-        position: relative;
-        width: 46px;
-        height: 28px;
-        flex: 0 0 auto;
-      }
-      .app-switch input {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-      .switch-track {
-        width: 100%;
-        height: 100%;
-        border-radius: 999px;
-        background: #d8e6e9;
-        display: inline-flex;
-        align-items: center;
-        padding: 3px;
-        transition: background 160ms ease;
-      }
-      .switch-thumb {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: 0 1px 4px rgba(17, 17, 17, 0.16);
-        transition: transform 160ms ease;
-      }
-      .app-switch input:checked + .switch-track {
-        background: var(--brand);
-      }
-      .app-switch input:checked + .switch-track .switch-thumb {
-        transform: translateX(18px);
-      }
-      .chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .chip-btn {
-        cursor: pointer;
-        color: var(--text-primary);
-      }
-      .chip-btn.active {
-        background: var(--brand-soft);
-        border-color: var(--brand);
-        color: var(--brand);
-      }
-      .scope-overview-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-      .rail-intro {
-        display: grid;
-        gap: 10px;
-        margin-bottom: 14px;
-      }
-      .rail-intro-card {
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 12px;
-        background: #f9fbfc;
-      }
-      .rail-intro-card span {
-        display: block;
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
-      .rail-intro-card strong {
-        display: block;
-        margin-top: 6px;
-        font-size: 16px;
-      }
-      .scope-overview-head p {
-        margin: 4px 0 0;
-        font-size: 12px;
-        color: var(--text-secondary);
       }
       .scope-filter-row {
         display: grid;
         grid-template-columns: 140px minmax(0, 1fr);
         gap: 8px;
-        margin-bottom: 12px;
+        margin: 12px 0;
       }
-      .scope-grid {
+      .scope-grid,
+      .summary-grid,
+      .summary-list,
+      .detail-grid {
         display: grid;
         gap: 8px;
       }
@@ -298,25 +87,17 @@
         box-shadow: 0 10px 22px rgba(71, 153, 160, 0.1);
         transform: translateY(-1px);
       }
-      .scope-card-head,
-      .version-head,
-      .audit-head,
-      .summary-head {
+      .scope-card-head {
         display: flex;
         justify-content: space-between;
-        gap: 10px;
         align-items: start;
+        gap: 10px;
       }
-      .scope-card-title,
-      .version-title,
-      .audit-title {
+      .scope-card-title {
         font-size: 14px;
         font-weight: 700;
       }
-      .scope-card-sub,
-      .version-meta,
-      .audit-meta,
-      .panel-muted {
+      .scope-card-sub {
         margin-top: 4px;
         font-size: 12px;
         color: var(--text-secondary);
@@ -345,23 +126,11 @@
         font-weight: 600;
       }
       .summary-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .summary-card h3 {
-        margin: 0 0 8px;
+        margin: 0 0 10px;
         font-size: 14px;
-      }
-      .summary-card p {
-        margin: 0;
-        color: var(--text-secondary);
-        font-size: 12px;
-        line-height: 1.6;
-      }
-      .summary-list {
-        display: grid;
-        gap: 8px;
       }
       .summary-line {
         display: flex;
@@ -372,58 +141,51 @@
       }
       .summary-line strong {
         color: var(--text-primary);
-        font-weight: 600;
         text-align: right;
       }
-      .list-stack {
-        display: grid;
-        gap: 8px;
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid #d4e7ea;
+        background: #fff;
+        font-size: 12px;
       }
-      .version-item {
-        cursor: pointer;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 12px;
+      .status-pill.active {
+        background: #eff8f1;
+        border-color: #cfe7d5;
+        color: #20804f;
+      }
+      .status-pill.draft {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #b45309;
+      }
+      .status-pill.history {
+        background: #f3f4f6;
+        border-color: #e5e7eb;
+        color: #6b7280;
+      }
+      .empty-block {
+        border: 1px dashed var(--border);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        color: var(--text-secondary);
         background: #fff;
       }
-      .version-item.active {
-        border-color: var(--brand);
-        background: var(--brand-soft);
-      }
-      .json-preview {
-        min-height: 240px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: 12px;
-        line-height: 1.55;
-        background: #f8fbfb;
-      }
-      @media (max-width: 1240px) {
-        .page-layout {
-          grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
-        }
-        .panel-sticky {
-          position: static;
-        }
-      }
-      @media (max-width: 940px) {
+      @media (max-width: 1100px) {
         .page-layout {
           grid-template-columns: 1fr;
-        }
-        .editor-hero {
-          grid-template-columns: 1fr;
-          display: grid;
-        }
-        .editor-hero-meta {
-          min-width: 0;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
       @media (max-width: 860px) {
-        .field-grid,
-        .toggle-grid,
         .scope-filter-row,
         .scope-card-meta,
-        .editor-hero-meta {
+        .summary-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -432,35 +194,26 @@
   <body>
     <div class="platform-app">
       <div id="platformSidebar"></div>
-
       <div class="content-wrap">
         <div id="platformTopBar"></div>
-
         <main class="page-content">
           <div class="page-toolbar">
             <div class="page-toolbar-copy">
-              <h2>策略配置</h2>
-              <p>按作用域管理平台下发配置。左侧看作用域，中间编辑规则，右侧只看当前生效信息。</p>
+              <h2>策略列表</h2>
+              <p>这个页面只负责查看、筛选和进入编辑，不在列表页直接改规则。</p>
             </div>
-            <span class="mini-tag">清晰管理后台</span>
+            <a class="btn primary" href="./policy-editor.html">新增规则</a>
           </div>
 
-          <div class="workspace-shell">
-            <div class="page-layout">
+          <div class="page-layout">
             <div class="column-stack">
-              <section class="card rail-card">
-                <div class="rail-intro">
-                  <div class="rail-intro-card">
-                    <span>配置对象</span>
-                    <strong>按作用域选择</strong>
-                  </div>
-                </div>
+              <section class="card list-card">
                 <div class="scope-overview-head">
                   <div>
-                    <h2 class="card-title" style="margin-bottom: 0">下发配置列表</h2>
-                    <p>直接查看不同地区、燃气公司、个人账号当前采用的策略。</p>
+                    <h2 class="card-title" style="margin-bottom: 0">配置对象列表</h2>
+                    <p class="panel-muted">按地区、燃气公司、个人账号查看当前采用的策略。</p>
                   </div>
-                  <span class="mini-tag" id="scopeCountTag">0 个作用域</span>
+                  <span class="btn secondary" id="scopeCountTag">0 个作用域</span>
                 </div>
                 <div class="scope-filter-row">
                   <select id="scopeListFilter">
@@ -476,245 +229,45 @@
             </div>
 
             <div class="column-stack">
-              <section class="card editor-card">
-                <div class="editor-hero">
-                  <div class="editor-hero-copy">
-                    <h2>策略编辑与发布</h2>
-                    <p>先选作用域，再调整扫码、安检和上报规则。中间只负责编辑业务配置，不承载版本运维台。</p>
+              <section class="card detail-card">
+                <div class="detail-head" style="margin-bottom: 12px;">
+                  <div>
+                    <h2 class="card-title" style="margin-bottom: 0">当前生效配置</h2>
+                    <p class="panel-muted">先确认对象与当前配置，再进入编辑页处理。</p>
                   </div>
-                  <div class="editor-hero-meta">
-                    <div class="hero-meta-card">
-                      <span>工作方式</span>
-                      <strong>保存草稿后再发布</strong>
-                    </div>
-                    <div class="hero-meta-card">
-                      <span>异常承接</span>
-                      <strong>监控页 / 同步页处理</strong>
-                    </div>
+                  <div class="btn-row">
+                    <a class="btn secondary" id="editPolicyBtn" href="./policy-editor.html">编辑规则</a>
                   </div>
-                </div>
-
-                <div class="config-section">
-                  <div class="section-head">
-                    <div>
-                      <h3>作用域与模板</h3>
-                      <p>确定当前配置发给谁，以及采用哪套基础模板。</p>
-                    </div>
-                    <span class="mini-tag">基础</span>
-                  </div>
-                  <div class="field-grid">
-                    <div class="field"><label>操作人</label><input id="operatorInput" value="平台管理员" /></div>
-                    <div class="field">
-                      <label>下发层级</label>
-                      <select id="scopeTypeInput">
-                        <option value="region">地区</option>
-                        <option value="company">燃气公司</option>
-                        <option value="account">个人账号</option>
-                      </select>
-                    </div>
-                    <div class="field"><label>作用域标识</label><input id="scopeValueInput" value="CN-DEFAULT" /></div>
-                    <div class="field"><label>作用域名称</label><input id="scopeLabelInput" value="全国默认区域" /></div>
-                    <div class="field"><label>区域编码</label><input id="regionInput" value="CN-DEFAULT" /></div>
-                    <div class="field"><label>地区名称</label><input id="regionNameInput" value="全国默认区域" /></div>
-                    <div class="field">
-                      <label>合规模板</label>
-                      <select id="templateSelect">
-                        <option value="strict">严格</option>
-                        <option value="standard" selected>标准</option>
-                        <option value="loose">宽松</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="config-section">
-                  <div class="section-head">
-                    <div>
-                      <h3>气瓶扫码配置</h3>
-                      <p>管理扫码能力、是否强制、扫码方式和生效场景。</p>
-                    </div>
-                    <span class="mini-tag">扫码</span>
-                  </div>
-                  <div class="toggle-grid">
-                    <div class="toggle-card">
-                      <div class="toggle-copy"><strong>启用扫码</strong><span>控制气瓶扫码能力是否可用。</span></div>
-                      <label class="app-switch"><input id="scanEnabledInput" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
-                    </div>
-                    <div class="toggle-card">
-                      <div class="toggle-copy"><strong>强制扫码</strong><span>关闭时表示建议，不拦截业务流程。</span></div>
-                      <label class="app-switch"><input id="scanRequiredInput" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
-                    </div>
-                  </div>
-                  <div class="field-grid" style="margin-top: 10px">
-                    <div class="field">
-                      <label>扫码方式</label>
-                      <select id="scanModeInput">
-                        <option value="qr_code">二维码</option>
-                        <option value="rfid">RFID</option>
-                        <option value="manual">手动录入</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="field" style="margin-top: 10px">
-                    <label>扫码场景</label>
-                    <div class="chip-row" id="scanScenesWrap">
-                      <button class="chip-btn" type="button" data-value="delivery">配送时</button>
-                      <button class="chip-btn" type="button" data-value="recovery">回收时</button>
-                      <button class="chip-btn" type="button" data-value="refill">充装时</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="config-section">
-                  <div class="section-head">
-                    <div>
-                      <h3>安检规则配置</h3>
-                      <p>管理随瓶安检、定期安检和 AI 辅助能力。</p>
-                    </div>
-                    <span class="mini-tag">安检</span>
-                  </div>
-                  <div class="toggle-grid">
-                    <div class="toggle-card">
-                      <div class="toggle-copy"><strong>开启随瓶安检</strong><span>关闭后配送完成不再强制进入安检闭环。</span></div>
-                      <label class="app-switch"><input id="deliveryInspectionEnabledInput" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
-                    </div>
-                    <div class="toggle-card">
-                      <div class="toggle-copy"><strong>开启定期安检</strong><span>面向周期内未覆盖客户生成安检任务。</span></div>
-                      <label class="app-switch"><input id="periodicInspectionEnabledInput" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
-                    </div>
-                    <div class="toggle-card">
-                      <div class="toggle-copy"><strong>自动生成任务</strong><span>定期安检到期后自动生成待办。</span></div>
-                      <label class="app-switch"><input id="autoTaskInput" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
-                    </div>
-                    <div class="toggle-card">
-                      <div class="toggle-copy"><strong>AI 识别辅助</strong><span>开启后在安检页面引导识别对象。</span></div>
-                      <label class="app-switch"><input id="aiEnabledInput" type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
-                    </div>
-                  </div>
-                  <div class="field-grid" style="margin-top: 10px">
-                    <div class="field">
-                      <label>安检方式</label>
-                      <select id="inspectionModeInput">
-                        <option value="ai_assist">AI辅助</option>
-                        <option value="photo_only">仅拍照</option>
-                        <option value="manual">人工</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label>定期安检周期</label>
-                      <select id="inspectionCycleInput">
-                        <option value="90">90天</option>
-                        <option value="180">180天</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="field" style="margin-top: 10px">
-                    <label>AI 识别项</label>
-                    <div class="chip-row" id="aiItemsWrap">
-                      <button class="chip-btn" type="button" data-value="cylinder">气瓶检测</button>
-                      <button class="chip-btn" type="button" data-value="hose">软管检测</button>
-                      <button class="chip-btn" type="button" data-value="stove">灶具检测</button>
-                      <button class="chip-btn" type="button" data-value="leak">泄漏检测</button>
-                    </div>
-                  </div>
-                  <div class="field" style="margin-top: 10px">
-                    <label>必拍项目</label>
-                    <div class="chip-row" id="requiredPhotosWrap">
-                      <button class="chip-btn" type="button" data-value="cylinder">气瓶照片</button>
-                      <button class="chip-btn" type="button" data-value="environment">环境照片</button>
-                      <button class="chip-btn" type="button" data-value="valve">阀门连接</button>
-                      <button class="chip-btn" type="button" data-value="hazard">隐患照片</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="config-section">
-                  <div class="section-head">
-                    <div>
-                      <h3>数据上报配置</h3>
-                      <p>管理上报模式和离线补传批量参数。</p>
-                    </div>
-                    <span class="mini-tag">上报</span>
-                  </div>
-                  <div class="field-grid">
-                    <div class="field">
-                      <label>上报模式</label>
-                      <select id="reportModeInput">
-                        <option value="company_first">燃企中转</option>
-                        <option value="direct">直连政府</option>
-                        <option value="hybrid">混合模式</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label>批量间隔</label>
-                      <select id="batchIntervalInput">
-                        <option value="realtime">实时</option>
-                        <option value="1h">1小时</option>
-                        <option value="24h">24小时</option>
-                      </select>
-                    </div>
-                    <div class="field"><label>离线补传尝试上限</label><input id="retryCountInput" type="number" min="0" max="9" value="3" /></div>
-                    <div class="field"><label>同步批量大小</label><input id="syncBatchSizeInput" type="number" min="1" max="1000" value="20" /></div>
-                  </div>
-                </div>
-
-                <div class="config-section">
-                  <div class="section-head">
-                    <div>
-                      <h3>策略 JSON</h3>
-                      <p>保留原始内容，便于排查和审查。</p>
-                    </div>
-                    <span class="mini-tag">JSON</span>
-                  </div>
-                  <div class="field" style="margin-bottom: 0">
-                    <label>策略内容</label>
-                    <textarea id="contentInput" class="json-preview" readonly></textarea>
-                  </div>
-                </div>
-
-                <div class="btn-row" style="margin-top: 12px">
-                  <button class="btn primary" id="saveDraftBtn">保存草稿</button>
-                  <button class="btn secondary" id="publishBtn">发布选中版本</button>
-                </div>
-                <p class="tip" id="opTip"></p>
-              </section>
-            </div>
-
-            <div class="column-stack panel-sticky">
-              <section class="card rail-card">
-                <div class="summary-head" style="margin-bottom: 10px">
-                  <strong>当前选中配置</strong>
-                  <span class="panel-muted">详情面板</span>
                 </div>
                 <div id="currentPolicy"></div>
               </section>
 
-              <section class="card rail-card">
-                <div class="summary-head" style="margin-bottom: 10px">
-                  <strong>下发说明</strong>
-                  <span class="panel-muted">业务平台只保留必要信息</span>
+              <section class="card detail-card">
+                <div class="section-head" style="margin-bottom: 12px;">
+                  <div>
+                    <h2 class="card-title" style="margin-bottom: 0">业务说明</h2>
+                    <p class="panel-muted">列表页只做查找和确认，不承担编辑动作。</p>
+                  </div>
                 </div>
                 <div class="summary-grid">
                   <div class="summary-card">
-                    <h3>平台职责</h3>
+                    <h3>这页做什么</h3>
                     <div class="summary-list">
-                      <div class="summary-line"><span>业务配置</span><strong>作用域下发</strong></div>
-                      <div class="summary-line"><span>异常处理</span><strong>监控与同步页承接</strong></div>
-                      <div class="summary-line"><span>运维能力</span><strong>挂云上管理</strong></div>
+                      <div class="summary-line"><span>查看对象</span><strong>看谁在用什么策略</strong></div>
+                      <div class="summary-line"><span>查询筛选</span><strong>按层级和关键字定位</strong></div>
+                      <div class="summary-line"><span>进入编辑</span><strong>跳转到编辑页处理</strong></div>
                     </div>
                   </div>
                   <div class="summary-card">
-                    <h3>当前操作说明</h3>
-                    <p style="margin-bottom: 10px;">当前页只负责确认对象、调整规则和执行发布。</p>
+                    <h3>这页不做什么</h3>
                     <div class="summary-list">
-                      <div class="summary-line"><span>保存草稿</span><strong>保留当前编辑内容</strong></div>
-                      <div class="summary-line"><span>发布版本</span><strong>将选中配置下发到作用域</strong></div>
-                      <div class="summary-line"><span>异常回流</span><strong>监控与同步页继续处理</strong></div>
+                      <div class="summary-line"><span>不直接改</span><strong>避免列表页塞满表单</strong></div>
+                      <div class="summary-line"><span>不做运维</span><strong>版本审计挂云上</strong></div>
+                      <div class="summary-line"><span>不处理异常</span><strong>监控页/同步页承接</strong></div>
                     </div>
                   </div>
                 </div>
               </section>
-            </div>
             </div>
           </div>
         </main>
@@ -722,115 +275,29 @@
     </div>
 
     <script type="module">
-      import {
-        fetchCurrentPolicy,
-        fetchPolicyVersions,
-        editPolicyDraft,
-        publishPolicyVersion,
-      } from "./policy-release-client.js";
+      import { fetchCurrentPolicy, fetchPolicyVersions } from "./policy-release-client.js";
       import { mountPlatformChrome } from "./platform-shell.js";
-
-      const TEMPLATE_PRESETS = {
-        strict: {
-          scan: { enabled: true, required: true, mode: "qr_code", scenes: ["delivery", "recovery", "refill"] },
-          inspection: {
-            delivery: { enabled: true, mode: "ai_assist", aiItems: ["cylinder", "hose", "stove", "leak"], requiredPhotos: ["cylinder", "environment", "valve", "hazard"] },
-            periodic: { enabled: true, cycleDays: 90, autoTask: true },
-            aiEnabled: true,
-          },
-          reporting: { mode: "company_first", batchInterval: "1h", retryCount: 5, syncBatchSize: 20 },
-        },
-        standard: {
-          scan: { enabled: true, required: false, mode: "qr_code", scenes: ["delivery", "recovery"] },
-          inspection: {
-            delivery: { enabled: true, mode: "manual", aiItems: ["cylinder", "hose"], requiredPhotos: ["cylinder", "environment"] },
-            periodic: { enabled: true, cycleDays: 90, autoTask: true },
-            aiEnabled: false,
-          },
-          reporting: { mode: "hybrid", batchInterval: "24h", retryCount: 3, syncBatchSize: 20 },
-        },
-        loose: {
-          scan: { enabled: false, required: false, mode: "manual", scenes: ["delivery"] },
-          inspection: {
-            delivery: { enabled: false, mode: "photo_only", aiItems: [], requiredPhotos: ["environment"] },
-            periodic: { enabled: true, cycleDays: 180, autoTask: false },
-            aiEnabled: false,
-          },
-          reporting: { mode: "direct", batchInterval: "realtime", retryCount: 1, syncBatchSize: 10 },
-        },
-      };
 
       const DEFAULT_POLICY_CONTENT = {
         regionName: "全国默认区域",
         template: "standard",
-        safetyCheckRequired: true,
-        maxRetry: 3,
-        syncBatchSize: 20,
-        scan: {
-          enabled: true,
-          required: false,
-          mode: "qr_code",
-          scenes: ["delivery", "recovery"],
-        },
+        scan: { enabled: true, required: false, mode: "qr_code", scenes: ["delivery", "recovery"] },
         inspection: {
-          delivery: {
-            enabled: true,
-            mode: "manual",
-            aiItems: ["cylinder", "hose"],
-            requiredPhotos: ["cylinder", "environment"],
-          },
-          periodic: {
-            enabled: true,
-            cycleDays: 90,
-            autoTask: true,
-          },
-          aiEnabled: false,
+          delivery: { enabled: true, mode: "manual" },
+          periodic: { enabled: true, cycleDays: 90 },
         },
-        reporting: {
-          mode: "hybrid",
-          batchInterval: "24h",
-          retryCount: 3,
-          syncBatchSize: 20,
-        },
+        reporting: { mode: "hybrid", retryCount: 3, syncBatchSize: 20 },
       };
 
-      const currentPolicy = document.getElementById("currentPolicy");
-      const operatorInput = document.getElementById("operatorInput");
-      const regionInput = document.getElementById("regionInput");
-      const regionNameInput = document.getElementById("regionNameInput");
-      const scopeTypeInput = document.getElementById("scopeTypeInput");
-      const scopeValueInput = document.getElementById("scopeValueInput");
-      const scopeLabelInput = document.getElementById("scopeLabelInput");
-      const templateSelect = document.getElementById("templateSelect");
-      const scanEnabledInput = document.getElementById("scanEnabledInput");
-      const scanRequiredInput = document.getElementById("scanRequiredInput");
-      const scanModeInput = document.getElementById("scanModeInput");
-      const deliveryInspectionEnabledInput = document.getElementById("deliveryInspectionEnabledInput");
-      const periodicInspectionEnabledInput = document.getElementById("periodicInspectionEnabledInput");
-      const autoTaskInput = document.getElementById("autoTaskInput");
-      const aiEnabledInput = document.getElementById("aiEnabledInput");
-      const inspectionModeInput = document.getElementById("inspectionModeInput");
-      const inspectionCycleInput = document.getElementById("inspectionCycleInput");
-      const reportModeInput = document.getElementById("reportModeInput");
-      const batchIntervalInput = document.getElementById("batchIntervalInput");
-      const retryCountInput = document.getElementById("retryCountInput");
-      const syncBatchSizeInput = document.getElementById("syncBatchSizeInput");
-      const contentInput = document.getElementById("contentInput");
-      const saveDraftBtn = document.getElementById("saveDraftBtn");
-      const publishBtn = document.getElementById("publishBtn");
-      const opTip = document.getElementById("opTip");
       const scopeListFilter = document.getElementById("scopeListFilter");
       const scopeListSearch = document.getElementById("scopeListSearch");
       const scopeList = document.getElementById("scopeList");
       const scopeCountTag = document.getElementById("scopeCountTag");
+      const currentPolicy = document.getElementById("currentPolicy");
+      const editPolicyBtn = document.getElementById("editPolicyBtn");
 
-      let selectedVersion = "";
       let allPolicyVersions = [];
-
-      function setTip(text, isError = false) {
-        opTip.textContent = text;
-        opTip.className = isError ? "tip err" : "tip";
-      }
+      let selectedVersion = "";
 
       function formatTime(ts) {
         if (!ts) return "未发布";
@@ -841,96 +308,18 @@
         return [...new Set((values || []).map((item) => String(item || "").trim()).filter(Boolean))];
       }
 
-      function scopeTypeLabel(value) {
-        return ({ region: "地区", company: "燃气公司", account: "个人账号" })[value] || "地区";
-      }
-
-      function statusLabel(value) {
-        return value === "active" ? "生效中" : value === "draft" ? "草稿" : "历史";
-      }
-
       function scopeDefaults(type) {
         if (type === "company") return { value: "COMP-DEFAULT", label: "默认燃气公司" };
         if (type === "account") return { value: "DEALER-DEFAULT", label: "默认配送账号" };
         return { value: "CN-DEFAULT", label: "全国默认区域" };
       }
 
-      function normalizeScopeMeta(policy = {}) {
-        const scopeType = ["region", "company", "account"].includes(String(policy.scopeType || "").trim())
-          ? String(policy.scopeType || "").trim()
-          : "region";
-        const fallback = scopeDefaults(scopeType);
-        const scopeValue = String(policy.scopeValue || policy.regionCode || fallback.value).trim() || fallback.value;
-        const scopeLabel = String(policy.scopeLabel || policy.regionName || fallback.label).trim() || fallback.label;
-        const regionCode =
-          scopeType === "region"
-            ? scopeValue
-            : String(policy.regionCode || regionInput.value || "CN-DEFAULT").trim() || "CN-DEFAULT";
-        return { scopeType, scopeValue, scopeLabel, regionCode };
+      function scopeTypeLabel(value) {
+        return ({ region: "地区", company: "燃气公司", account: "个人账号" })[value] || "地区";
       }
 
-      function normalizePolicyContent(content = {}) {
-        const template = String(content.template || DEFAULT_POLICY_CONTENT.template || "standard");
-        const preset = TEMPLATE_PRESETS[template] || TEMPLATE_PRESETS.standard;
-        const reportingRetry = Number(content.reporting?.retryCount ?? content.maxRetry ?? preset.reporting.retryCount);
-        const batchSize = Number(content.reporting?.syncBatchSize ?? content.syncBatchSize ?? preset.reporting.syncBatchSize);
-        const deliveryEnabled = Boolean(content.inspection?.delivery?.enabled ?? content.safetyCheckRequired ?? preset.inspection.delivery.enabled);
-        return {
-          regionName: String(content.regionName || DEFAULT_POLICY_CONTENT.regionName),
-          template,
-          safetyCheckRequired: deliveryEnabled,
-          maxRetry: reportingRetry,
-          syncBatchSize: batchSize,
-          scan: {
-            enabled: Boolean(content.scan?.enabled ?? preset.scan.enabled),
-            required: Boolean(content.scan?.required ?? preset.scan.required),
-            mode: String(content.scan?.mode || preset.scan.mode),
-            scenes: uniq(content.scan?.scenes || preset.scan.scenes),
-          },
-          inspection: {
-            delivery: {
-              enabled: deliveryEnabled,
-              mode: String(content.inspection?.delivery?.mode || preset.inspection.delivery.mode),
-              aiItems: uniq(content.inspection?.delivery?.aiItems || preset.inspection.delivery.aiItems),
-              requiredPhotos: uniq(content.inspection?.delivery?.requiredPhotos || preset.inspection.delivery.requiredPhotos),
-            },
-            periodic: {
-              enabled: Boolean(content.inspection?.periodic?.enabled ?? preset.inspection.periodic.enabled),
-              cycleDays: Number(content.inspection?.periodic?.cycleDays ?? content.inspectionCycle ?? preset.inspection.periodic.cycleDays),
-              autoTask: Boolean(content.inspection?.periodic?.autoTask ?? preset.inspection.periodic.autoTask),
-            },
-            aiEnabled: Boolean(content.inspection?.aiEnabled ?? preset.inspection.aiEnabled),
-          },
-          reporting: {
-            mode: String(content.reporting?.mode || preset.reporting.mode),
-            batchInterval: String(content.reporting?.batchInterval || preset.reporting.batchInterval),
-            retryCount: reportingRetry,
-            syncBatchSize: batchSize,
-          },
-        };
-      }
-
-      function setChipState(wrapId, values = []) {
-        const set = new Set(uniq(values));
-        document.querySelectorAll(`#${wrapId} .chip-btn`).forEach((button) => {
-          button.classList.toggle("active", set.has(String(button.dataset.value || "")));
-          button.setAttribute("aria-pressed", button.classList.contains("active") ? "true" : "false");
-        });
-      }
-
-      function readChipValues(wrapId) {
-        return [...document.querySelectorAll(`#${wrapId} .chip-btn.active`)].map((button) => String(button.dataset.value || ""));
-      }
-
-      function bindChipWrap(wrapId) {
-        const wrap = document.getElementById(wrapId);
-        wrap.addEventListener("click", (event) => {
-          const button = event.target.closest(".chip-btn");
-          if (!button || !wrap.contains(button)) return;
-          button.classList.toggle("active");
-          button.setAttribute("aria-pressed", button.classList.contains("active") ? "true" : "false");
-          syncContentPreview();
-        });
+      function statusLabel(value) {
+        return value === "active" ? "生效中" : value === "draft" ? "草稿" : "历史";
       }
 
       function templateLabel(value) {
@@ -949,114 +338,43 @@
         return ({ company_first: "燃企中转", direct: "直连政府", hybrid: "混合模式" })[value] || value;
       }
 
-      function syncScopeInputs() {
-        const scopeType = String(scopeTypeInput.value || "region");
+      function normalizeScopeMeta(policy = {}) {
+        const scopeType = ["region", "company", "account"].includes(String(policy.scopeType || "").trim())
+          ? String(policy.scopeType || "").trim()
+          : "region";
         const fallback = scopeDefaults(scopeType);
-        if (scopeType === "region") {
-          scopeValueInput.value = String(regionInput.value || fallback.value).trim() || fallback.value;
-          scopeLabelInput.value = String(regionNameInput.value || fallback.label).trim() || fallback.label;
-          return;
-        }
-        if (!String(scopeValueInput.value || "").trim() || scopeValueInput.value === "CN-DEFAULT") {
-          scopeValueInput.value = fallback.value;
-        }
-        if (!String(scopeLabelInput.value || "").trim() || scopeLabelInput.value === "全国默认区域") {
-          scopeLabelInput.value = fallback.label;
-        }
+        const scopeValue = String(policy.scopeValue || policy.regionCode || fallback.value).trim() || fallback.value;
+        const scopeLabel = String(policy.scopeLabel || policy.regionName || fallback.label).trim() || fallback.label;
+        const regionCode = scopeType === "region" ? scopeValue : String(policy.regionCode || "CN-DEFAULT").trim() || "CN-DEFAULT";
+        return { scopeType, scopeValue, scopeLabel, regionCode };
       }
 
-      function buildPolicyContent() {
-        const content = {
-          regionCode: String(regionInput.value || "CN-DEFAULT").trim() || "CN-DEFAULT",
-          regionName: String(regionNameInput.value || DEFAULT_POLICY_CONTENT.regionName).trim() || DEFAULT_POLICY_CONTENT.regionName,
-          template: String(templateSelect.value || "standard"),
-          safetyCheckRequired: deliveryInspectionEnabledInput.checked,
-          maxRetry: Number(retryCountInput.value || 0),
-          syncBatchSize: Number(syncBatchSizeInput.value || 0),
+      function normalizePolicyContent(content = {}) {
+        return {
+          regionName: String(content.regionName || DEFAULT_POLICY_CONTENT.regionName),
+          template: String(content.template || DEFAULT_POLICY_CONTENT.template),
           scan: {
-            enabled: scanEnabledInput.checked,
-            required: scanRequiredInput.checked,
-            mode: scanModeInput.value,
-            scenes: readChipValues("scanScenesWrap"),
+            enabled: Boolean(content.scan?.enabled ?? DEFAULT_POLICY_CONTENT.scan.enabled),
+            required: Boolean(content.scan?.required ?? DEFAULT_POLICY_CONTENT.scan.required),
+            mode: String(content.scan?.mode || DEFAULT_POLICY_CONTENT.scan.mode),
+            scenes: uniq(content.scan?.scenes || DEFAULT_POLICY_CONTENT.scan.scenes),
           },
           inspection: {
             delivery: {
-              enabled: deliveryInspectionEnabledInput.checked,
-              mode: inspectionModeInput.value,
-              aiItems: readChipValues("aiItemsWrap"),
-              requiredPhotos: readChipValues("requiredPhotosWrap"),
+              enabled: Boolean(content.inspection?.delivery?.enabled ?? DEFAULT_POLICY_CONTENT.inspection.delivery.enabled),
+              mode: String(content.inspection?.delivery?.mode || DEFAULT_POLICY_CONTENT.inspection.delivery.mode),
             },
             periodic: {
-              enabled: periodicInspectionEnabledInput.checked,
-              cycleDays: Number(inspectionCycleInput.value || 90),
-              autoTask: autoTaskInput.checked,
+              enabled: Boolean(content.inspection?.periodic?.enabled ?? DEFAULT_POLICY_CONTENT.inspection.periodic.enabled),
+              cycleDays: Number(content.inspection?.periodic?.cycleDays ?? DEFAULT_POLICY_CONTENT.inspection.periodic.cycleDays),
             },
-            aiEnabled: aiEnabledInput.checked,
           },
           reporting: {
-            mode: reportModeInput.value,
-            batchInterval: batchIntervalInput.value,
-            retryCount: Number(retryCountInput.value || 0),
-            syncBatchSize: Number(syncBatchSizeInput.value || 0),
+            mode: String(content.reporting?.mode || DEFAULT_POLICY_CONTENT.reporting.mode),
+            retryCount: Number(content.reporting?.retryCount ?? DEFAULT_POLICY_CONTENT.reporting.retryCount),
+            syncBatchSize: Number(content.reporting?.syncBatchSize ?? DEFAULT_POLICY_CONTENT.reporting.syncBatchSize),
           },
         };
-        return normalizePolicyContent(content);
-      }
-
-      function syncContentPreview() {
-        const content = buildPolicyContent();
-        contentInput.value = JSON.stringify(content, null, 2);
-        return content;
-      }
-
-      function applyPreset(template) {
-        const preset = TEMPLATE_PRESETS[template] || TEMPLATE_PRESETS.standard;
-        templateSelect.value = template;
-        scanEnabledInput.checked = preset.scan.enabled;
-        scanRequiredInput.checked = preset.scan.required;
-        scanModeInput.value = preset.scan.mode;
-        setChipState("scanScenesWrap", preset.scan.scenes);
-        deliveryInspectionEnabledInput.checked = preset.inspection.delivery.enabled;
-        periodicInspectionEnabledInput.checked = preset.inspection.periodic.enabled;
-        autoTaskInput.checked = preset.inspection.periodic.autoTask;
-        aiEnabledInput.checked = preset.inspection.aiEnabled;
-        inspectionModeInput.value = preset.inspection.delivery.mode;
-        inspectionCycleInput.value = String(preset.inspection.periodic.cycleDays);
-        setChipState("aiItemsWrap", preset.inspection.delivery.aiItems);
-        setChipState("requiredPhotosWrap", preset.inspection.delivery.requiredPhotos);
-        reportModeInput.value = preset.reporting.mode;
-        batchIntervalInput.value = preset.reporting.batchInterval;
-        retryCountInput.value = String(preset.reporting.retryCount);
-        syncBatchSizeInput.value = String(preset.reporting.syncBatchSize);
-        syncContentPreview();
-      }
-
-      function applyPolicyToForm(policy) {
-        const normalized = normalizePolicyContent(policy?.content || policy || {});
-        const scope = normalizeScopeMeta(policy);
-        scopeTypeInput.value = scope.scopeType;
-        scopeValueInput.value = scope.scopeValue;
-        scopeLabelInput.value = scope.scopeLabel;
-        regionInput.value = scope.regionCode;
-        regionNameInput.value = normalized.regionName;
-        templateSelect.value = normalized.template;
-        scanEnabledInput.checked = normalized.scan.enabled;
-        scanRequiredInput.checked = normalized.scan.required;
-        scanModeInput.value = normalized.scan.mode;
-        setChipState("scanScenesWrap", normalized.scan.scenes);
-        deliveryInspectionEnabledInput.checked = normalized.inspection.delivery.enabled;
-        periodicInspectionEnabledInput.checked = normalized.inspection.periodic.enabled;
-        autoTaskInput.checked = normalized.inspection.periodic.autoTask;
-        aiEnabledInput.checked = normalized.inspection.aiEnabled;
-        inspectionModeInput.value = normalized.inspection.delivery.mode;
-        inspectionCycleInput.value = String(normalized.inspection.periodic.cycleDays);
-        setChipState("aiItemsWrap", normalized.inspection.delivery.aiItems);
-        setChipState("requiredPhotosWrap", normalized.inspection.delivery.requiredPhotos);
-        reportModeInput.value = normalized.reporting.mode;
-        batchIntervalInput.value = normalized.reporting.batchInterval;
-        retryCountInput.value = String(normalized.reporting.retryCount);
-        syncBatchSizeInput.value = String(normalized.reporting.syncBatchSize);
-        syncContentPreview();
       }
 
       function buildScopeOverviewRows(versions = []) {
@@ -1091,15 +409,17 @@
 
       function renderCurrentPolicy(policy) {
         if (!policy) {
-          currentPolicy.innerHTML = '<p class="tip">暂无生效策略</p>';
+          currentPolicy.innerHTML = '<div class="empty-block">当前没有可查看的生效配置</div>';
+          editPolicyBtn.href = "./policy-editor.html";
           return;
         }
         const normalized = normalizePolicyContent(policy.content || {});
         const scope = normalizeScopeMeta(policy);
+        editPolicyBtn.href = `./policy-editor.html?version=${encodeURIComponent(policy.version || "")}`;
         currentPolicy.innerHTML = `
           <div class="summary-grid">
             <div class="summary-card">
-              <h3>下发范围</h3>
+              <h3>对象信息</h3>
               <div class="summary-list">
                 <div class="summary-line"><span>层级</span><strong>${scopeTypeLabel(scope.scopeType)}</strong></div>
                 <div class="summary-line"><span>作用域标识</span><strong>${scope.scopeValue}</strong></div>
@@ -1108,15 +428,13 @@
               </div>
             </div>
             <div class="summary-card">
-              <h3>策略内容</h3>
+              <h3>当前策略</h3>
               <div class="summary-list">
                 <div class="summary-line"><span>模板</span><strong>${templateLabel(normalized.template)}</strong></div>
                 <div class="summary-line"><span>随瓶安检</span><strong>${normalized.inspection.delivery.enabled ? modeLabel(normalized.inspection.delivery.mode) : "关闭"}</strong></div>
-                <div class="summary-line"><span>定期安检</span><strong>${normalized.inspection.periodic.enabled ? `${normalized.inspection.periodic.cycleDays} 天` : "关闭"}</strong></div>
                 <div class="summary-line"><span>扫码</span><strong>${normalized.scan.enabled ? `${scanModeLabel(normalized.scan.mode)} / ${normalized.scan.required ? "强制" : "建议"}` : "关闭"}</strong></div>
                 <div class="summary-line"><span>上报模式</span><strong>${reportModeLabel(normalized.reporting.mode)}</strong></div>
                 <div class="summary-line"><span>离线补传</span><strong>${normalized.reporting.retryCount} 次 / ${normalized.reporting.syncBatchSize} 条</strong></div>
-                <div class="summary-line"><span>版本</span><strong>${policy.version}</strong></div>
                 <div class="summary-line"><span>发布时间</span><strong>${formatTime(policy.publishedAt)}</strong></div>
               </div>
             </div>
@@ -1150,147 +468,55 @@
                       <span class="status-pill ${item.status}">${statusLabel(item.status)}</span>
                     </div>
                     <div class="scope-card-meta">
-                      <div class="scope-meta-tile">
-                        <div class="scope-meta-label">当前版本</div>
-                        <div class="scope-meta-value">${item.version}</div>
-                      </div>
-                      <div class="scope-meta-tile">
-                        <div class="scope-meta-label">模板</div>
-                        <div class="scope-meta-value">${templateLabel(content.template)}</div>
-                      </div>
-                      <div class="scope-meta-tile">
-                        <div class="scope-meta-label">随瓶安检</div>
-                        <div class="scope-meta-value">${content.inspection.delivery.enabled ? "开启" : "关闭"}</div>
-                      </div>
-                      <div class="scope-meta-tile">
-                        <div class="scope-meta-label">扫码</div>
-                        <div class="scope-meta-value">${content.scan.enabled ? (content.scan.required ? "强制" : "建议") : "关闭"}</div>
-                      </div>
+                      <div class="scope-meta-tile"><div class="scope-meta-label">当前版本</div><div class="scope-meta-value">${item.version}</div></div>
+                      <div class="scope-meta-tile"><div class="scope-meta-label">模板</div><div class="scope-meta-value">${templateLabel(content.template)}</div></div>
+                      <div class="scope-meta-tile"><div class="scope-meta-label">随瓶安检</div><div class="scope-meta-value">${content.inspection.delivery.enabled ? "开启" : "关闭"}</div></div>
+                      <div class="scope-meta-tile"><div class="scope-meta-label">扫码</div><div class="scope-meta-value">${content.scan.enabled ? (content.scan.required ? "强制" : "建议") : "关闭"}</div></div>
                     </div>
                   </button>
                 `;
               })
               .join("")
-          : '<div class="panel-muted">当前没有匹配到作用域配置</div>';
+          : '<div class="empty-block">当前没有匹配到作用域配置</div>';
         scopeList.querySelectorAll("[data-scope-version]").forEach((node) => {
           node.addEventListener("click", () => {
             const version = node.getAttribute("data-scope-version");
             const target = allPolicyVersions.find((item) => item.version === version);
             if (!target) return;
             selectedVersion = target.version;
-            applyPolicyToForm(target);
             renderCurrentPolicy(target);
-            setTip(`已切换到作用域：${normalizeScopeMeta(target).scopeLabel}`);
             renderScopeList();
           });
         });
       }
 
-      async function loadCurrent() {
-        const res = await fetchCurrentPolicy();
-        if (!res.success || !res.data) {
-          currentPolicy.innerHTML = '<p class="tip">暂无生效策略</p>';
-          return;
+      async function loadAll() {
+        const [currentRes, versionsRes] = await Promise.all([fetchCurrentPolicy(), fetchPolicyVersions()]);
+        if (versionsRes.success) {
+          allPolicyVersions = versionsRes.data || [];
+          if (!selectedVersion && allPolicyVersions[0]) selectedVersion = allPolicyVersions[0].version;
         }
-        renderCurrentPolicy(res.data);
-        if (!selectedVersion) applyPolicyToForm(res.data);
-      }
-
-      async function loadVersions() {
-        const res = await fetchPolicyVersions();
-        if (!res.success) return;
-        const list = res.data || [];
-        allPolicyVersions = list;
-        if (!selectedVersion && list[0]) {
-          selectedVersion = list[0].version;
+        if (currentRes.success && currentRes.data) {
+          if (!selectedVersion) selectedVersion = currentRes.data.version || "";
+          const current = allPolicyVersions.find((item) => item.version === selectedVersion) || currentRes.data;
+          renderCurrentPolicy(current);
+        } else {
+          renderCurrentPolicy(null);
         }
         renderScopeList();
       }
 
-      saveDraftBtn.addEventListener("click", async () => {
-        const content = syncContentPreview();
-        setTip("正在保存策略草稿...");
-        const res = await editPolicyDraft({
-          operator: operatorInput.value,
-          scopeType: scopeTypeInput.value,
-          scopeValue: scopeValueInput.value,
-          scopeLabel: scopeLabelInput.value,
-          regionCode: regionInput.value,
-          content,
-        });
-        if (!res.success) return setTip(res.error || "保存失败，请重试", true);
-        selectedVersion = res.data.version;
-        setTip(`草稿已保存：${res.data.version}`);
-        await loadVersions();
-      });
-
-      publishBtn.addEventListener("click", async () => {
-        if (!selectedVersion) return setTip("请先选择一个版本", true);
-        setTip("正在发布策略版本...");
-        const res = await publishPolicyVersion({
-          version: selectedVersion,
-          operator: operatorInput.value,
-        });
-        if (!res.success) return setTip(res.error || "发布失败，请重试", true);
-        setTip(`发布成功：${selectedVersion}`);
-        await loadCurrent();
-        await loadVersions();
-      });
-
-      [
-        scopeTypeInput,
-        scopeValueInput,
-        scopeLabelInput,
-        regionNameInput,
-        templateSelect,
-        scanEnabledInput,
-        scanRequiredInput,
-        scanModeInput,
-        deliveryInspectionEnabledInput,
-        periodicInspectionEnabledInput,
-        autoTaskInput,
-        aiEnabledInput,
-        inspectionModeInput,
-        inspectionCycleInput,
-        reportModeInput,
-        batchIntervalInput,
-        retryCountInput,
-        syncBatchSizeInput,
-      ].forEach((node) => {
-        node.addEventListener("input", syncContentPreview);
-        node.addEventListener("change", syncContentPreview);
-      });
-
-      scopeTypeInput.addEventListener("change", () => {
-        syncScopeInputs();
-        syncContentPreview();
-      });
-      regionInput.addEventListener("input", () => {
-        if (scopeTypeInput.value === "region") syncScopeInputs();
-        syncContentPreview();
-      });
-      regionNameInput.addEventListener("input", () => {
-        if (scopeTypeInput.value === "region") syncScopeInputs();
-        syncContentPreview();
-      });
       scopeListFilter.addEventListener("change", renderScopeList);
       scopeListSearch.addEventListener("input", renderScopeList);
-      templateSelect.addEventListener("change", () => applyPreset(templateSelect.value));
-      bindChipWrap("scanScenesWrap");
-      bindChipWrap("aiItemsWrap");
-      bindChipWrap("requiredPhotosWrap");
 
       mountPlatformChrome({
         active: "policy",
-        breadcrumb: "策略发布",
-        title: "平台策略发布",
+        breadcrumb: "策略列表",
+        title: "平台策略列表",
         actions: [{ label: "返回平台入口", href: "./index.html", variant: "secondary" }],
       });
 
-      applyPreset("standard");
-      syncScopeInputs();
-      loadCurrent();
-      loadVersions();
+      loadAll();
     </script>
   </body>
 </html>
