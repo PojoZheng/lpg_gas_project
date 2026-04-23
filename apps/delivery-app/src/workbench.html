@@ -757,6 +757,7 @@
       import * as auth from "./auth-client.js";
       import { mountAppBottomNav } from "./app-shell.js";
       import { fetchBusinessRules } from "./business-rules-client.js";
+      import { clearFlowState, patchFlowState } from "./delivery-flow-state.js";
       import {
         fetchQuickCustomers,
         filterQuickCustomers,
@@ -840,6 +841,7 @@
       let qoTouchStartY = 0;
       let qoPricingReady = false;
       let currentNextDeliveryOrderId = "";
+      let currentNextDeliveryOrder = null;
 
       function setMainTip(text = "", level = "info") {
         const message = String(text || "").trim();
@@ -1151,6 +1153,7 @@
       function renderNextDelivery(nextDelivery) {
         const hasTask = Boolean(nextDelivery?.orderId);
         currentNextDeliveryOrderId = hasTask ? String(nextDelivery.orderId || "").trim() : "";
+        currentNextDeliveryOrder = hasTask ? nextDelivery : null;
         if (!hasTask) {
           nextDeliverySection.hidden = true;
           nextDeliveryCard.setAttribute("aria-disabled", "true");
@@ -1184,7 +1187,23 @@
 
       function openNextDeliveryDetail() {
         if (!currentNextDeliveryOrderId) return;
-        window.location.href = `./order-detail.html?orderId=${encodeURIComponent(currentNextDeliveryOrderId)}`;
+        clearFlowState();
+        patchFlowState({
+          selectedOrderId: currentNextDeliveryOrderId,
+          selectedOrder: currentNextDeliveryOrder
+            ? {
+                orderId: currentNextDeliveryOrderId,
+                customerId: currentNextDeliveryOrder.customerId || "",
+                customerName: currentNextDeliveryOrder.customerName || "",
+                address: currentNextDeliveryOrder.address || "",
+                scheduleAt: currentNextDeliveryOrder.scheduleAt || "",
+                spec: currentNextDeliveryOrder.spec || "",
+                quantity: Number(currentNextDeliveryOrder.quantity || 0),
+                amount: Number(currentNextDeliveryOrder.amount || 0),
+              }
+            : null,
+        });
+        window.location.href = "./delivery-settlement.html";
       }
 
       function openVoiceOrderFallback(message, draft = "") {
