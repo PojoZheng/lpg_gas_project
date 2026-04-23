@@ -209,13 +209,13 @@ async function listOrdersLegacyByCustomer(customerId, page, size) {
   };
 }
 
-export async function listCustomerOrders(customerId, { page = 1, size = 10 } = {}) {
+export async function listCustomerOrders(customerId, { page = 1, size = 100 } = {}) {
   const cid = trimText(customerId);
   if (!cid) return { success: false, error: "客户ID不能为空" };
 
   const params = new URLSearchParams();
   params.set("page", String(Math.max(1, toNumber(page, 1))));
-  params.set("size", String(Math.max(1, toNumber(size, 10))));
+  params.set("size", String(Math.max(1, toNumber(size, 100))));
 
   const direct = await authFetchJson(
     `${API_BASE_URL}/customers/${encodeURIComponent(cid)}/orders?${params.toString()}`
@@ -227,7 +227,7 @@ export async function listCustomerOrders(customerId, { page = 1, size = 10 } = {
     return { success: true, data: { items, pagination }, source: "api" };
   }
 
-  return listOrdersLegacyByCustomer(cid, Math.max(1, toNumber(page, 1)), Math.max(1, toNumber(size, 10)));
+  return listOrdersLegacyByCustomer(cid, Math.max(1, toNumber(page, 1)), Math.max(1, toNumber(size, 100)));
 }
 
 function normalizeCustomerDetail(raw) {
