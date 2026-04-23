@@ -25,8 +25,8 @@
 
 ## 验证命令与结果
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`：通过
-- `node --check ".trellis/delivery-app/src/auth-client.js"`：通过
-- `node --check ".trellis/delivery-app/src/delivery-complete-client.js"`：通过
-- `node --check ".trellis/platform/src/platform-monitor-client.js"`：通过
-- `node --check ".trellis/platform/src/policy-release-client.js"`：通过
-- `node --check ".trellis/platform/src/sync-queue-client.js"`：通过
+- `node --check "apps/delivery-app/src/auth-client.js"`：通过
+- `node --check "apps/delivery-app/src/delivery-complete-client.js"`：通过
+- `node --check "apps/platform/src/platform-monitor-client.js"`：通过
+- `node --check "apps/platform/src/policy-release-client.js"`：通过
+- `node --check "apps/platform/src/sync-queue-client.js"`：通过

@@ -1,0 +1,25 @@
+{
+  "id": "70-delivery-complete-structure-focus",
+  "title": "待配送完单页信息结构收口（聚焦交易主链）",
+  "status": "completed",
+  "depends_on": [
+    "69-debt-cross-page-e2e"
+  ],
+  "input_spec": [
+    "requirements/02_订单/需求.md",
+    "requirements/02_订单/规格.md",
+    "product/decisions/2026-04-14-mobile-flow-focus-and-button-copy-cap.md",
+    "product/decisions/2026-04-14-mobile-complete-safety-closure.md",
+    ".trellis/spec/delivery-app/domain-order/overview.md"
+  ],
+  "acceptance": [
+    "delivery-complete 页面首屏仅保留订单上下文、完单交易表单、安检闭环提示/入口",
+    "移除库存快照区、客户催收编辑区、上一笔完单 24h 改单区，避免跨域混排",
+    "主操作链路收敛为‘选择待配送订单 -> 完单提交’两步闭环",
+    "不改动后端订单/安检接口语义，仅调整前端信息结构与交互层"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-complete.html",
+    "product/interaction/待配送完单信息结构.md"
+  ]
+}

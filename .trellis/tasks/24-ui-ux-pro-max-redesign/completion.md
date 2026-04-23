@@ -6,12 +6,12 @@
 3. `/arrange /clarify /polish /normalize /harden`：完成页面落地改造。
 
 ## 页面改造结果
-- 新增共享壳层样式：`/.trellis/delivery-app/src/delivery-shell.css`
-- 新增低频能力聚合页：`/.trellis/delivery-app/src/my.html`
+- 新增共享壳层样式：`/apps/delivery-app/src/delivery-shell.css`
+- 新增低频能力聚合页：`/apps/delivery-app/src/my.html`
 - 改造页面：
-  - `/.trellis/delivery-app/src/workbench.html`
-  - `/.trellis/delivery-app/src/quick-order.html`
-  - `/.trellis/delivery-app/src/delivery-complete.html`
+  - `/apps/delivery-app/src/workbench.html`
+  - `/apps/delivery-app/src/quick-order.html`
+  - `/apps/delivery-app/src/delivery-complete.html`
 
 ## 核心收口点
 - 底部导航保持仅 3 个常驻 Tab：`首页 / 客户 / 我的`。

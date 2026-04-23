@@ -1,0 +1,24 @@
+{
+  "id": "59-mobile-sync-manual-entry",
+  "title": "移动端同步收敛：工作台去自动弹层，改为我的-离线数据手动提交",
+  "status": "completed",
+  "depends_on": [
+    "58-prd-v1-platform-monitor-scope"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-mobile-sync-manual-entry.md"
+  ],
+  "acceptance": [
+    "工作台不再自动弹出同步弹层，不再提供同步重试按钮",
+    "我的页面同步入口改为离线数据入口并指向移动端页面",
+    "移动端新增离线数据页面，支持查看队列与手动提交",
+    "本次不改动后端同步接口契约"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/workbench.html",
+    "apps/delivery-app/src/my.html",
+    "apps/delivery-app/src/offline-sync.html",
+    "apps/delivery-app/src/offline-sync-client.js"
+  ]
+}

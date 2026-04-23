@@ -24,6 +24,6 @@
 
 ## 涉及文件
 
-- `.trellis/delivery-app/src/workbench.html`：Sheet 结构、样式与逻辑。
-- `.trellis/delivery-app/src/quick-order.html`：`from=workbench&intent=newCustomer` 衔接。
+- `apps/delivery-app/src/workbench.html`：Sheet 结构、样式与逻辑。
+- `apps/delivery-app/src/quick-order.html`：`from=workbench&intent=newCustomer` 衔接。
 - `.trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md`：§1 / §3 / §4 / §5 与 task-40 对齐说明。

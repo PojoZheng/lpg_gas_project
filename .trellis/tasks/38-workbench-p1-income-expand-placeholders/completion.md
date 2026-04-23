@@ -7,7 +7,7 @@
 - [x] 未修改 `workbench-client.js` 与后端 `/workbench/overview` 契约；毛利与趋势未接真实字段，页面为 **静态占位**（与既有已收/待收 mock 行为一致时在 completion 中说明）。
 
 ## 关键改动
-- `.trellis/delivery-app/src/workbench.html`：收入卡结构、`setIncomeExpanded` 交互与局部样式。
+- `apps/delivery-app/src/workbench.html`：收入卡结构、`setIncomeExpanded` 交互与局部样式。
 - `.trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md`：§1、§2 §3.1、规格「收入卡折叠/展开」行及 §5 P1 首行状态。
 - `.trellis/scripts/task38_income_expand_smoke.py`、`.trellis/tasks/test-commands.json`：任务 38 校验命令。
 
@@ -17,4 +17,4 @@
 
 ## 校验
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`（`.current-task` 指向本任务时）
-- `node --check ".trellis/delivery-app/src/workbench-client.js"`
+- `node --check "apps/delivery-app/src/workbench-client.js"`

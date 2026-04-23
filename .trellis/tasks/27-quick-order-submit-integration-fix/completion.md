@@ -8,18 +8,18 @@
 - [x] 新增最小联调回归脚本并通过自动化：新增脚本覆盖 auth/validation/success/trace 主链路。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 新增订单错误映射 `mapOrderError`
   - 调整 `POST /orders/quick-create` 为统一契约返回：
     - 成功：`success=true, data, error=null, request_id`
     - 失败：区分 `AUTH_401` / `VALIDATION_400` / `INVENTORY_409_STOCK`
-- 前端：`/.trellis/delivery-app/src/quick-order-client.js`
+- 前端：`/apps/delivery-app/src/quick-order-client.js`
   - 按 HTTP 状态与错误码分类中文错误提示：
     - 网络失败
     - 鉴权失败
     - 参数失败
     - 服务失败
-- 前端：`/.trellis/delivery-app/src/quick-order.html`
+- 前端：`/apps/delivery-app/src/quick-order.html`
   - 开单成功后新增可追踪引导按钮
   - 成功提示补充“可在待配送/完单链路继续追踪”
 - 测试：

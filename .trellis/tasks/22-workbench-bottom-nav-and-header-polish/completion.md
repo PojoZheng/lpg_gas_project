@@ -1,8 +1,8 @@
 # task-22 完成说明（工作台底部导航与头部信息层级优化）
 
 ## 变更文件
-- `.trellis/delivery-app/src/workbench.html`
-- `.trellis/delivery-app/src/delivery-shell.css`
+- `apps/delivery-app/src/workbench.html`
+- `apps/delivery-app/src/delivery-shell.css`
 - `.trellis/tasks/22-workbench-bottom-nav-and-header-polish/task.json`
 
 ## 达成点

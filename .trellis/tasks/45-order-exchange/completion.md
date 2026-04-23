@@ -8,8 +8,8 @@
 - ✅ 差价处理（无需补差/客户补差/退客户差）
 
 ## 修改文件
-- backend/src/server.js
-- delivery-app/src/order-detail.html
+- services/backend/src/server.js
+- apps/delivery-app/src/order-detail.html
 
 ## 状态
 completed

@@ -6,9 +6,9 @@
 - 说明：`/impeccable teach`、`/critique`、`/audit` 为交互式 slash 指令，当前终端不可直接执行；本文件基于 Impeccable 同步原则进行等效 phase-1 审查。
 
 ## 审查范围
-- `/.trellis/delivery-app/src/workbench.html`
-- `/.trellis/delivery-app/src/quick-order.html`
-- `/.trellis/delivery-app/src/delivery-complete.html`
+- `/apps/delivery-app/src/workbench.html`
+- `/apps/delivery-app/src/quick-order.html`
+- `/apps/delivery-app/src/delivery-complete.html`
 
 ## /critique 发现（视觉一致性与信息层级）
 1. **视觉 token 重复定义**：三页均内嵌相似变量与按钮样式，存在字号、间距、按钮高度微差，导致跨页一致性不足。

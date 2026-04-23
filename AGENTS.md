@@ -27,7 +27,7 @@ Keep this managed block so 'trellis update' can refresh the instructions.
 
 ## 工作台实现变更与对齐表（PR / 合入硬规则）
 
-- 若同一变更集修改 **`/.trellis/delivery-app/src/workbench.html`** 或 **`/.trellis/delivery-app/src/workbench-client.js`**，须**同时**修改 **`/.trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md`**（至少一行有实质意义，例如 §1、章节对照、§5 或**变更记录**）。
+- 若同一变更集修改 **`/apps/delivery-app/src/workbench.html`** 或 **`/apps/delivery-app/src/workbench-client.js`**，须**同时**修改 **`/.trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md`**（至少一行有实质意义，例如 §1、章节对照、§5 或**变更记录**）。
 - 确无文档更新必要时：在 PR 或集成说明中写 **`N/A` 及理由**，由协调者确认后合入；否则 **CI 会失败**（脚本 `verify_workbench_coverage_touch.py`）。
 - 本地自检（相对 `origin/main`）：`python3 ./.trellis/scripts/verify_workbench_coverage_touch.py`
 

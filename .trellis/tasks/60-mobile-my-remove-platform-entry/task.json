@@ -1,0 +1,20 @@
+{
+  "id": "60-mobile-my-remove-platform-entry",
+  "title": "移动端边界收口：我的页面移除平台运营入口",
+  "status": "completed",
+  "depends_on": [
+    "58-prd-v1-platform-monitor-scope"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-mobile-my-remove-platform-entry.md"
+  ],
+  "acceptance": [
+    "我的页面不再出现平台运营入口",
+    "移动端我的页面仅保留配送员侧能力入口",
+    "不改动平台 web 端页面"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/my.html"
+  ]
+}

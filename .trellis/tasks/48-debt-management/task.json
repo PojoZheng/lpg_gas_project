@@ -1,7 +1,7 @@
 {
   "id": "48-debt-management",
   "title": "财务域 P1：欠款管理与催收",
-  "status": "in_progress",
+  "status": "completed",
   "depends_on": [
     "46-finance-income-daily-close",
     "47-customer-list-management"
@@ -9,6 +9,8 @@
   "input_spec": [
     "requirements/06_财务/需求.md",
     "requirements/03_客户/需求.md",
+    "product/scenarios/48-debt-management-story.md",
+    "product/interaction/48-debt-management-flow.md",
     ".trellis/spec/delivery-app/domain-finance/overview.md"
   ],
   "acceptance": [
@@ -24,7 +26,7 @@
     "界面中文、无 emoji，主色 #4799a0"
   ],
   "output_artifacts": [
-    "delivery-app/src/debt-overview.html",
-    "delivery-app/src/debt-client.js"
+    "apps/delivery-app/src/debt-overview.html",
+    "apps/delivery-app/src/debt-client.js"
   ]
 }

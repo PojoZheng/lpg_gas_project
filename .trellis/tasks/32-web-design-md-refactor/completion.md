@@ -26,5 +26,5 @@
 - 本轮未修改任何后端接口、字段或业务流程分支。
 
 ## 影响文件
-- `.trellis/platform/src/platform-design-system.css`
+- `apps/platform/src/platform-design-system.css`
 - `.trellis/tasks/32-web-design-md-refactor/task.json`

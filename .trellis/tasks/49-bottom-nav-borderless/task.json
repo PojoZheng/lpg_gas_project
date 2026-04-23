@@ -1,0 +1,22 @@
+{
+  "id": "49-bottom-nav-borderless",
+  "title": "配送员端 UI：底部导航去边框",
+  "status": "completed",
+  "depends_on": [
+    "31-app-design-md-refactor",
+    "35-design-system-hardening"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-bottom-nav-borderless.md",
+    ".trellis/spec/delivery-app/ui-manifest.md"
+  ],
+  "acceptance": [
+    "配送员端底部导航容器不保留顶部边框",
+    "底部导航按钮默认态与激活态均无描边边框",
+    "激活态仍可通过底色与品牌色清晰识别当前 Tab",
+    "改动仅限共享底部导航样式，不影响页面内其他按钮与卡片边框"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-shell.css"
+  ]
+}

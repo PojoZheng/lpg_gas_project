@@ -21,7 +21,7 @@
     "界面中文、无 emoji，符合品牌色 #4799a0"
   ],
   "output_artifacts": [
-    "backend/src/server.js（扩展 POST /:id/exchange 和库存待检逻辑）",
-    "delivery-app/src/order-detail.html（添加换货按钮和面板）"
+    "services/backend/src/server.js（扩展 POST /:id/exchange 和库存待检逻辑）",
+    "apps/delivery-app/src/order-detail.html（添加换货按钮和面板）"
   ]
 }

@@ -1,0 +1,22 @@
+{
+  "id": "62-mobile-complete-safety-closure",
+  "title": "移动端完单页：安检目标绑定与闭环约束收口",
+  "status": "completed",
+  "depends_on": [
+    "57-prd-v1-baseline",
+    "61-mobile-voice-strong-parse"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-mobile-complete-safety-closure.md"
+  ],
+  "acceptance": [
+    "完单成功后安检提交/重试始终绑定刚完单订单，不因列表刷新丢失目标",
+    "未完成上一笔完单安检时，阻止继续下一笔完单并给出提示",
+    "配送完成页不再出现独立登录入口",
+    "不改动后端接口契约"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-complete.html"
+  ]
+}

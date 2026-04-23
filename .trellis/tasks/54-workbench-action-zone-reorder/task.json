@@ -1,0 +1,27 @@
+{
+  "id": "54-workbench-action-zone-reorder",
+  "title": "工作台 IA：待配送入口唯一化并恢复底部开单操作区",
+  "status": "completed",
+  "depends_on": [
+    "53-workbench-next-card-simplified",
+    "40-order-bottom-sheet-quick-order-from-home"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-workbench-action-zone-reorder.md",
+    "requirements/01_工作台/需求.md",
+    ".trellis/spec/delivery-app/domain-workbench/overview.md",
+    ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md",
+    ".trellis/spec/delivery-app/ui-manifest.md"
+  ],
+  "acceptance": [
+    "工作台首页顺序调整为收入卡、待配送概览、底部开单操作区",
+    "首页待配送入口只保留一个，并放在待配送概览卡片下方",
+    "移除“主操作”与“下一单待办与待配送列表”等重复说明文案",
+    "底部操作区保留单一主按钮“快速开单”并保留语音开单入口",
+    "本次不改动待配送页与快速开单数据结构，只调整首页布局与轻交互"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/workbench.html",
+    ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md"
+  ]
+}

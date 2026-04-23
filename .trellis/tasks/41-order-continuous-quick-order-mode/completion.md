@@ -12,4 +12,4 @@
 
 ## 测试
 - `python3 ./.trellis/scripts/auto_test_runner.py --once`（`.current-task` 指向本任务）
-- `node --check ".trellis/delivery-app/src/quick-order-client.js"`
+- `node --check "apps/delivery-app/src/quick-order-client.js"`

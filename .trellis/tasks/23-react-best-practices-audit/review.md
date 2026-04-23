@@ -1,8 +1,8 @@
 # task-23 review（先审查后修复）
 
 ## 审查范围
-- `/.trellis/delivery-app/src/*.js`
-- `/.trellis/platform/src/*.js`
+- `/apps/delivery-app/src/*.js`
+- `/apps/platform/src/*.js`
 
 ## 审查清单（vercel-react-best-practices 等效维度）
 

@@ -1,0 +1,23 @@
+{
+  "id": "68-auth-expire-direct-login",
+  "title": "会话失效统一跳登录页，移除业务页失效提示",
+  "status": "completed",
+  "depends_on": [
+    "67-back-icon-interaction-consistency"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-15-auth-expire-direct-login.md"
+  ],
+  "acceptance": [
+    "会话缺失或鉴权失败时直接跳转登录页",
+    "登录跳转不附带会话失效提示文案",
+    "业务客户端不再向页面返回未登录提示文案",
+    "不改动登录接口与会话结构"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/auth-client.js",
+    "apps/delivery-app/src/workbench-client.js",
+    "apps/delivery-app/src/offline-sync-client.js",
+    "apps/delivery-app/src/quick-order-client.js"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "67-back-icon-interaction-consistency",
+  "title": "返回图标按钮交互反馈一致性补齐",
+  "status": "completed",
+  "depends_on": [
+    "66-mobile-back-icon-and-list-scroll-restore"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-15-back-icon-interaction-consistency.md"
+  ],
+  "acceptance": [
+    "返回图标按钮具备按压态反馈",
+    "返回图标按钮具备键盘焦点态反馈",
+    "不影响现有页面布局与导航逻辑"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-shell.css"
+  ]
+}

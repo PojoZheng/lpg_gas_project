@@ -8,17 +8,17 @@
 - [x] 界面文案必须为中文且严禁 emoji：新增页面文案全部中文且不含 emoji。
 
 ## 2. 关键改动
-- 后端：`/.trellis/backend/src/server.js`
+- 后端：`/services/backend/src/server.js`
   - 新增经营监控聚合：`buildBusinessMetrics`
   - 新增合规监控聚合：`buildComplianceMetrics`
   - 新增接口：
     - `GET /platform/monitor/business-metrics`
     - `GET /platform/monitor/compliance-metrics`
-- 前端：`/.trellis/delivery-app/src/platform-monitor-client.js`
+- 前端：`/apps/delivery-app/src/platform-monitor-client.js`
   - 新增监控看板数据与失败重试 API 封装
-- 前端：`/.trellis/delivery-app/src/platform-monitor.html`
+- 前端：`/apps/delivery-app/src/platform-monitor.html`
   - 新增平台监控与合规看板页面（指标总览 + 异常下钻 + 处置入口）
-- 前端：`/.trellis/delivery-app/src/workbench.html`
+- 前端：`/apps/delivery-app/src/workbench.html`
   - 新增“平台监控与合规”入口
 
 ## 3. 测试与风险

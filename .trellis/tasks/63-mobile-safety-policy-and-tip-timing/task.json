@@ -1,0 +1,21 @@
+{
+  "id": "63-mobile-safety-policy-and-tip-timing",
+  "title": "移动端完单页：安检强制性策略化与提示按操作触发",
+  "status": "completed",
+  "depends_on": [
+    "62-mobile-complete-safety-closure"
+  ],
+  "input_spec": [
+    "product/prd/2026-04-14-lpg-vendor-prd-v1.md",
+    "product/decisions/2026-04-14-mobile-safety-required-by-policy-and-on-demand-tips.md"
+  ],
+  "acceptance": [
+    "完单页根据平台策略 safetyCheckRequired 决定是否强制安检闭环拦截",
+    "默认页面不展示常驻提示文案，仅在用户操作时展示提示",
+    "不改动后端接口契约"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/delivery-complete-client.js",
+    "apps/delivery-app/src/delivery-complete.html"
+  ]
+}

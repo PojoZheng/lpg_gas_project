@@ -1,0 +1,20 @@
+{
+  "id": "56-quick-order-remove-login-entry",
+  "title": "快速开单页：移除重复登录入口",
+  "status": "completed",
+  "depends_on": [
+    "54-workbench-action-zone-reorder"
+  ],
+  "input_spec": [
+    "product/decisions/2026-04-14-home-my-boundary.md",
+    "product/decisions/2026-04-14-single-login-entry-followup.md"
+  ],
+  "acceptance": [
+    "quick-order.html 顶部不再出现登录按钮",
+    "快速开单流程与页面导航行为不变",
+    "不改动鉴权校验逻辑"
+  ],
+  "output_artifacts": [
+    "apps/delivery-app/src/quick-order.html"
+  ]
+}

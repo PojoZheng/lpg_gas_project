@@ -2,6 +2,7 @@
 
 ## 使用方式
 - 开发前先阅读 `/.trellis/spec/master` 与 `/.trellis/spec/shared`。
+- 若需求或交互尚未收口，先补充仓库根目录 `product/` 下的场景 / 交互 / 决策文档，再进入 task 执行。
 - 按任务依赖顺序推进，不跳过前置任务。
 - 每个任务完成后更新 `task.json` 状态并补充验收结果。
 - 如任务涉及界面，必须满足：主色 `#4799a0`、视觉风格对齐参考图、文案中文化、禁用 emoji。
@@ -10,6 +11,7 @@
 - 系统已配置自动触发：`task create/start` 后会自动执行冲突检查。
 - 跨会话启动建议统一执行：`python3 ./.trellis/scripts/session_bootstrap.py`（上下文 + 冲突检查）。
 - 会话结束建议执行：`python3 ./.trellis/scripts/session_finalize.py`（生成下会话初始指令包）。
+- 自动化验证除 smoke 外，建议补充 `.trellis/tests/stories/` 下的故事测试。
 
 ## 任务完成记录（三段式）
 每个任务完成后，在对应任务目录补充 `completion.md`，按以下三段写：
