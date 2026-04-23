@@ -21,17 +21,17 @@
 ### 发现的问题
 
 1. **API 集成缺失**（高优先级）
-   - 文件：`delivery-app/src/order-list.html`
+   - 文件：`apps/delivery-app/src/order-list.html`
    - 问题：使用硬编码的 mockOrders（287-342 行），未调用 `order-client.js` 中的 `fetchOrderList()`
    - 建议：替换为真实 API 调用
 
 2. **筛选标签不完整**（中优先级）
-   - 文件：`delivery-app/src/order-list.html` 第 243-248 行
+   - 文件：`apps/delivery-app/src/order-list.html` 第 243-248 行
    - 问题：filterTabs 缺少「已退货」选项，虽然 statusMap 已定义
    - 建议：添加 `<button class="filter-tab" data-filter="returned">已退货</button>`
 
 3. **加载更多无功能**（中优先级）
-   - 文件：`delivery-app/src/order-list.html` 第 496-498 行
+   - 文件：`apps/delivery-app/src/order-list.html` 第 496-498 行
    - 问题：点击仅弹出 alert，无实际分页逻辑
    - 建议：实现分页参数传递和加载逻辑
 
@@ -55,13 +55,13 @@
 ### 发现的问题
 
 1. **换货 API 缺失**（高优先级）
-   - 文件：`backend/src/server.js`
+   - 文件：`services/backend/src/server.js`
    - 问题：PRD 定义 `POST /orders/:id/exchange`，但后端无对应路由和 handler
    - `order-client.js` 第 34-44 行已定义 `submitOrderExchange`，但后端未实现
    - 建议：补充 exchange 路由和 processOrderExchange 函数
 
 2. **当场换货功能缺失**（高优先级）
-   - 文件：`delivery-app/src/delivery-complete.html`
+   - 文件：`apps/delivery-app/src/delivery-complete.html`
    - 问题：完单后未显示5分钟快捷换货按钮
    - PRD 要求：完单成功页面显示[快捷换货]按钮（5分钟倒计时）
    - 建议：在 complete-toast 或新增区域添加换货入口
@@ -72,7 +72,7 @@
    - 建议：在 order-detail.html 中新增换货弹层或创建独立页面
 
 4. **状态不一致**（中优先级）
-   - 文件：`delivery-app/src/order-detail.html` 第 195-203 行
+   - 文件：`apps/delivery-app/src/order-detail.html` 第 195-203 行
    - 问题：formatStatus 缺少 `exchanging`（换货中）状态映射
    - 建议：添加 `{ exchanging: { text: "换货中", class: "status-exchanging" } }`
 
@@ -81,12 +81,12 @@
 ## 三、其他发现的问题
 
 ### 5. 订单列表跳转链接参数不一致（低优先级）
-- 文件：`delivery-app/src/order-list.html` 第 457、463 行
+- 文件：`apps/delivery-app/src/order-list.html` 第 457、463 行
 - 问题：使用 `?id=` 参数，但 order-detail.html 使用 `orderId` 参数名
 - 建议：统一参数名（检查 order-detail.html 第 174 行使用 `orderId`）
 
 ### 6. my.html 残留无效事件监听（低优先级）
-- 文件：`delivery-app/src/my.html` 第 172 行
+- 文件：`apps/delivery-app/src/my.html` 第 172 行
 - 问题：`inventoryBtn` 事件监听但页面无此按钮
 - 建议：移除或添加库存入口按钮
 
