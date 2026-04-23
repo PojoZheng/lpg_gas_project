@@ -193,12 +193,16 @@
                     <input id="operatorInput" value="平台管理员" />
                   </div>
                   <div class="field">
-                    <label>地区名称</label>
-                    <input id="regionNameInput" value="全国默认区域" />
+                    <label>省份</label>
+                    <select id="provinceCodeInput"></select>
                   </div>
                   <div class="field">
-                    <label>区域编码</label>
-                    <input id="regionCodeInput" value="CN-DEFAULT" />
+                    <label>城市</label>
+                    <select id="cityCodeInput"></select>
+                  </div>
+                  <div class="field">
+                    <label>区县</label>
+                    <select id="districtCodeInput"></select>
                   </div>
                   <div class="field">
                     <label>燃气公司</label>
@@ -297,8 +301,9 @@
       const pageEls = {
         operator: document.getElementById("operatorInput"),
         scopeType: document.getElementById("scopeTypeInput"),
-        regionName: document.getElementById("regionNameInput"),
-        regionCode: document.getElementById("regionCodeInput"),
+        provinceCode: document.getElementById("provinceCodeInput"),
+        cityCode: document.getElementById("cityCodeInput"),
+        districtCode: document.getElementById("districtCodeInput"),
         companyName: document.getElementById("companyNameInput"),
         inspectionWrap: document.getElementById("inspectionWrap"),
         scanWrap: document.getElementById("scanWrap"),
@@ -312,6 +317,31 @@
 
       let selectedVersion = initialVersion;
       let currentPolicyRecord = null;
+      let regionTree = [];
+
+      function buildRegionIndexes(items = []) {
+        const provinceMap = new Map();
+        const cityMap = new Map();
+        const districtMap = new Map();
+        items.forEach((province) => {
+          provinceMap.set(String(province.code), province);
+          (province.children || []).forEach((city) => {
+            cityMap.set(String(city.code), { ...city, provinceCode: province.code, provinceName: province.name });
+            (city.children || []).forEach((district) => {
+              districtMap.set(String(district.code), {
+                ...district,
+                cityCode: city.code,
+                cityName: city.name,
+                provinceCode: province.code,
+                provinceName: province.name,
+              });
+            });
+          });
+        });
+        return { provinceMap, cityMap, districtMap };
+      }
+
+      let regionIndexes = buildRegionIndexes([]);
 
       function reportTargetLabel(value) {
         return ({ direct: "直报监管", company_first: "燃气公司转报", hybrid: "上报燃气公司" })[value] || "燃气公司转报";
@@ -330,6 +360,101 @@
         pageEls.opTip.className = isError ? "tip err" : "tip";
       }
 
+      function renderOptions(select, items, placeholder) {
+        select.innerHTML = [
+          `<option value="">${placeholder}</option>`,
+          ...items.map((item) => `<option value="${item.code}">${item.name}</option>`),
+        ].join("");
+      }
+
+      function getProvinceList() {
+        return regionTree;
+      }
+
+      function getCityList(provinceCode) {
+        return regionIndexes.provinceMap.get(String(provinceCode || ""))?.children || [];
+      }
+
+      function getDistrictList(cityCode) {
+        return regionIndexes.cityMap.get(String(cityCode || ""))?.children || [];
+      }
+
+      function syncRegionOptions({ provinceCode = "", cityCode = "", districtCode = "" } = {}) {
+        const provinces = getProvinceList();
+        renderOptions(pageEls.provinceCode, provinces, "请选择省份");
+        pageEls.provinceCode.value = provinces.some((item) => item.code === provinceCode) ? provinceCode : "";
+
+        const cities = getCityList(pageEls.provinceCode.value);
+        renderOptions(pageEls.cityCode, cities, "请选择城市");
+        pageEls.cityCode.value = cities.some((item) => item.code === cityCode) ? cityCode : "";
+
+        const districts = getDistrictList(pageEls.cityCode.value);
+        renderOptions(pageEls.districtCode, districts, "请选择区县");
+        pageEls.districtCode.value = districts.some((item) => item.code === districtCode) ? districtCode : "";
+      }
+
+      function findRegionPathByCode(regionCode = "") {
+        const code = String(regionCode || "").trim();
+        if (!code) return null;
+        const district = regionIndexes.districtMap.get(code);
+        if (district) {
+          return {
+            provinceCode: district.provinceCode,
+            provinceName: district.provinceName,
+            cityCode: district.cityCode,
+            cityName: district.cityName,
+            districtCode: district.code,
+            districtName: district.name,
+          };
+        }
+        const city = regionIndexes.cityMap.get(code);
+        if (city) {
+          const firstDistrict = (city.children || [])[0] || null;
+          return {
+            provinceCode: city.provinceCode,
+            provinceName: city.provinceName,
+            cityCode: city.code,
+            cityName: city.name,
+            districtCode: firstDistrict?.code || "",
+            districtName: firstDistrict?.name || "",
+          };
+        }
+        const province = regionIndexes.provinceMap.get(code);
+        if (province) {
+          const firstCity = (province.children || [])[0] || null;
+          const firstDistrict = (firstCity?.children || [])[0] || null;
+          return {
+            provinceCode: province.code,
+            provinceName: province.name,
+            cityCode: firstCity?.code || "",
+            cityName: firstCity?.name || "",
+            districtCode: firstDistrict?.code || "",
+            districtName: firstDistrict?.name || "",
+          };
+        }
+        return null;
+      }
+
+      function getSelectedRegion() {
+        const province = regionIndexes.provinceMap.get(String(pageEls.provinceCode.value || ""));
+        const city = regionIndexes.cityMap.get(String(pageEls.cityCode.value || ""));
+        const district = regionIndexes.districtMap.get(String(pageEls.districtCode.value || ""));
+        const regionCode = String(district?.code || city?.code || province?.code || "CN-DEFAULT");
+        const pathNames = [province?.name, city?.name, district?.name].filter(Boolean);
+        return {
+          regionCode,
+          regionName: pathNames.length ? pathNames.join(" / ") : "全国默认区域",
+          regionPath: {
+            provinceCode: String(province?.code || ""),
+            provinceName: String(province?.name || ""),
+            cityCode: String(city?.code || ""),
+            cityName: String(city?.name || ""),
+            districtCode: String(district?.code || ""),
+            districtName: String(district?.name || ""),
+          },
+        };
+      }
+
       function activeChipValue(wrap) {
         return wrap.querySelector(".option-chip.active")?.dataset.value || "";
       }
@@ -343,10 +468,19 @@
       function normalizeScopeMeta(policy = {}) {
         const scopeType = String(policy.scopeType || "region").trim() === "company" ? "company" : "region";
         const content = policy.content || {};
+        const regionPath = content.regionPath || {};
         return {
           scopeType,
           regionName: String(content.regionName || policy.regionName || "全国默认区域").trim() || "全国默认区域",
-          regionCode: String(policy.regionCode || policy.scopeValue || "CN-DEFAULT").trim() || "CN-DEFAULT",
+          regionCode: String(policy.regionCode || policy.scopeValue || regionPath.districtCode || regionPath.cityCode || regionPath.provinceCode || "CN-DEFAULT").trim() || "CN-DEFAULT",
+          regionPath: {
+            provinceCode: String(regionPath.provinceCode || ""),
+            provinceName: String(regionPath.provinceName || ""),
+            cityCode: String(regionPath.cityCode || ""),
+            cityName: String(regionPath.cityName || ""),
+            districtCode: String(regionPath.districtCode || ""),
+            districtName: String(regionPath.districtName || ""),
+          },
           companyName: scopeType === "company" ? String(policy.scopeLabel || "默认燃气公司").trim() || "默认燃气公司" : "当前地区全部配送员",
         };
       }
@@ -366,6 +500,7 @@
           scopeType: scope.scopeType,
           regionName: scope.regionName,
           regionCode: scope.regionCode,
+          regionPath: scope.regionPath,
           companyName: scope.companyName,
           inspectionValue,
           scanValue,
@@ -375,8 +510,9 @@
 
       function buildPayload() {
         const scopeType = String(pageEls.scopeType.value || "region");
-        const regionName = String(pageEls.regionName.value || "全国默认区域").trim() || "全国默认区域";
-        const regionCode = String(pageEls.regionCode.value || "CN-DEFAULT").trim() || "CN-DEFAULT";
+        const selectedRegion = getSelectedRegion();
+        const regionName = selectedRegion.regionName;
+        const regionCode = selectedRegion.regionCode;
         const companyName = String(pageEls.companyName.value || "当前地区全部配送员").trim() || "当前地区全部配送员";
         const inspectionValue = activeChipValue(pageEls.inspectionWrap) || "required";
         const scanValue = activeChipValue(pageEls.scanWrap) || "required";
@@ -388,6 +524,7 @@
           regionCode,
           content: {
             regionName,
+            regionPath: selectedRegion.regionPath,
             safetyCheckRequired: inspectionValue !== "disabled",
             inspection: {
               delivery: {
@@ -406,6 +543,7 @@
           view: {
             regionName,
             regionCode,
+            regionPath: selectedRegion.regionPath,
             companyName,
             inspectionValue,
             scanValue,
@@ -444,8 +582,15 @@
       function applyRecord(policy) {
         const values = normalizeValues(policy);
         pageEls.scopeType.value = values.scopeType;
-        pageEls.regionName.value = values.regionName;
-        pageEls.regionCode.value = values.regionCode;
+        const matchedPath =
+          values.regionPath?.districtCode || values.regionPath?.cityCode || values.regionPath?.provinceCode
+            ? values.regionPath
+            : findRegionPathByCode(values.regionCode);
+        syncRegionOptions({
+          provinceCode: matchedPath?.provinceCode || "",
+          cityCode: matchedPath?.cityCode || "",
+          districtCode: matchedPath?.districtCode || "",
+        });
         pageEls.companyName.value = values.companyName;
         setActiveChip(pageEls.inspectionWrap, values.inspectionValue);
         setActiveChip(pageEls.scanWrap, values.scanValue);
@@ -453,7 +598,16 @@
         syncPreview();
       }
 
+      async function loadRegionTree() {
+        const res = await fetch("./china-region-data.json");
+        const data = await res.json();
+        regionTree = Array.isArray(data) ? data : [];
+        regionIndexes = buildRegionIndexes(regionTree);
+        syncRegionOptions();
+      }
+
       async function loadTarget() {
+        await loadRegionTree();
         const [currentRes, versionsRes] = await Promise.all([fetchCurrentPolicy(), fetchPolicyVersions()]);
         const all = versionsRes.success ? versionsRes.data || [] : [];
         currentPolicyRecord = all.find((item) => item.version === initialVersion) || (currentRes.success ? currentRes.data || null : null);
@@ -503,9 +657,20 @@
         setTip(`发布成功：${selectedVersion}`);
       });
 
-      [pageEls.scopeType, pageEls.operator, pageEls.regionName, pageEls.regionCode, pageEls.companyName].forEach((node) => {
+      [pageEls.scopeType, pageEls.operator, pageEls.companyName, pageEls.provinceCode, pageEls.cityCode, pageEls.districtCode].forEach((node) => {
         node.addEventListener("input", syncPreview);
         node.addEventListener("change", syncPreview);
+      });
+      pageEls.provinceCode.addEventListener("change", () => {
+        syncRegionOptions({ provinceCode: pageEls.provinceCode.value });
+        syncPreview();
+      });
+      pageEls.cityCode.addEventListener("change", () => {
+        syncRegionOptions({
+          provinceCode: pageEls.provinceCode.value,
+          cityCode: pageEls.cityCode.value,
+        });
+        syncPreview();
       });
       bindOptionWrap(pageEls.inspectionWrap);
       bindOptionWrap(pageEls.scanWrap);
