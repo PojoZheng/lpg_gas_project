@@ -17,11 +17,6 @@
         padding: 14px;
         margin-bottom: 12px;
       }
-      .hero-card {
-        padding: 16px;
-        background: linear-gradient(180deg, #ffffff 0%, #f5fbfb 100%);
-        border-color: #d7e8ea;
-      }
       .hero-top,
       .section-head,
       .status-row,
@@ -40,13 +35,6 @@
         font-size: 12px;
         color: var(--text-secondary);
       }
-      .order-no {
-        margin-top: 6px;
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.2px;
-        font-family: var(--font-title);
-      }
       .status-pill,
       .mini-pill {
         min-height: 30px;
@@ -62,14 +50,10 @@
         font-weight: 600;
         white-space: nowrap;
       }
-      .status-pill.pending { background: #f4fafb; color: var(--brand); }
-      .status-pill.failed { background: #fff3f0; border-color: #f2d3cb; color: #c65c37; }
-      .status-pill.completed { background: #eff8f1; border-color: #cfe7d5; color: #20804f; }
       .step-strip {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 8px;
-        margin-top: 12px;
       }
       .step-chip {
         min-height: 54px;
@@ -244,27 +228,6 @@
         font: inherit;
         color: var(--text-primary);
       }
-      .history-list {
-        display: grid;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .history-item {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: #fbfcfd;
-        border: 1px solid #e7edef;
-        display: grid;
-        gap: 4px;
-      }
-      .history-main {
-        font-size: 13px;
-        font-weight: 600;
-      }
-      .history-sub {
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
       .tip {
         min-height: 20px;
         margin-top: 10px;
@@ -329,14 +292,7 @@
         <div style="width: 38px"></div>
       </header>
 
-      <section class="card hero-card">
-        <div class="hero-top">
-          <div>
-            <div class="hero-kicker">本次完单安检</div>
-            <div class="order-no" id="orderText">订单号</div>
-          </div>
-          <div class="status-pill pending" id="statusPill">待提交</div>
-        </div>
+      <section class="card">
         <div class="step-strip">
           <div class="step-chip"><strong>1. 检查</strong><span>勾选已完成的安检动作</span></div>
           <div class="step-chip"><strong>2. 拍照</strong><span>至少补 1 张现场照片</span></div>
@@ -413,17 +369,7 @@
         </div>
       </section>
 
-      <section class="card">
-        <div class="status-row">
-          <div>
-            <div class="section-kicker">上报状态</div>
-            <h2 class="app-card-title" style="margin-bottom: 0">可重试，可回看</h2>
-          </div>
-          <div class="mini-pill" id="attemptCount">0 次</div>
-        </div>
-        <div class="tip" id="tip"></div>
-        <div class="history-list" id="historyList"></div>
-      </section>
+      <div class="tip" id="tip"></div>
     </main>
 
     <div class="dock-wrap" role="region" aria-label="安检操作区">
@@ -463,12 +409,9 @@
       const dockStatus = document.getElementById("dockStatus");
       const photoGrid = document.getElementById("photoGrid");
       const photoFileInput = document.getElementById("photoFileInput");
-      const statusPill = document.getElementById("statusPill");
       const selectedCount = document.getElementById("selectedCount");
       const photoCount = document.getElementById("photoCount");
       const abnormalStatePill = document.getElementById("abnormalStatePill");
-      const attemptCount = document.getElementById("attemptCount");
-      const historyList = document.getElementById("historyList");
       const hazardInput = document.getElementById("hazardInput");
       const abnormalPanel = document.getElementById("abnormalPanel");
       const normalBtn = document.getElementById("normalBtn");
@@ -490,21 +433,6 @@
         const hour = String(date.getHours()).padStart(2, "0");
         const minute = String(date.getMinutes()).padStart(2, "0");
         return `${month}-${day} ${hour}:${minute}`;
-      }
-
-      function setStatus(status, lastError = "") {
-        const normalized = String(status || "pending");
-        const uiStatus = normalized === "failed" ? "failed" : normalized === "completed" ? "completed" : "pending";
-        statusPill.className = `status-pill ${uiStatus}`;
-        if (normalized === "completed") {
-          statusPill.textContent = "已上报";
-          return;
-        }
-        if (normalized === "failed") {
-          statusPill.textContent = "待补传";
-          return;
-        }
-        statusPill.textContent = "待提交";
       }
 
       function updateSelectedCount() {
@@ -557,9 +485,6 @@
       function syncFromSafetyRecord(record) {
         currentSafety = record || null;
         if (!record) {
-          attemptCount.textContent = "0 次";
-          historyList.innerHTML = '<div class="history-item"><div class="history-main">暂无上报记录</div></div>';
-          setStatus("pending");
           return;
         }
         checks.forEach((item) => {
@@ -580,21 +505,6 @@
           }));
           renderPhotos();
         }
-        attemptCount.textContent = `${Number(record.reportAttempts || 0)} 次`;
-        setStatus(record.status, record.lastError || "");
-        const logs = Array.isArray(record.reportLogs) ? record.reportLogs : [];
-        historyList.innerHTML = logs.length
-          ? logs
-              .map(
-                (log) => `
-                  <div class="history-item">
-                    <div class="history-main">${log.status === "completed" ? "上报成功" : "待补传"} · ${String(log.summary || "")}</div>
-                    <div class="history-sub">${formatTime(log.at)}</div>
-                  </div>
-                `,
-              )
-              .join("")
-          : '<div class="history-item"><div class="history-main">暂无上报记录</div></div>';
       }
 
       async function flushOfflineSafetyQueue() {
@@ -619,18 +529,10 @@
           status: "failed",
           lastError: "已加入离线队列，联网后自动补传",
         };
-        setStatus("failed");
-        historyList.innerHTML = `
-          <div class="history-item">
-            <div class="history-main">已加入离线队列</div>
-            <div class="history-sub">${formatTime(Date.now())}</div>
-          </div>
-        `;
         if (!res.success) {
           setTip(res.error || "加入离线队列失败", true);
           return false;
         }
-        attemptCount.textContent = `${Number(currentSafety?.reportAttempts || fallbackRecord.reportAttempts || 0)} 次`;
         setTip("已加入离线队列，联网后自动补传");
         return true;
       }
@@ -648,7 +550,6 @@
       async function loadSafety() {
         const ok = await guardByPolicy();
         if (!ok) return;
-        document.getElementById("orderText").textContent = `订单 ${orderId}`;
         setTip("加载安检记录中...");
         const res = await fetchSafetyByOrder(orderId);
         if (!res.success) return setTip(res.error || "读取安检记录失败", true);
@@ -717,15 +618,7 @@
           return;
         }
         currentSafety = { ...(currentSafety || {}), ...(res.data || {}), ...submitPayload };
-        setStatus(res.data?.status, res.data?.lastError || "");
-        attemptCount.textContent = `${Number(res.data?.reportAttempts || 0)} 次`;
         if (res.data?.status === "completed") {
-          historyList.innerHTML = `
-            <div class="history-item">
-              <div class="history-main">上报成功 · 监管上报成功</div>
-              <div class="history-sub">${formatTime(res.data?.updatedAt)}</div>
-            </div>
-          `;
           setTip("安检上报成功，正在进入结果页");
           window.setTimeout(() => (window.location.href = "./delivery-result.html"), 300);
           return;
