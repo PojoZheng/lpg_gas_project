@@ -1,17 +1,5 @@
 const PLATFORM_MENU = [
   {
-    key: "home",
-    label: "快速入口",
-    href: "./index.html",
-    icon: '<path d="M4 10.5 12 4l8 6.5" /><path d="M6.5 10.5V20h11V10.5" /><path d="M10 20v-5h4v5" />',
-  },
-  {
-    key: "monitor",
-    label: "监控看板",
-    href: "./platform-monitor.html",
-    icon: '<path d="M5 18.5h14" /><path d="M7.5 16v-3.5" /><path d="M12 16V8" /><path d="M16.5 16v-6" />',
-  },
-  {
     key: "policy",
     label: "策略发布",
     href: "./policy-release.html",
@@ -40,8 +28,8 @@ export function mountPlatformChrome(options = {}) {
     typeof options.topbarTarget === "string"
       ? document.getElementById(options.topbarTarget)
       : options.topbarTarget || document.getElementById("platformTopBar");
-  const active = String(options.active || "home").trim();
-  const breadcrumb = String(options.breadcrumb || "首页");
+  const active = String(options.active || "policy").trim();
+  const breadcrumb = String(options.breadcrumb || "策略发布");
   const title = String(options.title || "平台控制台");
   const actions = Array.isArray(options.actions) ? options.actions : [];
 
