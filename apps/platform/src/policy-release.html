@@ -28,7 +28,7 @@
       }
       .page-layout {
         display: grid;
-        grid-template-columns: minmax(280px, 308px) minmax(0, 1fr) minmax(260px, 320px);
+        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(240px, 280px);
         gap: 18px;
         align-items: start;
       }
@@ -397,15 +397,15 @@
         line-height: 1.55;
         background: #f8fbfb;
       }
-      @media (max-width: 1400px) {
+      @media (max-width: 1240px) {
         .page-layout {
-          grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+          grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
         }
         .panel-sticky {
           position: static;
         }
       }
-      @media (max-width: 1000px) {
+      @media (max-width: 940px) {
         .page-layout {
           grid-template-columns: 1fr;
         }
