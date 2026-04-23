@@ -12,9 +12,19 @@ const {
 } = require("./auth-service");
 
 const PORT = Number(process.env.PORT || 3100);
+const SAFETY_REPORT_MODE = String(process.env.SAFETY_REPORT_MODE || "mock").trim().toLowerCase();
+const SAFETY_REPORT_ENDPOINT = String(process.env.SAFETY_REPORT_ENDPOINT || "").trim();
+const SAFETY_REPORT_TIMEOUT_MS = Math.max(
+  1000,
+  Math.min(60000, Number(process.env.SAFETY_REPORT_TIMEOUT_MS || 8000))
+);
+const SAFETY_REPORT_AUTH_TOKEN = String(process.env.SAFETY_REPORT_AUTH_TOKEN || "").trim();
 const CUSTOMER_LEDGER_PATH =
   process.env.TRELLIS_CUSTOMER_LEDGER_PATH ||
   path.join(__dirname, "..", "data", "customer-ledger.json");
+const RUNTIME_STATE_PATH =
+  process.env.TRELLIS_RUNTIME_STATE_PATH ||
+  path.join(__dirname, "..", "data", "runtime-state.json");
 const mockCustomers = [
   { id: "CUST-001", name: "城南餐馆", phone: "13800000001", address: "城南路 18 号", tags: ["VIP", "大客户"] },
   { id: "CUST-002", name: "向阳便利店", phone: "13800000002", address: "向阳街 66 号", tags: ["免押金"] },
@@ -532,10 +542,6 @@ function processOrderReturn(orderId, payload) {
   const order = quickOrders.find((x) => x.orderId === orderId);
   if (!order) throw new Error("订单不存在");
   if (order.orderStatus !== "completed") throw new Error("只有已完成订单可申请退货");
-  
-  const completedAt = Number(order.completedAt || order.createdAt || 0);
-  const hoursSinceComplete = (Date.now() - completedAt) / (60 * 60 * 1000);
-  if (hoursSinceComplete > 24) throw new Error("订单完成超过24小时，无法退货");
 
   const { reason, reasonDetail, bottleReturned, bottleBarcode, refundAmount, refundMethod, note } = payload;
   const quantity = normalizePositiveInt(payload?.quantity ?? order.quantity, "退货数量", 2000);
@@ -615,10 +621,6 @@ function processOrderExchange(orderId, payload) {
   const order = quickOrders.find((x) => x.orderId === orderId);
   if (!order) throw new Error("订单不存在");
   if (order.orderStatus !== "completed") throw new Error("只有已完成订单可申请换货");
-  
-  const completedAt = Number(order.completedAt || order.createdAt || 0);
-  const minutesSinceComplete = (Date.now() - completedAt) / (60 * 1000);
-  if (minutesSinceComplete > 5) throw new Error("订单完成超过5分钟，无法快捷换货");
 
   const { reason, bottleReturned, newQuantity, priceDiff, diffHandling, note } = payload;
   const newSpec = normalizeInventorySpec(payload?.newSpec || order.spec);
@@ -851,8 +853,94 @@ function restoreCustomerLedger() {
   }
 }
 
+function replaceArray(target, incoming) {
+  target.splice(0, target.length, ...(Array.isArray(incoming) ? incoming : []));
+}
+
+function replaceObject(target, incoming) {
+  Object.keys(target).forEach((key) => {
+    delete target[key];
+  });
+  const source = incoming && typeof incoming === "object" ? incoming : {};
+  Object.assign(target, source);
+}
+
+function buildRuntimeStateSnapshot() {
+  return {
+    savedAt: Date.now(),
+    version: 1,
+    mockCustomers: deepClone(mockCustomers),
+    inventoryBySpec: deepClone(inventoryBySpec),
+    quickOrders: deepClone(quickOrders),
+    inventoryLogs: deepClone(inventoryLogs),
+    safetyRecords: deepClone(safetyRecords),
+    offlineQueue: deepClone(offlineQueue),
+    policyVersions: deepClone(policyVersions),
+    policyAuditLogs: deepClone(policyAuditLogs),
+    businessRulesEntries: Array.from(businessRulesStore.entries()),
+    exchangeRecords: deepClone(exchangeRecords),
+    financeEntries: deepClone(financeEntries),
+    returnRecords: deepClone(returnRecords),
+    dailyCloseRecords: deepClone(dailyCloseRecords),
+    debtReminderRecords: deepClone(debtReminderRecords),
+    debtRepaymentRecords: deepClone(debtRepaymentRecords),
+  };
+}
+
+function persistRuntimeState() {
+  const dir = path.dirname(RUNTIME_STATE_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(RUNTIME_STATE_PATH, JSON.stringify(buildRuntimeStateSnapshot(), null, 2), "utf-8");
+}
+
+function persistRuntimeStateSafe() {
+  try {
+    persistRuntimeState();
+  } catch (err) {
+    console.error(`[runtime-state] 持久化失败: ${String(err?.message || err)}`);
+  }
+}
+
+function restoreRuntimeState() {
+  if (!fs.existsSync(RUNTIME_STATE_PATH)) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(RUNTIME_STATE_PATH, "utf-8"));
+  } catch (_err) {
+    return;
+  }
+  if (!parsed || typeof parsed !== "object") return;
+
+  replaceArray(mockCustomers, parsed.mockCustomers);
+  replaceObject(inventoryBySpec, parsed.inventoryBySpec);
+  replaceArray(quickOrders, parsed.quickOrders);
+  replaceArray(inventoryLogs, parsed.inventoryLogs);
+  replaceArray(safetyRecords, parsed.safetyRecords);
+  replaceArray(offlineQueue, parsed.offlineQueue);
+  replaceArray(policyVersions, parsed.policyVersions);
+  replaceArray(policyAuditLogs, parsed.policyAuditLogs);
+  businessRulesStore.clear();
+  if (Array.isArray(parsed.businessRulesEntries)) {
+    parsed.businessRulesEntries.forEach((entry) => {
+      if (!Array.isArray(entry) || entry.length < 2) return;
+      const dealerId = String(entry[0] || "").trim();
+      if (!dealerId) return;
+      businessRulesStore.set(dealerId, normalizeBusinessRules(entry[1], DEFAULT_BUSINESS_RULES));
+    });
+  }
+  replaceArray(exchangeRecords, parsed.exchangeRecords);
+  replaceArray(financeEntries, parsed.financeEntries);
+  replaceArray(returnRecords, parsed.returnRecords);
+  replaceArray(dailyCloseRecords, parsed.dailyCloseRecords);
+  replaceArray(debtReminderRecords, parsed.debtReminderRecords);
+  replaceArray(debtRepaymentRecords, parsed.debtRepaymentRecords);
+}
+
 restoreCustomerLedger();
 seedDebtDemoData();
+restoreRuntimeState();
 
 function ensureCustomerAccount(customerId) {
   if (!customerAccounts.has(customerId)) {
@@ -2065,29 +2153,118 @@ function normalizePhotoUrls(photoUrls) {
     .slice(0, 10);
 }
 
-function runSafetyReport(record) {
+function buildSafetyReportPayload(record) {
+  return {
+    safetyId: String(record.safetyId || ""),
+    orderId: String(record.orderId || ""),
+    customerId: String(record.customerId || ""),
+    customerName: String(record.customerName || ""),
+    address: String(record.address || ""),
+    regionCode: String(record.regionCode || "CN-DEFAULT"),
+    regionName: String(record.regionName || ""),
+    companyId: String(record.companyId || ""),
+    companyName: String(record.companyName || ""),
+    dealerId: String(record.dealerId || ""),
+    userId: String(record.userId || ""),
+    driverName: String(record.driverName || ""),
+    checkedAt: Number(record.checkedAt || Date.now()),
+    reportTargetName: String(record.reportTargetName || ""),
+    checkItems: Array.isArray(record.checkItems) ? record.checkItems : [],
+    photoUrls: Array.isArray(record.photoUrls) ? record.photoUrls : [],
+    hasAbnormal: Boolean(record.hasAbnormal),
+    hazardNote: String(record.hazardNote || ""),
+  };
+}
+
+async function submitSafetyToRegulator(reportPayload) {
+  if (SAFETY_REPORT_MODE !== "external") {
+    return {
+      success: true,
+      summary: "mock 模式：本地直接标记上报成功",
+      targetName: "mock-regulator",
+    };
+  }
+  if (!SAFETY_REPORT_ENDPOINT) {
+    return {
+      success: false,
+      message: "未配置 SAFETY_REPORT_ENDPOINT，无法执行外部监管上报",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SAFETY_REPORT_TIMEOUT_MS);
+  try {
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (SAFETY_REPORT_AUTH_TOKEN) {
+      headers.Authorization = `Bearer ${SAFETY_REPORT_AUTH_TOKEN}`;
+    }
+    const res = await fetch(SAFETY_REPORT_ENDPOINT, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(reportPayload),
+      signal: controller.signal,
+    });
+    let responseText = "";
+    try {
+      responseText = await res.text();
+    } catch (_err) {
+      responseText = "";
+    }
+    if (!res.ok) {
+      return {
+        success: false,
+        message: `监管上报失败（HTTP ${res.status}）${responseText ? `：${responseText.slice(0, 160)}` : ""}`,
+      };
+    }
+    return {
+      success: true,
+      summary: "监管上报成功",
+      targetName: SAFETY_REPORT_ENDPOINT,
+      response: responseText ? responseText.slice(0, 200) : "",
+    };
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      return {
+        success: false,
+        message: `监管上报超时（>${SAFETY_REPORT_TIMEOUT_MS}ms）`,
+      };
+    }
+    return {
+      success: false,
+      message: `监管上报异常：${String(err?.message || "未知错误")}`,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function runSafetyReport(record) {
   record.reportAttempts += 1;
-  const shouldFail = record.reportAttempts === 1 && record.hasAbnormal;
-  if (shouldFail) {
-    record.status = "failed";
-    record.lastError = "监管上报超时，请点击重试";
+  const reportPayload = buildSafetyReportPayload(record);
+  const reportResult = await submitSafetyToRegulator(reportPayload);
+  if (reportResult.success) {
+    record.status = "completed";
+    record.lastError = "";
     record.reportLogs.unshift({
       at: Date.now(),
-      status: "failed",
-      summary: record.lastError,
+      status: "completed",
+      summary: reportResult.summary || "监管上报成功",
+      target: reportResult.targetName || "",
     });
     return;
   }
-  record.status = "completed";
-  record.lastError = "";
+  record.status = "failed";
+  record.lastError = reportResult.message || "监管上报失败";
   record.reportLogs.unshift({
     at: Date.now(),
-    status: "completed",
-    summary: "监管上报成功",
+    status: "failed",
+    summary: record.lastError,
   });
 }
 
-function submitSafetyRecord(orderId, payload, meta = {}) {
+async function submitSafetyRecord(orderId, payload, meta = {}) {
   const order = getOrderById(orderId);
   const record = ensureSafetyTriggered(order);
   const checkItems = normalizeSafetyItems(payload.checkItems);
@@ -2118,7 +2295,7 @@ function submitSafetyRecord(orderId, payload, meta = {}) {
   record.checkedAt = Date.now();
   record.reportTargetName = policySnapshot.reportTargetName;
   record.updatedAt = Date.now();
-  runSafetyReport(record);
+  await runSafetyReport(record);
 
   return {
     safetyId: record.safetyId,
@@ -2130,12 +2307,12 @@ function submitSafetyRecord(orderId, payload, meta = {}) {
   };
 }
 
-function retrySafetyReport(safetyId) {
+async function retrySafetyReport(safetyId) {
   const record = getSafetyById(safetyId);
   if (!record.checkItems.length || !record.photoUrls.length) {
     throw new Error("安检信息不完整，请先提交检查项与照片");
   }
-  runSafetyReport(record);
+  await runSafetyReport(record);
   record.updatedAt = Date.now();
   return {
     safetyId: record.safetyId,
@@ -2147,13 +2324,13 @@ function retrySafetyReport(safetyId) {
   };
 }
 
-function syncSafetyOfflinePayload(payload = {}, meta = {}) {
+async function syncSafetyOfflinePayload(payload = {}, meta = {}) {
   const mode = String(payload.mode || "").trim();
   if (mode === "retry" && payload.safetyId) {
-    return retrySafetyReport(String(payload.safetyId));
+    return await retrySafetyReport(String(payload.safetyId));
   }
   if (mode === "submit" && payload.orderId) {
-    return submitSafetyRecord(String(payload.orderId), payload.submitPayload || {}, meta);
+    return await submitSafetyRecord(String(payload.orderId), payload.submitPayload || {}, meta);
   }
   throw new Error("安检离线同步数据不完整");
 }
@@ -2220,7 +2397,7 @@ function detectSyncConflict(item) {
   return null;
 }
 
-function syncOneOfflineItem(item) {
+async function syncOneOfflineItem(item) {
   if (item.nextRetryAt && Date.now() < Number(item.nextRetryAt)) {
     return {
       offlineId: item.offlineId,
@@ -2260,11 +2437,34 @@ function syncOneOfflineItem(item) {
   }
   if (item.entityType === "safety") {
     try {
-      const result = syncSafetyOfflinePayload(item.payload || {}, item.operator || {});
+      const result = await syncSafetyOfflinePayload(item.payload || {}, item.operator || {});
+      if (String(result?.status || "") !== "completed") {
+        item.retryCount += 1;
+        item.syncStatus = "failed";
+        item.conflictType = "safety_sync_failed";
+        item.lastError = String(result?.lastError || "安检补传失败");
+        item.resultSummary = "安检补传失败";
+        if (item.retryCount >= 3) {
+          item.manualRequired = true;
+          item.resultSummary = "安检补传失败，需人工处理";
+          item.nextRetryAt = 0;
+        } else {
+          item.nextRetryAt = Date.now() + 1000 * Math.pow(2, item.retryCount);
+        }
+        item.updatedAt = Date.now();
+        return {
+          offlineId: item.offlineId,
+          syncStatus: item.syncStatus,
+          conflictType: item.conflictType,
+          manualRequired: item.manualRequired,
+          message: item.lastError,
+          nextRetryAt: item.nextRetryAt,
+        };
+      }
       item.syncStatus = "completed";
       item.conflictType = "";
       item.lastError = "";
-      item.resultSummary = result?.status === "completed" ? "安检补传成功" : "安检已提交，等待上报";
+      item.resultSummary = "安检补传成功";
       item.nextRetryAt = 0;
       item.updatedAt = Date.now();
       return {
@@ -2315,7 +2515,7 @@ function syncOneOfflineItem(item) {
   };
 }
 
-function batchSyncOfflineQueue(payload) {
+async function batchSyncOfflineQueue(payload) {
   const inputIds = Array.isArray(payload.offlineIds) ? payload.offlineIds : [];
   const idSet = new Set(inputIds.map((x) => String(x)));
   const targets = offlineQueue.filter((x) => {
@@ -2324,7 +2524,11 @@ function batchSyncOfflineQueue(payload) {
     if (x.nextRetryAt && Date.now() < Number(x.nextRetryAt)) return false;
     return !x.manualRequired;
   });
-  const results = targets.map((x) => syncOneOfflineItem(x));
+  const results = [];
+  for (const item of targets) {
+    const result = await syncOneOfflineItem(item);
+    results.push(result);
+  }
   return {
     total: results.length,
     completed: results.filter((x) => x.syncStatus === "completed").length,
@@ -2334,14 +2538,14 @@ function batchSyncOfflineQueue(payload) {
   };
 }
 
-function retryOfflineItem(offlineId) {
+async function retryOfflineItem(offlineId) {
   const item = offlineQueue.find((x) => x.offlineId === offlineId);
   if (!item) throw new Error("离线队列记录不存在");
   if (item.manualRequired) throw new Error("该记录已进入人工处理，请先人工确认");
   if (item.nextRetryAt && Date.now() < Number(item.nextRetryAt)) {
     throw new Error("未到重试时间，请稍后再试");
   }
-  return syncOneOfflineItem(item);
+  return await syncOneOfflineItem(item);
 }
 
 function markOfflineManual(offlineId) {
@@ -2675,9 +2879,9 @@ function completeDeliveryOrder(order, payload) {
   order.syncStatus = "pending";
   order.inventoryStage = "consumed";
   order.lastAction = "complete";
-  order.lastActionUndoUntil = Date.now() + 5000;
+  order.lastActionUndoUntil = 0;
   order.lastActionSnapshot = prev;
-  order.canModifyUntil = Date.now() + 24 * 60 * 60 * 1000;
+  order.canModifyUntil = 0;
   adjustCustomerDebt(order, order.debtRecordedAmount, order.debtRecordedEmptyCount);
   const safetyRecord = ensureSafetyTriggered(order);
   appendFinanceEntry(order, "delivery_complete");
@@ -2695,7 +2899,7 @@ function completeDeliveryOrder(order, payload) {
       safetyId: safetyRecord.safetyId,
       status: safetyRecord.status,
     },
-    undoAvailableUntil: order.lastActionUndoUntil,
+    undoAvailableUntil: null,
   };
 }
 
@@ -2708,21 +2912,18 @@ function cancelDeliveryOrder(order) {
   order.syncStatus = "pending";
   order.inventoryStage = "released";
   order.lastAction = "cancel";
-  order.lastActionUndoUntil = Date.now() + 5000;
+  order.lastActionUndoUntil = 0;
   return {
     orderId: order.orderId,
     orderStatus: order.orderStatus,
     inventoryRollback: inventoryAfter,
-    undoAvailableUntil: order.lastActionUndoUntil,
+    undoAvailableUntil: null,
   };
 }
 
 function basicUpdateOrder(order, payload) {
   if (order.orderStatus === "cancelled") {
     throw new Error("已取消订单不允许修改");
-  }
-  if (Date.now() > Number(order.canModifyUntil || 0)) {
-    throw new Error("订单已超过 24 小时可修改时限");
   }
 
   const changes = {};
@@ -2838,8 +3039,8 @@ function basicUpdateOrder(order, payload) {
 }
 
 function undoOrderAction(order) {
-  if (!order.lastAction || Date.now() > Number(order.lastActionUndoUntil || 0)) {
-    throw new Error("已超过 5 秒撤销时限，请按修改流程处理");
+  if (!order.lastAction) {
+    throw new Error("当前订单没有可撤销的最近操作");
   }
   if (order.lastAction === "complete") {
     if (!order.lastActionSnapshot) throw new Error("撤销失败，请稍后重试");
@@ -3638,7 +3839,7 @@ const server = http.createServer(async (req, res) => {
       const { user } = authByAccessToken(accessToken);
       const orderId = decodeURIComponent(pathname.replace("/safety/by-order/", ""));
       const payload = await readBody(req);
-      const data = submitSafetyRecord(orderId, payload, {
+      const data = await submitSafetyRecord(orderId, payload, {
         userId: user.id,
         dealerId: user.dealerId,
         driverName: user.nickname,
@@ -3653,7 +3854,7 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const safetyId = decodeURIComponent(pathname.replace("/safety/", "").replace("/retry", ""));
-      const data = retrySafetyReport(safetyId);
+      const data = await retrySafetyReport(safetyId);
       return sendJson(res, 200, { success: true, data });
     }
 
@@ -3703,7 +3904,7 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
-      const data = batchSyncOfflineQueue(payload);
+      const data = await batchSyncOfflineQueue(payload);
       return sendJson(res, 200, { success: true, data });
     }
 
@@ -3711,7 +3912,7 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const offlineId = decodeURIComponent(pathname.replace("/sync/queue/", "").replace("/retry", ""));
-      const data = retryOfflineItem(offlineId);
+      const data = await retryOfflineItem(offlineId);
       return sendJson(res, 200, { success: true, data });
     }
 
@@ -3832,6 +4033,10 @@ const server = http.createServer(async (req, res) => {
       return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
     }
     return sendJson(res, 400, { success: false, error: err.message });
+  } finally {
+    if (req.method !== "GET" && req.method !== "OPTIONS") {
+      persistRuntimeStateSafe();
+    }
   }
 });
 

@@ -97,3 +97,9 @@ export async function retrySafetyReport(safetyId) {
     headers: authHeaders(),
   });
 }
+
+export async function fetchCurrentPlatformPolicy() {
+  return requestJson(`${API_BASE_URL}/platform/policies/current`, {
+    headers: authHeaders(),
+  });
+}

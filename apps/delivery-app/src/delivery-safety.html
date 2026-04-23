@@ -614,6 +614,10 @@
         setTip("正在提交安检...");
         const res = await submitSafetyByOrder(orderId, submitPayload);
         if (!res.success) {
+          if (res.error_code === "VALIDATION_400" || res.error_code === "ORDER_409_STATUS") {
+            setTip(res.error || "安检信息校验失败", true);
+            return;
+          }
           await enqueueSafetyOffline("submit", { orderId, submitPayload }, submitPayload);
           return;
         }

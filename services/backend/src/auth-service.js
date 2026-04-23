@@ -9,7 +9,9 @@ const refreshTokens = new Map();
 const sendCodeStats = new Map();
 const loginFailureStats = new Map();
 
-const AUTH_STATE_PATH = path.join(__dirname, "..", "data", "auth-state.json");
+const AUTH_STATE_PATH =
+  process.env.TRELLIS_AUTH_STATE_PATH ||
+  path.join(__dirname, "..", "data", "auth-state.json");
 
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;

@@ -330,10 +330,7 @@
       }
 
       function canExchange(order) {
-        if (order.orderStatus !== "completed") return false;
-        const completedAt = Number(order.completedAt || order.createdAt || 0);
-        const minutesSince = (Date.now() - completedAt) / (60 * 1000);
-        return minutesSince <= 5;
+        return order.orderStatus === "completed";
       }
 
       function showToast(message) {
@@ -344,15 +341,27 @@
       }
 
       function canReturn(order) {
-        if (order.orderStatus !== "completed") return false;
-        const completedAt = Number(order.completedAt || order.createdAt || 0);
-        const hoursSince = (Date.now() - completedAt) / (60 * 60 * 1000);
-        return hoursSince <= 24;
+        return order.orderStatus === "completed";
       }
 
       function canModify(order) {
-        if (order.orderStatus === "cancelled") return false;
-        return Date.now() <= Number(order.canModifyUntil || 0);
+        return order.orderStatus !== "cancelled";
+      }
+
+      function calculatePriceDiff() {
+        const originalQuantityInput = document.getElementById("originalQuantity");
+        const newQuantityInput = document.getElementById("newQuantity");
+        const originalUnitPriceInput = document.getElementById("originalUnitPrice");
+        const newUnitPriceInput = document.getElementById("newUnitPrice");
+        const priceDiffInput = document.getElementById("priceDiff");
+        if (!originalQuantityInput || !newQuantityInput || !originalUnitPriceInput || !newUnitPriceInput || !priceDiffInput) return;
+
+        const originalQty = parseInt(originalQuantityInput.value, 10) || 0;
+        const newQty = parseInt(newQuantityInput.value, 10) || 0;
+        const originalPrice = parseFloat(originalUnitPriceInput.value) || 0;
+        const newPrice = parseFloat(newUnitPriceInput.value) || 0;
+        const diff = (newQty * newPrice) - (originalQty * originalPrice);
+        priceDiffInput.value = diff.toFixed(2);
       }
 
       function syncModifyForm(order) {
@@ -454,16 +463,6 @@
         const newQuantityInput = document.getElementById("newQuantity");
         const originalUnitPriceInput = document.getElementById("originalUnitPrice");
         const newUnitPriceInput = document.getElementById("newUnitPrice");
-        const priceDiffInput = document.getElementById("priceDiff");
-
-        function calculatePriceDiff() {
-          const originalQty = parseInt(document.getElementById("originalQuantity").value) || 0;
-          const newQty = parseInt(newQuantityInput.value) || 0;
-          const originalPrice = parseFloat(originalUnitPriceInput.value) || 0;
-          const newPrice = parseFloat(newUnitPriceInput.value) || 0;
-          const diff = (newQty * newPrice) - (originalQty * originalPrice);
-          priceDiffInput.value = diff.toFixed(2);
-        }
 
         document.getElementById("exchangeBtn").addEventListener("click", () => {
           exchangeModal.classList.add("show");
