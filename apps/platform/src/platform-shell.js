@@ -7,7 +7,7 @@ const PLATFORM_MENU = [
   },
   {
     key: "sync",
-    label: "同步队列",
+    label: "安检上报",
     href: "./sync-queue.html",
     icon: '<path d="M5 11a7 7 0 0 1 12-4.6" /><path d="M19 13a7 7 0 0 1-12 4.6" /><path d="M17 4v4h-4" /><path d="M7 20v-4h4" />',
   },
