@@ -6,10 +6,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 
 KEY_PAGES = [
-    ".trellis/delivery-app/src/workbench.html",
-    ".trellis/delivery-app/src/quick-order.html",
-    ".trellis/delivery-app/src/delivery-complete.html",
-    ".trellis/delivery-app/src/my.html",
+    "apps/delivery-app/src/workbench.html",
+    "apps/delivery-app/src/quick-order.html",
+    "apps/delivery-app/src/delivery-complete.html",
+    "apps/delivery-app/src/my.html",
 ]
 
 UNIFIED_REFERENCES = [

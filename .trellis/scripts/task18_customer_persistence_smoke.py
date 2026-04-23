@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVER_JS = ROOT / ".trellis/backend/src/server.js"
+SERVER_JS = ROOT / "services/backend/src/server.js"
 
 
 def pick_listen_port() -> int:

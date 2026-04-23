@@ -7,9 +7,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 required_files = [
     ROOT / ".trellis/tasks/03-quick-order/task.json",
-    ROOT / ".trellis/delivery-app/src/quick-order.html",
-    ROOT / ".trellis/delivery-app/src/quick-order-client.js",
-    ROOT / ".trellis/delivery-app/src/workbench.html",
+    ROOT / "apps/delivery-app/src/quick-order.html",
+    ROOT / "apps/delivery-app/src/quick-order-client.js",
+    ROOT / "apps/delivery-app/src/workbench.html",
 ]
 
 for f in required_files:
@@ -22,7 +22,7 @@ if task.get("id") != "03-quick-order":
     print("[task03-smoke] 任务定义异常")
     sys.exit(1)
 
-quick_html = (ROOT / ".trellis/delivery-app/src/quick-order.html").read_text(encoding="utf-8")
+quick_html = (ROOT / "apps/delivery-app/src/quick-order.html").read_text(encoding="utf-8")
 checks = [
     "快速开单",
     "选择客户",
@@ -47,7 +47,7 @@ if "logo-polygon.png" in quick_html:
     print("[task03-smoke] 快速开单页不允许使用 Logo")
     sys.exit(1)
 
-workbench_html = (ROOT / ".trellis/delivery-app/src/workbench.html").read_text(encoding="utf-8")
+workbench_html = (ROOT / "apps/delivery-app/src/workbench.html").read_text(encoding="utf-8")
 if "./quick-order.html" not in workbench_html:
     print("[task03-smoke] 工作台未接入快速开单入口跳转")
     sys.exit(1)

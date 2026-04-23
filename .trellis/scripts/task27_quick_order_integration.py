@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVER_JS = ROOT / ".trellis/backend/src/server.js"
+SERVER_JS = ROOT / "services/backend/src/server.js"
 BASE = "http://localhost:3100"
 
 
@@ -47,10 +47,10 @@ def wait_server():
 
 
 def fallback_static_checks() -> bool:
-    quick_client = (ROOT / ".trellis/delivery-app/src/quick-order-client.js").read_text(
+    quick_client = (ROOT / "apps/delivery-app/src/quick-order-client.js").read_text(
         encoding="utf-8"
     )
-    server_js = (ROOT / ".trellis/backend/src/server.js").read_text(encoding="utf-8")
+    server_js = (ROOT / "services/backend/src/server.js").read_text(encoding="utf-8")
     checks = [
         "/orders/quick-create",
         "AUTH_401",

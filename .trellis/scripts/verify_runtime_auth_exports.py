@@ -10,8 +10,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-AUTH = ROOT / ".trellis/delivery-app/src/auth-client.js"
-WORKBENCH = ROOT / ".trellis/delivery-app/src/workbench.html"
+AUTH = ROOT / "apps/delivery-app/src/auth-client.js"
+WORKBENCH = ROOT / "apps/delivery-app/src/workbench.html"
 
 
 def main() -> int:

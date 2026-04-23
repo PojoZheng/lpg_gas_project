@@ -16,8 +16,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 COVERAGE = ".trellis/spec/delivery-app/domain-workbench/REQUIREMENTS_01_COVERAGE.md"
 WATCH = (
-    ".trellis/delivery-app/src/workbench.html",
-    ".trellis/delivery-app/src/workbench-client.js",
+    "apps/delivery-app/src/workbench.html",
+    "apps/delivery-app/src/workbench-client.js",
 )
 
 

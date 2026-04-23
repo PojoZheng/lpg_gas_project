@@ -3,7 +3,7 @@
 自动测试触发器（按 Trellis 当前任务）
 
 功能：
-1) 监听代码目录变化（delivery-app/src、backend/src、platform/src、shared/src）
+1) 监听代码目录变化（apps/delivery-app/src、services/backend/src、apps/platform/src、shared/src）
 2) 根据 .trellis/.current-task 自动匹配任务测试命令
 3) 若未配置任务命令，执行默认检查
 
@@ -30,9 +30,9 @@ CURRENT_TASK_FILE = TRELLIS_ROOT / ".current-task"
 TEST_CONFIG_FILE = TRELLIS_ROOT / "tasks" / "test-commands.json"
 
 WATCH_DIRS = [
-    TRELLIS_ROOT / "delivery-app" / "src",
-    TRELLIS_ROOT / "backend" / "src",
-    TRELLIS_ROOT / "platform" / "src",
+    PROJECT_ROOT / "apps" / "delivery-app" / "src",
+    PROJECT_ROOT / "services" / "backend" / "src",
+    PROJECT_ROOT / "apps" / "platform" / "src",
     TRELLIS_ROOT / "shared" / "src",
 ]
 
@@ -59,7 +59,7 @@ def default_commands() -> List[str]:
     commands: List[str] = []
 
     # 后端 js 语法检查（无依赖即可执行）
-    backend_src = TRELLIS_ROOT / "backend" / "src"
+    backend_src = PROJECT_ROOT / "services" / "backend" / "src"
     if backend_src.exists():
         for p in backend_src.rglob("*.js"):
             commands.append(f'node --check "{p}"')
