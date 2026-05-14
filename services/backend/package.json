@@ -1,0 +1,12 @@
+{
+  "name": "lpg-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LPG project backend service",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node src/server.js"
+  }
+}

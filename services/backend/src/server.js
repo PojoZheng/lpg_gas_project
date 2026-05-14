@@ -40,6 +40,7 @@ const {
 } = require("./auth-service");
 
 const PORT = Number(process.env.PORT || 3100);
+const HOST = String(process.env.HOST || "0.0.0.0").trim() || "0.0.0.0";
 const SAFETY_REPORT_MODE = String(process.env.SAFETY_REPORT_MODE || "mock").trim().toLowerCase();
 const SAFETY_REPORT_ENDPOINT = String(process.env.SAFETY_REPORT_ENDPOINT || "").trim();
 const SAFETY_REPORT_TIMEOUT_MS = Math.max(
@@ -53,6 +54,7 @@ const CUSTOMER_LEDGER_PATH =
 const RUNTIME_STATE_PATH =
   process.env.TRELLIS_RUNTIME_STATE_PATH ||
   path.join(__dirname, "..", "data", "runtime-state.json");
+const CORS_ALLOW_ORIGIN = String(process.env.CORS_ALLOW_ORIGIN || "*").trim() || "*";
 const mockCustomers = [
   { id: "CUST-001", name: "城南餐馆", phone: "13800000001", address: "城南路 18 号", tags: ["VIP", "大客户"] },
   { id: "CUST-002", name: "向阳便利店", phone: "13800000002", address: "向阳街 66 号", tags: ["免押金"] },
@@ -1059,12 +1061,21 @@ function ensureCustomerAccount(customerId) {
   return row;
 }
 
-function sendJson(res, statusCode, payload) {
+function buildCorsHeaders(req) {
+  const origin = String(req?.headers?.origin || "").trim();
+  const allowOrigin = CORS_ALLOW_ORIGIN === "*" ? "*" : origin || CORS_ALLOW_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, OPTIONS",
+    Vary: "Origin",
+  };
+}
+
+function sendJson(req, res, statusCode, payload) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    ...buildCorsHeaders(req),
   });
   res.end(JSON.stringify(payload));
 }
@@ -1090,8 +1101,8 @@ function readAccessToken(req) {
   return auth.slice(7);
 }
 
-function sendContractSuccess(res, statusCode, data, requestId) {
-  return sendJson(res, statusCode, {
+function sendContractSuccess(req, res, statusCode, data, requestId) {
+  return sendJson(req, res, statusCode, {
     success: true,
     data,
     error: null,
@@ -1099,8 +1110,8 @@ function sendContractSuccess(res, statusCode, data, requestId) {
   });
 }
 
-function sendContractError(res, statusCode, code, message, requestId) {
-  return sendJson(res, statusCode, {
+function sendContractError(req, res, statusCode, code, message, requestId) {
+  return sendJson(req, res, statusCode, {
     success: false,
     data: null,
     error: { code, message },
@@ -3583,19 +3594,31 @@ function updateCustomer(customerId, payload) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
+  if (req.method === "OPTIONS") return sendJson(req, res, 200, { ok: true });
   const reqUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const pathname = reqUrl.pathname;
   const requestId = crypto.randomUUID();
 
   try {
+    if (req.method === "GET" && pathname === "/health") {
+      return sendJson(req, res, 200, {
+        success: true,
+        data: {
+          status: "ok",
+          now: Date.now(),
+          port: PORT,
+          dbPath: DB_PATH,
+        },
+      });
+    }
+
     if (req.method === "POST" && pathname === "/auth/send-code") {
       const { phone } = await readBody(req);
       if (!/^1\d{10}$/.test(phone || "")) {
-        return sendContractError(res, 400, "VALIDATION_400", "手机号格式不正确", requestId);
+        return sendContractError(req, res, 400, "VALIDATION_400", "手机号格式不正确", requestId);
       }
       const code = issueCode(phone);
-      return sendContractSuccess(res, 200, { message: "验证码已发送", dev_code: code }, requestId);
+      return sendContractSuccess(req, res, 200, { message: "验证码已发送", dev_code: code }, requestId);
     }
 
     if (req.method === "POST" && pathname === "/auth/login") {
@@ -3627,32 +3650,32 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/auth/refresh") {
       const { refreshToken } = await readBody(req);
       const result = refresh(refreshToken);
-      return sendContractSuccess(res, 200, result, requestId);
+      return sendContractSuccess(req, res, 200, result, requestId);
     }
 
     if (req.method === "GET" && pathname === "/auth/devices") {
       const accessToken = readAccessToken(req);
       const devices = listDevices(accessToken);
-      return sendContractSuccess(res, 200, devices, requestId);
+      return sendContractSuccess(req, res, 200, devices, requestId);
     }
 
     if (req.method === "POST" && pathname === "/auth/devices/logout") {
       const accessToken = readAccessToken(req);
       const { sessionId } = await readBody(req);
       const result = logoutSession(accessToken, sessionId);
-      return sendContractSuccess(res, 200, result, requestId);
+      return sendContractSuccess(req, res, 200, result, requestId);
     }
 
     if (req.method === "GET" && pathname === "/workbench/overview") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: buildWorkbenchOverview() });
+      return sendJson(req, res, 200, { success: true, data: buildWorkbenchOverview() });
     }
 
     if (req.method === "GET" && pathname === "/customers") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: listCustomers({
           page: reqUrl.searchParams.get("page"),
@@ -3666,7 +3689,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/customers/quick-select") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: mockCustomers });
+      return sendJson(req, res, 200, { success: true, data: mockCustomers });
     }
 
     if (req.method === "POST" && pathname === "/customers") {
@@ -3674,7 +3697,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const customer = createCustomer(payload);
-      return sendJson(res, 200, { success: true, data: customer });
+      return sendJson(req, res, 200, { success: true, data: customer });
     }
 
     if (req.method === "PATCH" && pathname.startsWith("/customers/") && !pathname.endsWith("/collection-status")) {
@@ -3682,25 +3705,25 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const customerId = decodeURIComponent(pathname.replace("/customers/", ""));
       if (!customerId || customerId.includes("/")) {
-        return sendJson(res, 404, { success: false, error: "接口不存在" });
+        return sendJson(req, res, 404, { success: false, error: "接口不存在" });
       }
       const payload = await readBody(req);
       const updated = updateCustomer(customerId, payload);
-      return sendJson(res, 200, { success: true, data: updated });
+      return sendJson(req, res, 200, { success: true, data: updated });
     }
 
     if (req.method === "GET" && pathname.startsWith("/customers/") && pathname.endsWith("/detail")) {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const customerId = decodeURIComponent(pathname.replace("/customers/", "").replace("/detail", ""));
-      return sendJson(res, 200, { success: true, data: getCustomerDetail(customerId) });
+      return sendJson(req, res, 200, { success: true, data: getCustomerDetail(customerId) });
     }
 
     if (req.method === "GET" && pathname.startsWith("/customers/") && pathname.endsWith("/orders")) {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const customerId = decodeURIComponent(pathname.replace("/customers/", "").replace("/orders", ""));
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: listCustomerOrders(customerId, {
           page: reqUrl.searchParams.get("page"),
@@ -3714,9 +3737,9 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const customerId = decodeURIComponent(pathname.replace("/customers/", ""));
       if (!customerId || customerId.includes("/")) {
-        return sendJson(res, 404, { success: false, error: "接口不存在" });
+        return sendJson(req, res, 404, { success: false, error: "接口不存在" });
       }
-      return sendJson(res, 200, { success: true, data: getCustomerDetail(customerId) });
+      return sendJson(req, res, 200, { success: true, data: getCustomerDetail(customerId) });
     }
 
     if (req.method === "PATCH" && pathname.startsWith("/customers/") && pathname.endsWith("/collection-status")) {
@@ -3726,7 +3749,7 @@ const server = http.createServer(async (req, res) => {
         pathname.replace("/customers/", "").replace("/collection-status", "")
       );
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: updateCollectionStatus(customerId, payload) });
+      return sendJson(req, res, 200, { success: true, data: updateCollectionStatus(customerId, payload) });
     }
 
     if (req.method === "POST" && pathname === "/inventory/check") {
@@ -3735,7 +3758,7 @@ const server = http.createServer(async (req, res) => {
       const { spec, quantity } = await readBody(req);
       const state = getInventoryState(spec);
       const requested = Number(quantity || 0);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: {
           spec,
@@ -3752,13 +3775,13 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const data = Object.keys(inventoryBySpec).map((spec) => getInventoryState(spec));
-      return sendJson(res, 200, { success: true, data, logs: inventoryLogs.slice(0, 20) });
+      return sendJson(req, res, 200, { success: true, data, logs: inventoryLogs.slice(0, 20) });
     }
 
     if (req.method === "GET" && pathname === "/inventory/alerts") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: buildInventoryAlertSnapshot() });
+      return sendJson(req, res, 200, { success: true, data: buildInventoryAlertSnapshot() });
     }
 
     if (req.method === "POST" && pathname === "/inventory/purchase") {
@@ -3766,7 +3789,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const state = applyInventoryPurchase(payload);
-      return sendJson(res, 200, { success: true, data: state });
+      return sendJson(req, res, 200, { success: true, data: state });
     }
 
     if (req.method === "POST" && pathname === "/inventory/refill") {
@@ -3774,7 +3797,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const state = applyInventoryRefill(payload);
-      return sendJson(res, 200, { success: true, data: state });
+      return sendJson(req, res, 200, { success: true, data: state });
     }
 
     if (req.method === "POST" && pathname === "/inventory/stocktake") {
@@ -3782,7 +3805,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const state = applyInventoryStocktake(payload);
-      return sendJson(res, 200, { success: true, data: state });
+      return sendJson(req, res, 200, { success: true, data: state });
     }
 
     if (req.method === "POST" && pathname === "/orders/quick-create") {
@@ -3792,26 +3815,26 @@ const server = http.createServer(async (req, res) => {
         const payload = await readBody(req);
         const result = createQuickOrder(payload);
         if (!result.success) {
-          return sendContractError(res, 409, "INVENTORY_409_STOCK", result.error, requestId);
+          return sendContractError(req, res, 409, "INVENTORY_409_STOCK", result.error, requestId);
         }
-        return sendContractSuccess(res, 200, result.data, requestId);
+        return sendContractSuccess(req, res, 200, result.data, requestId);
       } catch (orderErr) {
         const mapped = mapOrderError(orderErr);
-        return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
+        return sendContractError(req, res, mapped.statusCode, mapped.code, mapped.message, requestId);
       }
     }
 
     if (req.method === "GET" && pathname === "/finance/today-summary") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: buildTodayFinanceSummary() });
+      return sendJson(req, res, 200, { success: true, data: buildTodayFinanceSummary() });
     }
 
     if (req.method === "GET" && pathname === "/finance/income") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const range = resolveFinanceRange(reqUrl.searchParams);
-      return sendJson(res, 200, { success: true, data: buildFinanceIncomeResponse(range) });
+      return sendJson(req, res, 200, { success: true, data: buildFinanceIncomeResponse(range) });
     }
 
     if (req.method === "GET" && pathname === "/finance/entries") {
@@ -3821,21 +3844,21 @@ const server = http.createServer(async (req, res) => {
       const list = onlyToday
         ? getFinanceEntriesInRange(startOfTodayMs(), Date.now() + 1)
         : getFinanceEntriesInRange(0, Number.MAX_SAFE_INTEGER);
-      return sendJson(res, 200, { success: true, data: list });
+      return sendJson(req, res, 200, { success: true, data: list });
     }
 
     if (req.method === "GET" && pathname === "/finance/today-expense") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const entries = getFinanceEntriesInRange(startOfTodayMs(), Date.now() + 1);
-      return sendJson(res, 200, { success: true, data: buildFinanceExpenseSummary(entries) });
+      return sendJson(req, res, 200, { success: true, data: buildFinanceExpenseSummary(entries) });
     }
 
     if (req.method === "GET" && pathname === "/finance/daily-close") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const date = reqUrl.searchParams.get("date") || formatLocalDateKey(startOfTodayMs());
-      return sendJson(res, 200, { success: true, data: buildDailyClosePayload(date) });
+      return sendJson(req, res, 200, { success: true, data: buildDailyClosePayload(date) });
     }
 
     if (req.method === "GET" && pathname === "/finance/daily-close/history") {
@@ -3845,20 +3868,20 @@ const server = http.createServer(async (req, res) => {
       const list = dailyCloseRecords
         .filter((record) => !month || String(record.date || "").startsWith(month))
         .sort((a, b) => Number(b.closedAt || 0) - Number(a.closedAt || 0));
-      return sendJson(res, 200, { success: true, data: list });
+      return sendJson(req, res, 200, { success: true, data: list });
     }
 
     if (req.method === "GET" && pathname.startsWith("/finance/daily-close/")) {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const date = decodeURIComponent(pathname.replace("/finance/daily-close/", ""));
-      return sendJson(res, 200, { success: true, data: buildDailyClosePayload(date) });
+      return sendJson(req, res, 200, { success: true, data: buildDailyClosePayload(date) });
     }
 
     if (req.method === "GET" && pathname === "/debts/overview") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: buildDebtOverview() });
+      return sendJson(req, res, 200, { success: true, data: buildDebtOverview() });
     }
 
     if (req.method === "GET" && pathname === "/debts/list") {
@@ -3869,7 +3892,7 @@ const server = http.createServer(async (req, res) => {
       const size = Math.min(50, Math.max(1, parseInt(reqUrl.searchParams.get("size") || "20", 10)));
       const items = listDebtCustomers(filter);
       const start = (page - 1) * size;
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: {
           total: items.length,
@@ -3884,35 +3907,35 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const customerId = decodeURIComponent(pathname.replace("/debts/customer/", ""));
-      return sendJson(res, 200, { success: true, data: getDebtCustomerDetail(customerId) });
+      return sendJson(req, res, 200, { success: true, data: getDebtCustomerDetail(customerId) });
     }
 
     if (req.method === "POST" && pathname === "/debts/reminder") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: recordDebtReminder(payload) });
+      return sendJson(req, res, 200, { success: true, data: recordDebtReminder(payload) });
     }
 
     if (req.method === "POST" && pathname === "/debts/repayment") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: recordDebtRepayment(payload) });
+      return sendJson(req, res, 200, { success: true, data: recordDebtRepayment(payload) });
     }
 
     if (req.method === "POST" && pathname === "/finance/daily-close") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: createDailyClose(payload) });
+      return sendJson(req, res, 200, { success: true, data: createDailyClose(payload) });
     }
 
     if (req.method === "POST" && pathname === "/finance/daily-close/confirm") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: createDailyClose(payload) });
+      return sendJson(req, res, 200, { success: true, data: createDailyClose(payload) });
     }
 
     if (req.method === "GET" && pathname === "/orders") {
@@ -3933,7 +3956,7 @@ const server = http.createServer(async (req, res) => {
       const end = start + size;
       const list = filteredOrders.slice(start, end).map((order) => mapOrderContract(order));
 
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: {
           total,
@@ -3947,16 +3970,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/orders/pending-delivery") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, { success: true, data: getPendingOrders() });
+      return sendJson(req, res, 200, { success: true, data: getPendingOrders() });
     }
 
     if (req.method === "GET" && pathname.startsWith("/orders/")) {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const orderId = decodeURIComponent(pathname.replace("/orders/", ""));
-      if (!orderId || orderId.includes("/")) return sendJson(res, 404, { success: false, error: "接口不存在" });
+      if (!orderId || orderId.includes("/")) return sendJson(req, res, 404, { success: false, error: "接口不存在" });
       const order = getOrderById(orderId);
-      return sendJson(res, 200, { success: true, data: mapOrderContract(order) });
+      return sendJson(req, res, 200, { success: true, data: mapOrderContract(order) });
     }
 
     if (req.method === "POST" && pathname.endsWith("/complete")) {
@@ -3965,7 +3988,7 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/complete", ""));
       const order = getOrderById(orderId);
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: completeDeliveryOrder(order, payload) });
+      return sendJson(req, res, 200, { success: true, data: completeDeliveryOrder(order, payload) });
     }
 
     if (req.method === "POST" && pathname.endsWith("/cancel")) {
@@ -3973,7 +3996,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/cancel", ""));
       const order = getOrderById(orderId);
-      return sendJson(res, 200, { success: true, data: cancelDeliveryOrder(order) });
+      return sendJson(req, res, 200, { success: true, data: cancelDeliveryOrder(order) });
     }
 
     if (req.method === "PATCH" && pathname.endsWith("/basic-update")) {
@@ -3982,7 +4005,7 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/basic-update", ""));
       const order = getOrderById(orderId);
       const payload = await readBody(req);
-      return sendJson(res, 200, { success: true, data: basicUpdateOrder(order, payload) });
+      return sendJson(req, res, 200, { success: true, data: basicUpdateOrder(order, payload) });
     }
 
     if (req.method === "POST" && pathname.endsWith("/undo")) {
@@ -3990,7 +4013,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/undo", ""));
       const order = getOrderById(orderId);
-      return sendJson(res, 200, { success: true, data: undoOrderAction(order) });
+      return sendJson(req, res, 200, { success: true, data: undoOrderAction(order) });
     }
 
     if (req.method === "POST" && pathname.endsWith("/return")) {
@@ -3999,7 +4022,7 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/return", ""));
       const payload = await readBody(req);
       const result = processOrderReturn(orderId, payload);
-      return sendJson(res, 200, result);
+      return sendJson(req, res, 200, result);
     }
 
     if (req.method === "POST" && pathname.endsWith("/exchange")) {
@@ -4008,7 +4031,7 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/orders/", "").replace("/exchange", ""));
       const payload = await readBody(req);
       const result = processOrderExchange(orderId, payload);
-      return sendJson(res, 200, result);
+      return sendJson(req, res, 200, result);
     }
 
     if (req.method === "GET" && pathname.startsWith("/safety/by-order/")) {
@@ -4017,9 +4040,9 @@ const server = http.createServer(async (req, res) => {
       const orderId = decodeURIComponent(pathname.replace("/safety/by-order/", ""));
       const record = getSafetyByOrderId(orderId);
       if (!record) {
-        return sendJson(res, 200, { success: true, data: null });
+        return sendJson(req, res, 200, { success: true, data: null });
       }
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: {
           safetyId: record.safetyId,
@@ -4050,7 +4073,7 @@ const server = http.createServer(async (req, res) => {
         companyName: user.companyName,
         regionCode: user.regionCode,
       });
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "POST" && pathname.startsWith("/safety/") && pathname.endsWith("/retry")) {
@@ -4058,7 +4081,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const safetyId = decodeURIComponent(pathname.replace("/safety/", "").replace("/retry", ""));
       const data = await retrySafetyReport(safetyId);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "GET" && pathname === "/sync/queue") {
@@ -4072,7 +4095,7 @@ const server = http.createServer(async (req, res) => {
         conflictOnly: reqUrl.searchParams.get("conflictOnly") || "0",
       };
       const queueView = listOfflineQueue(filters);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: {
           stats: {
@@ -4100,7 +4123,7 @@ const server = http.createServer(async (req, res) => {
         companyName: user.companyName,
         regionCode: user.regionCode,
       });
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "POST" && pathname === "/sync/queue/batch-submit") {
@@ -4108,7 +4131,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const data = await batchSyncOfflineQueue(payload);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "POST" && pathname.startsWith("/sync/queue/") && pathname.endsWith("/retry")) {
@@ -4116,7 +4139,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const offlineId = decodeURIComponent(pathname.replace("/sync/queue/", "").replace("/retry", ""));
       const data = await retryOfflineItem(offlineId);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "POST" && pathname.startsWith("/sync/queue/") && pathname.endsWith("/manual")) {
@@ -4124,14 +4147,14 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const offlineId = decodeURIComponent(pathname.replace("/sync/queue/", "").replace("/manual", ""));
       const data = markOfflineManual(offlineId);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "GET" && pathname === "/platform/policies/current") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const context = getPolicyContext(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: getActivePolicy(context),
       });
@@ -4140,7 +4163,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/platform/policies/versions") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: policyVersions,
       });
@@ -4151,7 +4174,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const data = savePolicyDraft(payload);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "POST" && pathname === "/platform/policies/publish") {
@@ -4159,7 +4182,7 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const data = publishPolicy(payload);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "POST" && pathname === "/platform/policies/rollback") {
@@ -4167,13 +4190,13 @@ const server = http.createServer(async (req, res) => {
       listDevices(accessToken);
       const payload = await readBody(req);
       const data = rollbackPolicy(payload);
-      return sendJson(res, 200, { success: true, data });
+      return sendJson(req, res, 200, { success: true, data });
     }
 
     if (req.method === "GET" && pathname === "/platform/policies/audit-logs") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: policyAuditLogs,
       });
@@ -4182,7 +4205,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/platform/monitor/business-metrics") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: buildBusinessMetrics(),
       });
@@ -4191,7 +4214,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/platform/monitor/compliance-metrics") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: buildComplianceMetrics(),
       });
@@ -4200,7 +4223,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/settings/business") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: getBusinessRules("default"),
       });
@@ -4210,7 +4233,7 @@ const server = http.createServer(async (req, res) => {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
       const payload = await readBody(req);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: saveBusinessRules(payload, "default"),
       });
@@ -4219,23 +4242,23 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/settings/business/reset") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      return sendJson(res, 200, {
+      return sendJson(req, res, 200, {
         success: true,
         data: resetBusinessRules("default"),
       });
     }
 
-    return sendJson(res, 404, { success: false, error: "接口不存在" });
+    return sendJson(req, res, 404, { success: false, error: "接口不存在" });
   } catch (err) {
     if (pathname.startsWith("/auth/")) {
       const mapped = mapAuthError(err, pathname);
-      return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
+      return sendContractError(req, res, mapped.statusCode, mapped.code, mapped.message, requestId);
     }
     if (pathname === "/orders" || pathname.startsWith("/orders/")) {
       const mapped = mapOrderError(err);
-      return sendContractError(res, mapped.statusCode, mapped.code, mapped.message, requestId);
+      return sendContractError(req, res, mapped.statusCode, mapped.code, mapped.message, requestId);
     }
-    return sendJson(res, 400, { success: false, error: err.message });
+    return sendJson(req, res, 400, { success: false, error: err.message });
   } finally {
     if (req.method !== "GET" && req.method !== "OPTIONS") {
       persistRuntimeStateSafe();
@@ -4243,6 +4266,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`认证服务已启动：http://localhost:${PORT} (SQLite: ${DB_PATH})`);
+server.listen(PORT, HOST, () => {
+  console.log(`认证服务已启动：http://${HOST}:${PORT} (SQLite: ${DB_PATH})`);
 });

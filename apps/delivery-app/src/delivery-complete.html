@@ -20,6 +20,7 @@
         <button class="app-btn primary" id="enterBtn">立即进入</button>
       </section>
     </main>
+    <script src="./runtime-config.js"></script>
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
       if (!ensureAuthenticatedPage()) throw new Error("未登录");

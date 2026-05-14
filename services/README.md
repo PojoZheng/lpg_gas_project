@@ -35,3 +35,37 @@
 - `auth` 会话状态仍由 `auth-state.json` 管理
 - 客户台账仍由 `customer-ledger.json` 管理
 - 可通过 `TRELLIS_AUTH_STATE_PATH` 自定义 `auth-state.json` 路径（便于测试环境隔离）
+
+## 公网部署基线
+
+当前仓库已经补齐最小生产启动入口，可直接作为独立 Node 服务部署：
+
+- 启动目录：`services/backend/`
+- 启动命令：`npm start`
+- 健康检查：`GET /health`
+- 示例部署描述：根目录 `render.yaml`
+
+推荐环境变量：
+
+- `PORT`：服务端口，默认 `3100`
+- `HOST`：监听地址，生产建议 `0.0.0.0`
+- `CORS_ALLOW_ORIGIN`：前端公网域名，例如 `https://lpg-delivery-app.pages.dev`
+- `SAFETY_REPORT_MODE`：默认 `mock`，接真实监管再改为 `external`
+- `SAFETY_REPORT_ENDPOINT`：`SAFETY_REPORT_MODE=external` 时必填
+
+## 前端接正式后端
+
+移动端与平台端都支持以下三种方式指定 API 根地址，优先级从高到低：
+
+1. URL 参数：`?apiBase=https://your-backend.example.com`
+2. 浏览器本地存储：`localStorage.setItem("lpg_api_base_url", "https://your-backend.example.com")`
+3. 同目录 `runtime-config.js` 中设置：
+
+```js
+window.__LPG_API_BASE_URL__ = "https://your-backend.example.com";
+```
+
+说明：
+
+- 本地开发访问 `127.0.0.1` / `localhost` 时，前端仍会默认走 `:3100`
+- 上公网后若不设置上述覆盖项，前端不会再错误地把 Cloudflare Pages 域名拼成 `:3100`

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: lpg-backend
+    runtime: node
+    plan: starter
+    rootDir: services/backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: PORT
+        value: 3100
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ALLOW_ORIGIN
+        sync: false
+      - key: SAFETY_REPORT_MODE
+        value: mock
