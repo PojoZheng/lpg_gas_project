@@ -120,7 +120,7 @@ def ensure_debt_customer(token: str) -> str:
         f"/orders/{order_id}/complete",
         {
             "receivedAmount": 0,
-            "paymentMethod": "cash",
+            "paymentMethod": "credit",
             "recycledEmptyCount": 0,
             "owedEmptyCount": 0,
         },

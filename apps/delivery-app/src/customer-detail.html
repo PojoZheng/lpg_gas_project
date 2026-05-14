@@ -112,6 +112,9 @@
         padding: 10px;
         background: #fff;
       }
+      .order-item.is-link {
+        cursor: pointer;
+      }
       .order-top {
         display: flex;
         justify-content: space-between;
@@ -287,6 +290,7 @@
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
       import { getCustomerDetail, listCustomerOrders, updateCustomer } from "./customer-client.js";
+      import { setSelectedOrder } from "./delivery-flow-state.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
@@ -443,11 +447,13 @@
         recentOrderList.innerHTML = currentOrders
           .map((order) => {
             const specQty = order.spec ? `${order.spec} × ${order.quantity}` : `${order.quantity} 瓶`;
+            const rawStatus = String(order.orderStatus || order.status || "");
+            const clickable = rawStatus === "pending_delivery";
             return `
-              <div class="order-item">
+              <div class="order-item ${clickable ? "is-link" : ""}" data-order-id="${escapeHtml(order.orderId)}" data-order-status="${escapeHtml(rawStatus)}">
                 <div class="order-top">
                   <span class="order-time">${escapeHtml(formatDateTime(order.createdAt))}</span>
-                  <span class="order-status">${escapeHtml(statusText(order.status))}</span>
+                  <span class="order-status">${escapeHtml(statusText(rawStatus))}</span>
                 </div>
                 <div class="order-main">${escapeHtml(specQty)} · ¥${Number(order.amount || 0).toFixed(2)}</div>
               </div>
@@ -487,6 +493,15 @@
           window.location.href = `./quick-order.html?from=customer-detail&customerId=${encodeURIComponent(currentCustomer.id)}`;
         });
         document.getElementById("reminderBtn").addEventListener("click", openReminderSheet);
+        recentOrderList.addEventListener("click", (event) => {
+          const row = event.target.closest(".order-item[data-order-id]");
+          if (!row) return;
+          if (row.dataset.orderStatus !== "pending_delivery") return;
+          const order = currentOrders.find((item) => String(item.orderId) === String(row.dataset.orderId));
+          if (!order) return;
+          setSelectedOrder(order);
+          window.location.href = "./delivery-settlement.html";
+        });
         document.getElementById("closeReminderBtn").addEventListener("click", closeReminderSheet);
         reminderMask.addEventListener("click", closeReminderSheet);
         document.getElementById("copyReminderBtn").addEventListener("click", copyReminder);

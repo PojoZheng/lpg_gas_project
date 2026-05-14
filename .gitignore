@@ -2,6 +2,8 @@
 .trellis/backend/data/
 .trellis/.bus-state-*.json
 .DS_Store
+.bytro
+services/backend/data/
 
 # Per-machine agent / IDE extras (do not commit)
 .agents/

@@ -1,6 +1,5 @@
 import { authFetchJson } from "./auth-client.js";
-
-const API_BASE_URL = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 const CATEGORY_META = {
   gas: { label: "气款", key: "gas" },
@@ -50,7 +49,8 @@ function mapCategoryKey(raw) {
 
 function normalizeIncomeItem(item) {
   const postedAt = Number(item.postedAt || item.timestamp || Date.now());
-  const signedAmount = safeNumber(
+  const signedAmount = safeNumber(item.amount !== undefined ? item.amount : item.receivedAmount);
+  const signedReceivedAmount = safeNumber(
     item.receivedAmount !== undefined ? item.receivedAmount : item.amount
   );
   const amount = Math.abs(signedAmount);
@@ -66,6 +66,8 @@ function normalizeIncomeItem(item) {
     categoryLabel: CATEGORY_META[categoryKey].label,
     amount,
     signedAmount: type === "expense" ? -amount : amount,
+    receivedAmount: Math.abs(signedReceivedAmount),
+    signedReceivedAmount: type === "expense" ? -Math.abs(signedReceivedAmount) : Math.abs(signedReceivedAmount),
     paymentMethod,
     paymentText: mapPaymentText(paymentMethod),
     time: postedAt,
@@ -200,7 +202,7 @@ function buildPaymentStats(items) {
   const stats = { cash: 0, wechat: 0, alipay: 0, credit: 0, other: 0 };
   items.forEach((it) => {
     const key = Object.prototype.hasOwnProperty.call(stats, it.paymentMethod) ? it.paymentMethod : "other";
-    stats[key] += safeNumber(it.signedAmount);
+    stats[key] += safeNumber(it.signedReceivedAmount ?? it.signedAmount);
   });
   return {
     cash: Number(stats.cash.toFixed(2)),
@@ -242,7 +244,7 @@ function buildDailyCloseView(summaryPayload, entriesPayload) {
       other: 0,
     },
     orders: {
-      count: safeNumber(raw.entryCount || uniqueOrderCount),
+      count: safeNumber(raw.orderCount || raw.entryCount || uniqueOrderCount),
       deliveryCylinders: "--",
       returnCylinders: "--",
     },
@@ -252,11 +254,56 @@ function buildDailyCloseView(summaryPayload, entriesPayload) {
   };
 }
 
+function normalizeDailyCloseDirectPayload(rawPayload = {}) {
+  const raw = rawPayload || {};
+  const list = Array.isArray(raw.entries)
+    ? raw.entries
+        .map(normalizeIncomeItem)
+        .filter((it) => it.status !== "voided")
+        .sort((a, b) => b.time - a.time)
+    : [];
+  const incomeSummary = buildSummary(list);
+  return {
+    date: raw.date || fmtDateText(new Date()),
+    closeStatus: String(raw.closeStatus || "").trim() || "open",
+    closedAt: safeNumber(raw.closedAt || raw.latestClose?.closedAt || 0) || null,
+    income: {
+      total: safeNumber(raw.totalIncome || raw.receivedToday || incomeSummary.total),
+      gas: safeNumber(raw.gasIncome ?? incomeSummary.byCategory.find((x) => x.key === "gas")?.amount),
+      deposit: safeNumber(raw.depositIncome ?? incomeSummary.byCategory.find((x) => x.key === "deposit")?.amount),
+      residual: safeNumber(raw.residualIncome ?? incomeSummary.byCategory.find((x) => x.key === "residual")?.amount),
+      other: safeNumber(raw.rentIncome ?? incomeSummary.byCategory.find((x) => x.key === "other")?.amount),
+    },
+    expense: {
+      total: safeNumber(raw.totalExpense),
+      purchase: safeNumber(raw.purchaseExpense),
+      refund: safeNumber(raw.refundExpense),
+      other: 0,
+    },
+    orders: {
+      count: safeNumber(raw.orderCount || raw.entryCount),
+      deliveryCylinders:
+        raw.deliveryCylinders !== undefined ? String(raw.deliveryCylinders) : "--",
+      returnCylinders:
+        raw.returnCylinders !== undefined ? String(raw.returnCylinders) : "--",
+    },
+    payments: {
+      cash: safeNumber(raw.cashAmount),
+      wechat: safeNumber(raw.wechatAmount),
+      alipay: safeNumber(raw.alipayAmount),
+      credit: safeNumber(raw.creditAmount),
+      other: safeNumber(raw.transferAmount),
+    },
+    pendingToday: safeNumber(raw.pendingToday),
+    entries: list,
+  };
+}
+
 export async function fetchDailyCloseData() {
   try {
     const direct = await authFetchJson(`${API_BASE_URL}/finance/daily-close`, { method: "GET" });
     if (direct?.success && direct.data) {
-      return { success: true, data: direct.data };
+      return { success: true, data: normalizeDailyCloseDirectPayload(direct.data) };
     }
     const [summaryRes, entriesRes] = await Promise.all([
       authFetchJson(`${API_BASE_URL}/finance/today-summary`, { method: "GET" }),

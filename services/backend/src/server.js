@@ -3,6 +3,34 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const {
+  hasCustomerLedger,
+  replaceCustomerLedger,
+  loadCustomerLedger,
+  hasRuntimeState,
+  saveRuntimeState,
+  loadRuntimeState,
+  hasRuntimeCollections,
+  replaceRuntimeCollections,
+  loadRuntimeCollections,
+  hasRows,
+  replaceOrders,
+  loadOrders,
+  findOrderById,
+  listOrders,
+  replaceFinanceEntries,
+  loadFinanceEntries,
+  listFinanceEntriesInRange,
+  replaceSafetyRecords,
+  loadSafetyRecords,
+  listSafetyRecords,
+  findSafetyByOrderId,
+  findSafetyById,
+  replaceOfflineQueue,
+  loadOfflineQueue,
+  listOfflineQueueItems,
+  DB_PATH,
+} = require("./db");
+const {
   authByAccessToken,
   issueCode,
   login,
@@ -529,6 +557,16 @@ function validateOrderEmptyCounts(quantity, recycledEmptyCount, owedEmptyCount) 
   }
 }
 
+function normalizeResidualWeight(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return 0;
+  const num = Number(text);
+  if (!Number.isFinite(num) || num < 0) {
+    throw new Error("残液重量必须为大于等于 0 的数字");
+  }
+  return Number(num.toFixed(2));
+}
+
 function appendOrderModifyLog(order, changes) {
   if (!changes || !Object.keys(changes).length) return;
   if (!Array.isArray(order.modifyLogs)) order.modifyLogs = [];
@@ -811,10 +849,6 @@ function normalizeCustomerAccountRecord(customerId, raw) {
 }
 
 function persistCustomerLedger() {
-  const dir = path.dirname(CUSTOMER_LEDGER_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
   const accounts = Array.from(customerAccounts.entries()).map(([id, row]) => [
     id,
     {
@@ -829,23 +863,27 @@ function persistCustomerLedger() {
       collectionHistory: Array.isArray(row.collectionHistory) ? row.collectionHistory : [],
     },
   ]);
-  fs.writeFileSync(
-    CUSTOMER_LEDGER_PATH,
-    JSON.stringify({ savedAt: Date.now(), accounts }, null, 2),
-    "utf-8"
-  );
+  replaceCustomerLedger(accounts);
 }
 
 function restoreCustomerLedger() {
-  if (!fs.existsSync(CUSTOMER_LEDGER_PATH)) return;
-  let parsed;
-  try {
-    parsed = JSON.parse(fs.readFileSync(CUSTOMER_LEDGER_PATH, "utf-8"));
-  } catch (_err) {
+  let accounts = [];
+  if (hasCustomerLedger()) {
+    accounts = loadCustomerLedger();
+  } else if (fs.existsSync(CUSTOMER_LEDGER_PATH)) {
+    let parsed;
+    try {
+      parsed = JSON.parse(fs.readFileSync(CUSTOMER_LEDGER_PATH, "utf-8"));
+    } catch (_err) {
+      return;
+    }
+    if (!parsed || !Array.isArray(parsed.accounts)) return;
+    accounts = parsed.accounts;
+    replaceCustomerLedger(accounts);
+  } else {
     return;
   }
-  if (!parsed || !Array.isArray(parsed.accounts)) return;
-  for (const entry of parsed.accounts) {
+  for (const entry of accounts) {
     if (!Array.isArray(entry) || entry.length < 2) continue;
     const customerId = String(entry[0] || "").trim();
     if (!customerId) continue;
@@ -888,11 +926,13 @@ function buildRuntimeStateSnapshot() {
 }
 
 function persistRuntimeState() {
-  const dir = path.dirname(RUNTIME_STATE_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  fs.writeFileSync(RUNTIME_STATE_PATH, JSON.stringify(buildRuntimeStateSnapshot(), null, 2), "utf-8");
+  const snapshot = buildRuntimeStateSnapshot();
+  replaceOrders(snapshot.quickOrders || []);
+  replaceFinanceEntries(snapshot.financeEntries || []);
+  replaceSafetyRecords(snapshot.safetyRecords || []);
+  replaceOfflineQueue(snapshot.offlineQueue || []);
+  replaceRuntimeCollections(snapshot);
+  saveRuntimeState("main", snapshot);
 }
 
 function persistRuntimeStateSafe() {
@@ -904,12 +944,70 @@ function persistRuntimeStateSafe() {
 }
 
 function restoreRuntimeState() {
-  if (!fs.existsSync(RUNTIME_STATE_PATH)) return;
-  let parsed;
-  try {
-    parsed = JSON.parse(fs.readFileSync(RUNTIME_STATE_PATH, "utf-8"));
-  } catch (_err) {
-    return;
+  let parsed = null;
+  const hasOrders = hasRows("orders");
+  const hasFinanceEntries = hasRows("finance_entries");
+  const hasSafetyRecords = hasRows("safety_records");
+  const hasOfflineQueueItems = hasRows("offline_queue_items");
+  const hasDedicatedRuntime = hasOrders || hasFinanceEntries || hasSafetyRecords || hasOfflineQueueItems;
+  if (hasDedicatedRuntime || hasRuntimeCollections()) {
+    parsed = loadRuntimeCollections();
+    const blobSnapshot = hasRuntimeState("main") ? loadRuntimeState("main") : null;
+    if (hasOrders) {
+      parsed.quickOrders = loadOrders();
+    } else if (blobSnapshot?.quickOrders) {
+      parsed.quickOrders = Array.isArray(blobSnapshot.quickOrders) ? blobSnapshot.quickOrders : [];
+      replaceOrders(parsed.quickOrders);
+    } else {
+      parsed.quickOrders = [];
+    }
+    if (hasFinanceEntries) {
+      parsed.financeEntries = loadFinanceEntries();
+    } else if (blobSnapshot?.financeEntries) {
+      parsed.financeEntries = Array.isArray(blobSnapshot.financeEntries) ? blobSnapshot.financeEntries : [];
+      replaceFinanceEntries(parsed.financeEntries);
+    } else {
+      parsed.financeEntries = [];
+    }
+    if (hasSafetyRecords) {
+      parsed.safetyRecords = loadSafetyRecords();
+    } else if (blobSnapshot?.safetyRecords) {
+      parsed.safetyRecords = Array.isArray(blobSnapshot.safetyRecords) ? blobSnapshot.safetyRecords : [];
+      replaceSafetyRecords(parsed.safetyRecords);
+    } else {
+      parsed.safetyRecords = [];
+    }
+    if (hasOfflineQueueItems) {
+      parsed.offlineQueue = loadOfflineQueue();
+    } else if (blobSnapshot?.offlineQueue) {
+      parsed.offlineQueue = Array.isArray(blobSnapshot.offlineQueue) ? blobSnapshot.offlineQueue : [];
+      replaceOfflineQueue(parsed.offlineQueue);
+    } else {
+      parsed.offlineQueue = [];
+    }
+  } else if (hasRuntimeState("main")) {
+    parsed = loadRuntimeState("main");
+    if (parsed && typeof parsed === "object") {
+      replaceOrders(parsed.quickOrders || []);
+      replaceFinanceEntries(parsed.financeEntries || []);
+      replaceSafetyRecords(parsed.safetyRecords || []);
+      replaceOfflineQueue(parsed.offlineQueue || []);
+      replaceRuntimeCollections(parsed);
+    }
+  } else if (fs.existsSync(RUNTIME_STATE_PATH)) {
+    try {
+      parsed = JSON.parse(fs.readFileSync(RUNTIME_STATE_PATH, "utf-8"));
+    } catch (_err) {
+      return;
+    }
+    if (parsed && typeof parsed === "object") {
+      replaceOrders(parsed.quickOrders || []);
+      replaceFinanceEntries(parsed.financeEntries || []);
+      replaceSafetyRecords(parsed.safetyRecords || []);
+      replaceOfflineQueue(parsed.offlineQueue || []);
+      replaceRuntimeCollections(parsed);
+      saveRuntimeState("main", parsed);
+    }
   }
   if (!parsed || typeof parsed !== "object") return;
 
@@ -1054,7 +1152,7 @@ function hasConcreteSchedule(scheduleAt) {
 }
 
 function getNextWorkbenchDeliveryOrder() {
-  const pending = quickOrders.filter((x) => x.orderStatus === "pending_delivery");
+  const pending = readOrdersSnapshot({ status: "pending_delivery" }).filter((x) => x.orderStatus === "pending_delivery");
   if (!pending.length) return null;
   pending.sort((a, b) => {
     const ar = hasConcreteSchedule(a.scheduleAt) ? 0 : 1;
@@ -1104,7 +1202,9 @@ function buildNextDeliveryPayload(order) {
 }
 
 function buildWorkbenchOverview() {
-  const completedOrders = quickOrders.filter((x) => x.orderStatus === "completed");
+  const orders = readOrdersSnapshot();
+  const queueItems = readOfflineQueueSnapshot();
+  const completedOrders = orders.filter((x) => x.orderStatus === "completed");
   const receivedToday = completedOrders.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
   const pendingToday = completedOrders.reduce((sum, x) => sum + Math.max(0, Number(x.amount || 0) - Number(x.receivedAmount || 0)), 0);
   const dayMs = 24 * 60 * 60 * 1000;
@@ -1141,14 +1241,14 @@ function buildWorkbenchOverview() {
     },
     nextDelivery: buildNextDeliveryPayload(nextPending),
     sync: {
-      syncStatus: offlineQueue.some((x) => x.syncStatus === "failed")
+      syncStatus: queueItems.some((x) => x.syncStatus === "failed")
         ? "failed"
-        : offlineQueue.some((x) => x.syncStatus === "syncing")
+        : queueItems.some((x) => x.syncStatus === "syncing")
           ? "syncing"
-          : offlineQueue.some((x) => x.syncStatus === "pending")
+          : queueItems.some((x) => x.syncStatus === "pending")
             ? "pending"
             : "completed",
-      pendingCount: offlineQueue.filter((x) => x.syncStatus !== "completed").length,
+      pendingCount: queueItems.filter((x) => x.syncStatus !== "completed").length,
       lastSyncAt: Date.now() - 2 * 60 * 1000,
     },
     quickActions: [
@@ -1189,41 +1289,96 @@ function isSameFinanceDay(ts) {
   return Number(ts || 0) >= startOfTodayMs();
 }
 
-function appendFinanceEntry(order, source) {
-  const receivedAmount = Number(order.receivedAmount || 0);
-  const amount = Number(order.amount || 0);
-  const pendingAmount = Number(Math.max(0, amount - receivedAmount).toFixed(2));
+function readOrdersSnapshot(filters = {}) {
+  const rows = listOrders(filters);
+  return rows.length ? rows : [...quickOrders];
+}
+
+function readFinanceEntriesSnapshotInRange(startAt, endAt) {
+  const rows = listFinanceEntriesInRange(startAt, endAt);
+  return rows.length ? rows : financeEntries.filter((entry) => {
+    const ts = Number(entry?.postedAt || entry?.createdAt || 0);
+    return ts >= startAt && ts < endAt;
+  });
+}
+
+function readSafetyRecordsSnapshot() {
+  const rows = listSafetyRecords();
+  return rows.length ? rows : [...safetyRecords];
+}
+
+function readOfflineQueueSnapshot() {
+  const rows = listOfflineQueueItems();
+  return rows.length ? rows : [...offlineQueue];
+}
+
+function appendFinanceEntry(order, source, overrides = {}) {
+  const receivedAmount = Number(overrides.receivedAmount ?? order.receivedAmount ?? 0);
+  const amount = Number(overrides.amount ?? order.amount ?? 0);
+  const pendingAmount = Number(
+    overrides.pendingAmount ?? Math.max(0, amount - receivedAmount).toFixed(2)
+  );
   const entry = {
     entryId: `FE-${Date.now()}-${financeEntries.length + 1}`,
     orderId: order.orderId,
     customerId: order.customerId,
     customerName: order.customerName,
     source,
+    categoryKey: overrides.categoryKey || "",
     amount,
     receivedAmount,
     pendingAmount,
-    paymentMethod: order.paymentMethod || "",
+    paymentMethod: overrides.paymentMethod ?? order.paymentMethod ?? "",
     postedAt: Date.now(),
     status: "posted",
+    note: String(overrides.note || "").trim(),
   };
   financeEntries.push(entry);
   return entry;
 }
 
-function voidLastFinanceEntry(orderId) {
+function voidFinanceEntriesByOrder(orderId) {
+  let changed = false;
   for (let i = financeEntries.length - 1; i >= 0; i -= 1) {
     const item = financeEntries[i];
     if (item.orderId === orderId && item.status === "posted") {
       item.status = "voided";
       item.voidedAt = Date.now();
-      return item;
+      changed = true;
     }
   }
-  return null;
+  return changed;
+}
+
+function appendDeliveryFinanceEntries(order) {
+  const totalReceived = Number(order.receivedAmount || 0);
+  const gasAmount = Number(order.amount || 0);
+  const residualAmount = Number(order.residualAmount || 0);
+  const gasReceived = Number(Math.min(totalReceived, gasAmount).toFixed(2));
+  const residualReceived = Number(
+    Math.min(Math.max(totalReceived - gasReceived, 0), residualAmount).toFixed(2)
+  );
+  if (gasAmount > 0) {
+    appendFinanceEntry(order, "delivery_complete", {
+      categoryKey: "gas",
+      amount: gasAmount,
+      receivedAmount: gasReceived,
+      pendingAmount: Number(Math.max(0, gasAmount - gasReceived).toFixed(2)),
+    });
+  }
+  if (residualAmount > 0) {
+    appendFinanceEntry(order, "delivery_residual", {
+      categoryKey: "residual",
+      amount: residualAmount,
+      receivedAmount: residualReceived,
+      pendingAmount: Number(Math.max(0, residualAmount - residualReceived).toFixed(2)),
+      note: `回收残液 ${Number(order.residualWeight || 0).toFixed(2)}kg`,
+    });
+  }
 }
 
 function getTodayFinanceEntries() {
-  return financeEntries
+  return readFinanceEntriesSnapshotInRange(startOfTodayMs(), Date.now() + 1)
     .filter((x) => isSameFinanceDay(x.postedAt))
     .sort((a, b) => b.postedAt - a.postedAt);
 }
@@ -1309,11 +1464,24 @@ function getFinanceEntryTimestamp(entry) {
   return Number(entry?.postedAt || entry?.createdAt || 0);
 }
 
+function resolveFinanceCategoryKey(entry) {
+  const source = String(entry?.source || entry?.type || "").trim().toLowerCase();
+  const rawCategory = String(entry?.categoryKey || entry?.category || "").trim().toLowerCase();
+  const hint = [source, rawCategory, String(entry?.note || "").trim().toLowerCase()].join(" ");
+  if (source === "debt_repayment") return "other";
+  if (source === "delivery_residual") return "residual";
+  if (hint.includes("deposit") || hint.includes("押金")) return "deposit";
+  if (hint.includes("residual") || hint.includes("残液")) return "residual";
+  if (hint.includes("gas") || hint.includes("气款") || hint.includes("delivery")) return "gas";
+  return "gas";
+}
+
 function normalizeFinanceEntry(entry) {
   const source = String(entry?.source || entry?.type || "").trim();
-  const rawAmount = Number(entry?.receivedAmount ?? entry?.amount ?? 0);
+  const rawAmount = Number(entry?.amount ?? entry?.receivedAmount ?? 0);
+  const rawReceivedAmount = Number(entry?.receivedAmount ?? entry?.amount ?? 0);
   const negativeSource = ["return_reversal", "exchange_refund"].includes(source);
-  const categoryKey = source === "debt_repayment" ? "other" : "gas";
+  const categoryKey = resolveFinanceCategoryKey(entry);
   const categoryLabelMap = {
     gas: "气款",
     deposit: "押金",
@@ -1329,6 +1497,9 @@ function normalizeFinanceEntry(entry) {
     categoryKey,
     category: categoryLabelMap[categoryKey] || "其他",
     amount: negativeSource ? -Math.abs(rawAmount) : Number(rawAmount.toFixed(2)),
+    receivedAmount: negativeSource
+      ? -Math.abs(rawReceivedAmount)
+      : Number(rawReceivedAmount.toFixed(2)),
     paymentMethod: String(entry?.paymentMethod || entry?.method || ""),
     postedAt: getFinanceEntryTimestamp(entry),
     status: String(entry?.status || "posted"),
@@ -1344,7 +1515,7 @@ function normalizeFinanceEntry(entry) {
 }
 
 function getFinanceEntriesInRange(startAt, endAt) {
-  return financeEntries
+  return readFinanceEntriesSnapshotInRange(startAt, endAt)
     .map((entry) => normalizeFinanceEntry(entry))
     .filter((entry) => entry.postedAt >= startAt && entry.postedAt < endAt)
     .sort((a, b) => b.postedAt - a.postedAt);
@@ -1399,8 +1570,8 @@ function buildPaymentSummary(entries, orders) {
     const method = String(entry.paymentMethod || "").trim();
     const signedAmount =
       entry.type === "expense"
-        ? -Math.abs(Number(entry.amount || 0))
-        : Number(entry.amount || 0);
+        ? -Math.abs(Number(entry.receivedAmount ?? entry.amount ?? 0))
+        : Number(entry.receivedAmount ?? entry.amount ?? 0);
     if (method === "cash") base.cashAmount += signedAmount;
     if (method === "wechat") base.wechatAmount += signedAmount;
     if (method === "alipay") base.alipayAmount += signedAmount;
@@ -1416,7 +1587,7 @@ function buildPaymentSummary(entries, orders) {
 }
 
 function getOrdersInRange(startAt, endAt) {
-  return quickOrders.filter((order) => {
+  return readOrdersSnapshot().filter((order) => {
     const ts = Number(order.completedAt || order.createdAt || 0);
     return ts >= startAt && ts < endAt;
   });
@@ -1610,21 +1781,28 @@ function createQuickOrder(payload) {
 }
 
 function getPendingOrders() {
-  return quickOrders
+  return readOrdersSnapshot({ status: "pending_delivery" })
     .filter((x) => x.orderStatus === "pending_delivery")
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((x) => mapOrderContract(x));
 }
 
 function getOrderById(orderId) {
-  const order = quickOrders.find((x) => x.orderId === orderId);
+  let order = quickOrders.find((x) => x.orderId === orderId);
+  if (!order) {
+    const dbOrder = findOrderById(orderId);
+    if (dbOrder) {
+      quickOrders.push(dbOrder);
+      order = quickOrders.find((x) => x.orderId === orderId) || dbOrder;
+    }
+  }
   if (!order) throw new Error("订单不存在，请刷新后重试");
   return order;
 }
 
 function buildCustomerAccountSummary(customerId) {
   const account = ensureCustomerAccount(customerId);
-  const orders = quickOrders.filter((x) => x.customerId === customerId);
+  const orders = readOrdersSnapshot({ customerId });
   const completed = orders.filter((x) => x.orderStatus === "completed");
   const lastOrderAt = orders.length ? Math.max(...orders.map((x) => Number(x.createdAt || 0))) : 0;
   return {
@@ -1677,7 +1855,10 @@ function mapOrderContract(order) {
     paymentStatus: order.paymentStatus || "unpaid",
     paymentMethod: order.paymentMethod || "",
     recycledEmptyCount: Number(order.recycledEmptyCount || 0),
+    recycledEmptySpec: String(order.recycledEmptySpec || order.spec || ""),
     owedEmptyCount: Number(order.owedEmptyCount || 0),
+    residualWeight: Number(Number(order.residualWeight || 0).toFixed(2)),
+    residualAmount: Number(Number(order.residualAmount || 0).toFixed(2)),
     scheduleAt: order.scheduleAt || null,
     inventoryStage: order.inventoryStage || "",
     createdAt: Number(order.createdAt || 0),
@@ -2016,11 +2197,26 @@ function seedDebtDemoData() {
 }
 
 function getSafetyByOrderId(orderId) {
-  return safetyRecords.find((x) => x.orderId === orderId);
+  let record = safetyRecords.find((x) => x.orderId === orderId);
+  if (!record) {
+    const dbRecord = findSafetyByOrderId(orderId);
+    if (dbRecord) {
+      safetyRecords.unshift(dbRecord);
+      record = safetyRecords.find((x) => x.orderId === orderId) || dbRecord;
+    }
+  }
+  return record;
 }
 
 function getSafetyById(safetyId) {
-  const record = safetyRecords.find((x) => x.safetyId === safetyId);
+  let record = safetyRecords.find((x) => x.safetyId === safetyId);
+  if (!record) {
+    const dbRecord = findSafetyById(safetyId);
+    if (dbRecord) {
+      safetyRecords.unshift(dbRecord);
+      record = safetyRecords.find((x) => x.safetyId === safetyId) || dbRecord;
+    }
+  }
   if (!record) throw new Error("安检记录不存在，请刷新后重试");
   return record;
 }
@@ -2069,7 +2265,7 @@ function getSafetyPolicySnapshot(meta = {}) {
 }
 
 function buildSafetyBusinessSummary(record = {}, queueItem = null) {
-  const order = record.orderId ? quickOrders.find((item) => item.orderId === record.orderId) : null;
+  const order = record.orderId ? findOrderById(record.orderId) || quickOrders.find((item) => item.orderId === record.orderId) : null;
   const queueOperator = queueItem?.operator || {};
   const operator = buildSafetyOperatorMeta({
     regionCode: record.regionCode || queueOperator.regionCode,
@@ -2373,7 +2569,7 @@ function detectSyncConflict(item) {
   if (item.entityType === "order") {
     const orderId = String(item.payload.orderId || "");
     const localStatus = String(item.payload.orderStatus || "");
-    const serverOrder = quickOrders.find((x) => x.orderId === orderId);
+    const serverOrder = findOrderById(orderId) || quickOrders.find((x) => x.orderId === orderId);
     if (serverOrder && localStatus && localStatus !== serverOrder.orderStatus) {
       return {
         conflictType: "order_status_conflict",
@@ -2705,9 +2901,11 @@ function rollbackPolicy(payload) {
 }
 
 function buildBusinessMetrics() {
-  const completed = quickOrders.filter((x) => x.orderStatus === "completed");
-  const pendingDelivery = quickOrders.filter((x) => x.orderStatus === "pending_delivery");
-  const failedSync = offlineQueue.filter((x) => x.syncStatus === "failed");
+  const orders = readOrdersSnapshot();
+  const queueItems = readOfflineQueueSnapshot();
+  const completed = orders.filter((x) => x.orderStatus === "completed");
+  const pendingDelivery = orders.filter((x) => x.orderStatus === "pending_delivery");
+  const failedSync = queueItems.filter((x) => x.syncStatus === "failed");
   const totalRevenue = completed.reduce((sum, x) => sum + Number(x.receivedAmount || 0), 0);
   const pendingReceivable = completed.reduce(
     (sum, x) => sum + Math.max(0, Number(x.amount || 0) - Number(x.receivedAmount || 0)),
@@ -2715,7 +2913,7 @@ function buildBusinessMetrics() {
   );
   return {
     order: {
-      totalOrders: quickOrders.length,
+      totalOrders: orders.length,
       completedOrders: completed.length,
       pendingDeliveryOrders: pendingDelivery.length,
     },
@@ -2726,20 +2924,21 @@ function buildBusinessMetrics() {
     inventory: Object.keys(inventoryBySpec).map((spec) => getInventoryState(spec)),
     sync: {
       failedCount: failedSync.length,
-      manualRequiredCount: offlineQueue.filter((x) => x.manualRequired).length,
+      manualRequiredCount: queueItems.filter((x) => x.manualRequired).length,
     },
   };
 }
 
 function buildComplianceMetrics() {
-  const total = safetyRecords.length;
-  const completed = safetyRecords.filter((x) => x.status === "completed").length;
-  const failed = safetyRecords.filter((x) => x.status === "failed").length;
-  const pending = safetyRecords.filter((x) => x.status === "pending").length;
-  const abnormal = safetyRecords.filter((x) => x.hasAbnormal).length;
+  const records = readSafetyRecordsSnapshot();
+  const total = records.length;
+  const completed = records.filter((x) => x.status === "completed").length;
+  const failed = records.filter((x) => x.status === "failed").length;
+  const pending = records.filter((x) => x.status === "pending").length;
+  const abnormal = records.filter((x) => x.hasAbnormal).length;
   return {
     summary: { total, completed, failed, pending, abnormal },
-    failedList: safetyRecords
+    failedList: records
       .filter((x) => x.status === "failed")
       .slice(0, 50)
       .map((x) => ({
@@ -2771,7 +2970,8 @@ function listOfflineQueue(filters) {
   const keyword = String(filters.keyword || "").trim().toLowerCase();
   const manualOnly = String(filters.manualOnly || "0").trim() === "1";
   const conflictOnly = String(filters.conflictOnly || "0").trim() === "1";
-  const items = offlineQueue.filter((x) => {
+  const queueItems = readOfflineQueueSnapshot();
+  const items = queueItems.filter((x) => {
     if (status !== "all" && x.syncStatus !== status) return false;
     if (entityType !== "all" && x.entityType !== entityType) return false;
     if (manualOnly && !x.manualRequired) return false;
@@ -2798,7 +2998,7 @@ function listOfflineQueue(filters) {
       const safetyId = String(item.payload?.safetyId || "").trim();
       const orderId = String(item.payload?.orderId || item.payload?.submitPayload?.orderId || "").trim();
       const record =
-        (safetyId && safetyRecords.find((entry) => entry.safetyId === safetyId)) ||
+        (safetyId && (findSafetyById(safetyId) || safetyRecords.find((entry) => entry.safetyId === safetyId))) ||
         (orderId && getSafetyByOrderId(orderId)) ||
         null;
       return {
@@ -2806,7 +3006,7 @@ function listOfflineQueue(filters) {
         business: buildSafetyBusinessSummary(record || { orderId }, item),
       };
     }),
-    stats: getOfflineQueueStats(offlineQueue),
+    stats: getOfflineQueueStats(queueItems),
     filteredStats: getOfflineQueueStats(items),
   };
 }
@@ -2832,6 +3032,16 @@ function completeDeliveryOrder(order, payload) {
   }
   const recycledEmptyCount = Number(payload.recycledEmptyCount || 0);
   const owedEmptyCount = Number(payload.owedEmptyCount || 0);
+  const recycledEmptySpec = String(payload.recycledEmptySpec || order.spec || "").trim();
+  const residualWeight = normalizeResidualWeight(payload.residualWeight);
+  const businessRules = getBusinessRules();
+  const residualEnabled = Boolean(businessRules?.residual?.enabled);
+  const residualPrice = Number(businessRules?.residual?.price || 0);
+  const residualMode = String(businessRules?.residual?.defaultMode || "deduct").trim();
+  const residualAmount =
+    residualEnabled && residualMode !== "ignore"
+      ? Number((residualWeight * residualPrice).toFixed(2))
+      : 0;
   if (!Number.isInteger(recycledEmptyCount) || recycledEmptyCount < 0) {
     const err = new Error("回收空瓶数量必须为非负整数");
     err.code = "VALIDATION_400";
@@ -2842,6 +3052,16 @@ function completeDeliveryOrder(order, payload) {
     err.code = "VALIDATION_400";
     throw err;
   }
+  if (!["10kg", "15kg", "50kg"].includes(recycledEmptySpec)) {
+    const err = new Error("回收气瓶规格不合法");
+    err.code = "VALIDATION_400";
+    throw err;
+  }
+  if (residualWeight > 0 && recycledEmptyCount <= 0) {
+    const err = new Error("录入残液前，请先填写回收空瓶数量");
+    err.code = "VALIDATION_400";
+    throw err;
+  }
   try {
     validateOrderEmptyCounts(order.quantity, recycledEmptyCount, owedEmptyCount);
   } catch (validationErr) {
@@ -2849,6 +3069,7 @@ function completeDeliveryOrder(order, payload) {
     err.code = "VALIDATION_400";
     throw err;
   }
+  const totalReceivable = Number((Number(order.amount || 0) + residualAmount).toFixed(2));
   if (paymentMethod === "credit" && receivedAmount !== 0) {
     const err = new Error("选择记账时，实收金额必须为 0");
     err.code = "VALIDATION_400";
@@ -2865,15 +3086,18 @@ function completeDeliveryOrder(order, payload) {
   order.receivedAmount = Number(receivedAmount.toFixed(2));
   order.paymentMethod = paymentMethod;
   order.recycledEmptyCount = recycledEmptyCount;
+  order.recycledEmptySpec = recycledEmptySpec;
   order.owedEmptyCount = owedEmptyCount;
+  order.residualWeight = residualWeight;
+  order.residualAmount = residualAmount;
   order.paymentStatus =
-    receivedAmount <= 0 ? "unpaid" : receivedAmount < order.amount ? "partial_paid" : "paid";
+    receivedAmount <= 0 ? "unpaid" : receivedAmount < totalReceivable ? "partial_paid" : "paid";
   consumeInventoryFromLock(order.spec, Number(order.quantity || 0), order.orderId);
   if (recycledEmptyCount > 0) {
-    returnEmptyInventoryToOnHand(order.spec, recycledEmptyCount, order.orderId, "delivery_empty_return");
+    returnEmptyInventoryToOnHand(recycledEmptySpec, recycledEmptyCount, order.orderId, "delivery_empty_return");
   }
   const inventoryAfter = getInventoryState(order.spec);
-  order.debtRecordedAmount = Number(Math.max(0, order.amount - receivedAmount).toFixed(2));
+  order.debtRecordedAmount = Number(Math.max(0, totalReceivable - receivedAmount).toFixed(2));
   order.debtRecordedEmptyCount = owedEmptyCount;
   order.completedAt = Date.now();
   order.syncStatus = "pending";
@@ -2884,7 +3108,7 @@ function completeDeliveryOrder(order, payload) {
   order.canModifyUntil = 0;
   adjustCustomerDebt(order, order.debtRecordedAmount, order.debtRecordedEmptyCount);
   const safetyRecord = ensureSafetyTriggered(order);
-  appendFinanceEntry(order, "delivery_complete");
+  appendDeliveryFinanceEntries(order);
 
   return {
     orderId: order.orderId,
@@ -2892,6 +3116,8 @@ function completeDeliveryOrder(order, payload) {
     paymentStatus: order.paymentStatus,
     amount: order.amount,
     receivedAmount: order.receivedAmount,
+    residualAmount: order.residualAmount,
+    residualWeight: order.residualWeight,
     inventoryAfter,
     owedAmount: order.debtRecordedAmount,
     owedEmptyCount: order.debtRecordedEmptyCount,
@@ -3009,7 +3235,7 @@ function basicUpdateOrder(order, payload) {
   }
 
   if (wasCompleted && order.orderStatus === "completed") {
-    const amt = Number(order.amount || 0);
+    const amt = Number(order.amount || 0) + Number(order.residualAmount || 0);
     const rec = Number(order.receivedAmount || 0);
     order.paymentStatus = rec <= 0 ? "unpaid" : rec < amt ? "partial_paid" : "paid";
     const newDebt = Number(Math.max(0, amt - rec).toFixed(2));
@@ -3048,15 +3274,17 @@ function undoOrderAction(order) {
     inventoryBySpec[order.spec].onHand = state.onHand + Number(order.quantity || 0);
     inventoryBySpec[order.spec].locked = state.locked + Number(order.quantity || 0);
     const recycledEmptyCount = Number(order.recycledEmptyCount || 0);
+    const recycledEmptySpec = String(order.recycledEmptySpec || order.spec || "");
     if (recycledEmptyCount > 0) {
-      if (state.emptyOnHand < recycledEmptyCount) {
+      const emptyState = getInventoryState(recycledEmptySpec);
+      if (emptyState.emptyOnHand < recycledEmptyCount) {
         throw new Error("撤销失败：空瓶库存不足，需人工处理");
       }
-      inventoryBySpec[order.spec].emptyOnHand = state.emptyOnHand - recycledEmptyCount;
+      inventoryBySpec[recycledEmptySpec].emptyOnHand = emptyState.emptyOnHand - recycledEmptyCount;
     }
     pushInventoryLog("undo_complete", order.spec, Number(order.quantity || 0), Number(order.quantity || 0), order.orderId);
     if (recycledEmptyCount > 0) {
-      pushInventoryLog("undo_empty_return", order.spec, 0, 0, order.orderId, {
+      pushInventoryLog("undo_empty_return", recycledEmptySpec, 0, 0, order.orderId, {
         deltaEmptyOnHand: -recycledEmptyCount,
       });
     }
@@ -3067,13 +3295,16 @@ function undoOrderAction(order) {
     order.completedAt = 0;
     order.inventoryStage = "locked";
     order.recycledEmptyCount = 0;
+    order.recycledEmptySpec = order.spec || "";
     order.owedEmptyCount = 0;
+    order.residualWeight = 0;
+    order.residualAmount = 0;
     adjustCustomerDebt(
       order,
       -Number(order.debtRecordedAmount || 0),
       -Number(order.debtRecordedEmptyCount || 0)
     );
-    voidLastFinanceEntry(order.orderId);
+    voidFinanceEntriesByOrder(order.orderId);
     order.debtRecordedAmount = 0;
     order.debtRecordedEmptyCount = 0;
   } else if (order.lastAction === "cancel") {
@@ -3121,8 +3352,7 @@ function getCustomerDetail(customerId) {
   if (!customer) throw new Error("客户不存在，请刷新后重试");
   const rawAccount = ensureCustomerAccount(customerId);
   const account = buildCustomerAccountSummary(customerId);
-  const orders = quickOrders
-    .filter((order) => order.customerId === customerId)
+  const orders = readOrdersSnapshot({ customerId })
     .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
   return {
     ...customer,
@@ -3215,8 +3445,7 @@ function listCustomerOrders(customerId, params) {
   if (!getCustomerById(customerId)) throw new Error("客户不存在，请刷新后重试");
   const page = Math.max(1, Number(params.page || 1));
   const size = Math.min(100, Math.max(1, Number(params.size || 20)));
-  const orders = quickOrders
-    .filter((order) => order.customerId === customerId)
+  const orders = readOrdersSnapshot({ customerId })
     .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
   const total = orders.length;
   const start = (page - 1) * size;
@@ -3689,49 +3918,23 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/orders") {
       const accessToken = readAccessToken(req);
       listDevices(accessToken);
-      
-      // 解析分页参数
+
       const page = Math.max(1, parseInt(reqUrl.searchParams.get("page") || "1", 10));
       const size = Math.min(100, Math.max(1, parseInt(reqUrl.searchParams.get("size") || "20", 10)));
-      
-      // 解析筛选参数
       const status = reqUrl.searchParams.get("status") || "all";
       const keyword = (reqUrl.searchParams.get("keyword") || "").trim().toLowerCase();
       const customerId = String(reqUrl.searchParams.get("customerId") || "").trim();
-      
-      // 筛选订单
-      let filteredOrders = [...quickOrders];
 
-      if (customerId) {
-        filteredOrders = filteredOrders.filter((order) => order.customerId === customerId);
-      }
-      
-      // 状态筛选
-      if (status !== "all") {
-        filteredOrders = filteredOrders.filter(order => order.orderStatus === status);
-      }
-      
-      // 关键词搜索（客户姓名、地址、订单号模糊匹配）
-      if (keyword) {
-        filteredOrders = filteredOrders.filter(order => {
-          const matchOrderId = order.orderId.toLowerCase().includes(keyword);
-          const matchCustomerName = order.customerName.toLowerCase().includes(keyword);
-          const matchAddress = (order.address || "").toLowerCase().includes(keyword);
-          return matchOrderId || matchCustomerName || matchAddress;
-        });
-      }
-      
-      // 排序：按创建时间倒序（最新的在前）
-      filteredOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      
-      // 分页
+      const filteredOrders = readOrdersSnapshot({ status, keyword, customerId }).sort(
+        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+      );
       const total = filteredOrders.length;
       const start = (page - 1) * size;
       const end = start + size;
       const list = filteredOrders.slice(start, end).map((order) => mapOrderContract(order));
-      
-      return sendJson(res, 200, { 
-        success: true, 
+
+      return sendJson(res, 200, {
+        success: true,
         data: {
           total,
           page,
@@ -3876,7 +4079,7 @@ const server = http.createServer(async (req, res) => {
             ...queueView.stats,
             waitingRetry:
               queueView.stats?.waitingRetry ??
-              offlineQueue.filter((x) => x.nextRetryAt && Date.now() < Number(x.nextRetryAt)).length,
+              readOfflineQueueSnapshot().filter((x) => x.nextRetryAt && Date.now() < Number(x.nextRetryAt)).length,
           },
           filteredStats: queueView.filteredStats,
           items: queueView.items,
@@ -4041,5 +4244,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`认证服务已启动：http://localhost:${PORT}`);
+  console.log(`认证服务已启动：http://localhost:${PORT} (SQLite: ${DB_PATH})`);
 });

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>异常监控详情</title>
+    <link rel="stylesheet" href="./platform-design-system.css" />
+  </head>
+  <body>
+    <div class="platform-app">
+      <div id="platformSidebar"></div>
+      <div class="content-wrap">
+        <div id="platformTopBar"></div>
+        <main class="page-content">
+          <div class="page-stack">
+            <section class="hero-panel">
+              <div class="hero-grid">
+                <div>
+                  <span class="hero-kicker">Monitor Detail</span>
+                  <h2 class="hero-title-lg">异常详情</h2>
+                  <p class="hero-copy">详情页只服务于排查和重试，不再在同一屏同时承载大量列表信息。</p>
+                  <div class="hero-actions">
+                    <a class="btn ghost" href="./platform-monitor.html">返回列表</a>
+                    <button class="btn primary" id="retryBtn">立即重试上报</button>
+                    <button class="btn secondary" id="refreshBtn">刷新详情</button>
+                  </div>
+                </div>
+                <div class="inline-metrics" id="metricPanel">
+                  <div class="inline-metric"><div class="inline-metric-label">异常级别</div><div class="inline-metric-value">--</div><div class="inline-metric-note">当前优先级</div></div>
+                  <div class="inline-metric"><div class="inline-metric-label">重试次数</div><div class="inline-metric-value">--</div><div class="inline-metric-note">历史次数</div></div>
+                  <div class="inline-metric"><div class="inline-metric-label">更新时间</div><div class="inline-metric-value">--</div><div class="inline-metric-note">最近同步时间</div></div>
+                </div>
+              </div>
+            </section>
+            <p class="tip" id="tip"></p>
+            <section id="detailRoot">
+              <div class="empty-state"><div><div>正在加载异常详情...</div><div class="muted-note">稍等一下，我们会把失败信息和监控摘要展开。</div></div></div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        fetchBusinessMetrics,
+        fetchComplianceMetrics,
+        retrySafetyById,
+      } from "./platform-monitor-client.js";
+      import { mountPlatformChrome } from "./platform-shell.js";
+
+      const query = new URLSearchParams(window.location.search);
+      const safetyId = String(query.get("safetyId") || "").trim();
+      const metricPanel = document.getElementById("metricPanel");
+      const detailRoot = document.getElementById("detailRoot");
+      const tip = document.getElementById("tip");
+      const retryBtn = document.getElementById("retryBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
+
+      let businessData = null;
+      let currentItem = null;
+
+      function setTip(text = "", isError = false) {
+        tip.textContent = text;
+        tip.className = isError ? "tip err" : "tip";
+      }
+
+      function fmtTime(ts) {
+        if (!ts) return "--";
+        return new Date(ts).toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function buildSeverity(item) {
+        if (Number(item.reportAttempts || 0) >= 2) return "高";
+        if (String(item.lastError || "").includes("监管")) return "高";
+        return "中";
+      }
+
+      function renderMetrics(item) {
+        metricPanel.innerHTML = `
+          <div class="inline-metric">
+            <div class="inline-metric-label">异常级别</div>
+            <div class="inline-metric-value">${buildSeverity(item)}</div>
+            <div class="inline-metric-note">当前优先级</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">重试次数</div>
+            <div class="inline-metric-value">${Number(item.reportAttempts || 0)}</div>
+            <div class="inline-metric-note">历史次数</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">更新时间</div>
+            <div class="inline-metric-value">${fmtTime(item.updatedAt).slice(5, 16)}</div>
+            <div class="inline-metric-note">最近同步时间</div>
+          </div>
+        `;
+      }
+
+      function renderDetail(item) {
+        renderMetrics(item);
+        detailRoot.innerHTML = `
+          <div class="detail-grid">
+            <section class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">异常信息</h3>
+                  <p class="section-copy">先确认失败原因和关联对象，再决定是否重试。</p>
+                </div>
+              </div>
+              <div class="info-card">
+                <h4 class="info-title">基础信息</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>客户名称</span><strong>${item.customerName || "--"}</strong></div>
+                  <div class="info-line"><span>安检 ID</span><strong>${item.safetyId}</strong></div>
+                  <div class="info-line"><span>订单号</span><strong>${item.orderId || "--"}</strong></div>
+                  <div class="info-line"><span>失败原因</span><strong>${item.lastError || "未知"}</strong></div>
+                  <div class="info-line"><span>重试次数</span><strong>${Number(item.reportAttempts || 0)} 次</strong></div>
+                  <div class="info-line"><span>更新时间</span><strong>${fmtTime(item.updatedAt)}</strong></div>
+                </div>
+              </div>
+            </section>
+            <aside class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">监控摘要</h3>
+                  <p class="section-copy">补充当前全局监控数字，帮助判断影响面。</p>
+                </div>
+              </div>
+              <div class="info-card">
+                <h4 class="info-title">当前看板</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>待上报</span><strong>${currentItem.summary?.pending || 0}</strong></div>
+                  <div class="info-line"><span>失败总数</span><strong>${currentItem.summary?.failed || 0}</strong></div>
+                  <div class="info-line"><span>异常总数</span><strong>${currentItem.summary?.abnormal || 0}</strong></div>
+                  <div class="info-line"><span>同步失败</span><strong>${businessData?.sync?.failedCount || 0}</strong></div>
+                  <div class="info-line"><span>累计实收</span><strong>￥${Number(businessData?.finance?.totalRevenue || 0).toFixed(2)}</strong></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+      }
+
+      async function loadAll() {
+        try {
+          setTip("正在加载异常详情...");
+          const [bizRes, complianceRes] = await Promise.all([fetchBusinessMetrics(), fetchComplianceMetrics()]);
+          if (!bizRes.success) throw new Error(bizRes.error || "经营数据加载失败");
+          if (!complianceRes.success) throw new Error(complianceRes.error || "合规数据加载失败");
+          businessData = bizRes.data || {};
+          const complianceData = complianceRes.data || { summary: {}, failedList: [] };
+          const item = (complianceData.failedList || []).find((entry) => entry.safetyId === safetyId) || null;
+          currentItem = item ? { ...item, summary: complianceData.summary || {} } : null;
+          if (!currentItem) {
+            detailRoot.innerHTML = `<div class="empty-state"><div><div>没有找到这条异常记录</div><div class="muted-note">它可能已被处理完成，或参数无效。</div></div></div>`;
+            retryBtn.disabled = true;
+            return;
+          }
+          renderDetail(currentItem);
+          retryBtn.disabled = false;
+          setTip("异常详情已更新");
+        } catch (err) {
+          setTip(err.message || "加载失败，请稍后重试", true);
+        }
+      }
+
+      retryBtn.addEventListener("click", async () => {
+        if (!currentItem) return;
+        setTip("正在执行重试...");
+        const r = await retrySafetyById(currentItem.safetyId);
+        if (!r.success) {
+          setTip(r.error || "重试失败，请稍后再试", true);
+          return;
+        }
+        setTip("重试请求已提交");
+        await loadAll();
+      });
+
+      refreshBtn.addEventListener("click", () => {
+        void loadAll();
+      });
+
+      mountPlatformChrome({
+        active: "monitor",
+        breadcrumb: "异常监控 / 详情",
+        title: "异常详情",
+        actions: [{ label: "返回列表", href: "./platform-monitor.html", variant: "secondary" }],
+      });
+
+      loadAll();
+    </script>
+  </body>
+</html>

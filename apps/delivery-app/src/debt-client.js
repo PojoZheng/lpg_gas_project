@@ -1,6 +1,5 @@
 import { authFetchJson } from "./auth-client.js";
-
-const API_BASE_URL = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 export function fetchDebtOverview() {
   return authFetchJson(`${API_BASE_URL}/debts/overview`, { method: "GET" });

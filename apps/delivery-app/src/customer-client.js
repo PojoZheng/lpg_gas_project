@@ -1,6 +1,5 @@
 import { authFetchJson } from "./auth-client.js";
-
-const API_BASE_URL = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);

@@ -203,9 +203,15 @@ function goQuickOrder(customerId) {
   window.location.href = `./quick-order.html?from=customer-list&customerId=${encodeURIComponent(customerId)}`;
 }
 
-function callCustomer(phone) {
+async function callCustomer(phone) {
   const cleanPhone = String(phone || "").trim();
   if (!cleanPhone) return;
+  try {
+    await navigator.clipboard.writeText(cleanPhone);
+    setListState(`已复制号码 ${cleanPhone}，并尝试发起拨号`, "info");
+  } catch (_err) {
+    setListState(`正在拨打 ${cleanPhone}`, "info");
+  }
   window.location.href = `tel:${cleanPhone}`;
 }
 

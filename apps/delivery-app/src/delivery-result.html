@@ -36,13 +36,13 @@
 
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
-      import { undoOrderAction } from "./delivery-complete-client.js";
+      import { fetchOrderById, undoOrderAction } from "./delivery-complete-client.js";
       import { clearFlowState, getFlowState } from "./delivery-flow-state.js";
 
       if (!ensureAuthenticatedPage()) throw new Error("未登录");
 
       const flow = getFlowState();
-      const orderId = flow.lastComplete?.orderId || flow.selectedOrderId || "";
+      const orderId = flow.selectedOrderId || flow.lastComplete?.orderId || "";
       if (!orderId) window.location.href = "./pending-delivery-list.html";
 
       const tipEl = document.getElementById("tip");
@@ -51,8 +51,36 @@
         tipEl.className = `tip ${err ? "err" : ""}`;
       }
 
-      document.getElementById("summary").textContent = `完单成功：欠款 ${Number(flow.lastComplete?.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(flow.lastComplete?.owedEmptyCount || 0)} 瓶。`;
+      function buildSummaryText(snapshot = {}) {
+        const residualAmount = Number(snapshot.residualAmount || 0);
+        const residualWeight = Number(snapshot.residualWeight || 0);
+        const residualText =
+          residualAmount > 0 || residualWeight > 0
+            ? `，残液 ${residualWeight.toFixed(2)}kg / ${residualAmount.toFixed(2)} 元`
+            : "";
+        return `完单成功：欠款 ${Number(snapshot.owedAmount || 0).toFixed(2)} 元，欠瓶 ${Number(snapshot.owedEmptyCount || 0)} 瓶${residualText}。`;
+      }
+
+      async function hydrateSummary() {
+        const fallback = flow.lastComplete || {};
+        document.getElementById("summary").textContent = buildSummaryText(fallback);
+        const res = await fetchOrderById(orderId);
+        if (!res?.success || !res.data) return;
+        const order = res.data;
+        const owedAmount = Math.max(
+          0,
+          Number(order.amount || 0) + Number(order.residualAmount || 0) - Number(order.receivedAmount || 0)
+        );
+        document.getElementById("summary").textContent = buildSummaryText({
+          owedAmount,
+          owedEmptyCount: Number(order.owedEmptyCount || 0),
+          residualAmount: Number(order.residualAmount || 0),
+          residualWeight: Number(order.residualWeight || 0),
+        });
+      }
+
       document.getElementById("orderLine").textContent = `订单号 ${orderId}`;
+      void hydrateSummary();
 
       document.getElementById("backBtn").addEventListener("click", () => {
         clearFlowState();

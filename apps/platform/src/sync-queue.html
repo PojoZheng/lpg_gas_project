@@ -3,227 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>安检上报</title>
+    <title>安检上报列表</title>
     <link rel="stylesheet" href="./platform-design-system.css" />
-    <style>
-      .page-toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 18px;
-      }
-      .page-toolbar-copy h2 {
-        margin: 0;
-        font-size: 22px;
-      }
-      .page-toolbar-copy p {
-        margin: 6px 0 0;
-        color: var(--text-secondary);
-        font-size: 13px;
-      }
-      .saas-layout {
-        display: grid;
-        grid-template-columns: 360px minmax(0, 1fr);
-        gap: 18px;
-        align-items: start;
-      }
-      .panel-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 22px;
-        padding: 16px;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
-        margin-bottom: 0;
-      }
-      .panel-head,
-      .detail-head,
-      .section-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        gap: 12px;
-      }
-      .panel-copy h3,
-      .summary-card h3,
-      .detail-card h3 {
-        margin: 0;
-        font-size: 15px;
-      }
-      .panel-copy p,
-      .panel-muted,
-      .detail-card p,
-      .summary-card p {
-        margin: 6px 0 0;
-        color: var(--text-secondary);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-      .filter-stack,
-      .record-list,
-      .summary-grid,
-      .summary-list,
-      .detail-stack,
-      .detail-grid,
-      .detail-actions {
-        display: grid;
-        gap: 10px;
-      }
-      .summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .summary-card,
-      .detail-card {
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 12px;
-        background: #fff;
-      }
-      .filter-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-      .record-card {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 12px;
-        background: #fff;
-        text-align: left;
-        cursor: pointer;
-        transition: border-color 160ms ease, box-shadow 160ms ease;
-      }
-      .record-card.active {
-        border-color: var(--brand);
-        box-shadow: 0 8px 20px rgba(71, 153, 160, 0.1);
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%);
-      }
-      .record-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        gap: 10px;
-      }
-      .record-title {
-        font-size: 15px;
-        font-weight: 700;
-      }
-      .record-sub {
-        margin-top: 4px;
-        color: var(--text-secondary);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-      .record-meta {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .meta-tile {
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 10px;
-        background: #fff;
-      }
-      .meta-label {
-        color: var(--text-secondary);
-        font-size: 11px;
-      }
-      .meta-value {
-        margin-top: 4px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-      .summary-list,
-      .detail-grid {
-        gap: 8px;
-      }
-      .summary-line,
-      .detail-line {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        color: var(--text-secondary);
-        font-size: 13px;
-      }
-      .summary-line strong,
-      .detail-line strong {
-        color: var(--text-primary);
-        text-align: right;
-      }
-      .status-pill,
-      .tag-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 28px;
-        padding: 0 10px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: #fff;
-        font-size: 12px;
-      }
-      .status-pill.pending {
-        background: #f8fafc;
-        border-color: #dbe3ee;
-        color: #475569;
-      }
-      .status-pill.failed {
-        background: #fff1f2;
-        border-color: #fecdd3;
-        color: #be123c;
-      }
-      .status-pill.completed {
-        background: #eff8f1;
-        border-color: #cfe7d5;
-        color: #20804f;
-      }
-      .tag-pill.manual {
-        background: #fff7ed;
-        border-color: #fed7aa;
-        color: #b45309;
-      }
-      .tag-pill.retry {
-        background: #eef6ff;
-        border-color: #bfdbfe;
-        color: #2563eb;
-      }
-      .payload-box {
-        margin-top: 8px;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        background: #f7f9fb;
-        padding: 10px;
-        font-size: 12px;
-        line-height: 1.6;
-        color: #334155;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-      .empty-block {
-        border: 1px dashed var(--border);
-        border-radius: 18px;
-        padding: 24px;
-        text-align: center;
-        color: var(--text-secondary);
-        background: #fff;
-      }
-      @media (max-width: 1120px) {
-        .saas-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-      @media (max-width: 860px) {
-        .filter-row,
-        .record-meta,
-        .summary-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
   </head>
   <body>
     <div class="platform-app">
@@ -231,69 +12,83 @@
       <div class="content-wrap">
         <div id="platformTopBar"></div>
         <main class="page-content">
-          <div class="page-toolbar">
-            <div class="page-toolbar-copy">
-              <h2>安检上报</h2>
-              <p>集中处理安检上报失败、补传和人工介入记录。</p>
-            </div>
-            <div class="btn-row">
-              <button class="btn secondary" id="batchBtn">批量补传</button>
-              <button class="btn ghost" id="refreshBtn">刷新列表</button>
-            </div>
-          </div>
-
-          <div class="saas-layout">
-            <section class="panel-card">
-              <div class="panel-head">
-                <div class="panel-copy">
-                  <h3>安检记录列表</h3>
-                  <p>按客户、地区、燃气公司和配送员查看安检上报处理情况。</p>
-                </div>
-                <span class="btn secondary" id="hitCountTag">0 条</span>
-              </div>
-
-              <div class="filter-stack" style="margin-top: 14px;">
-                <input id="keywordFilter" placeholder="搜索客户、地址、订单号、配送员" />
-                <div class="filter-row">
-                  <div class="field" style="margin-bottom: 0;">
-                    <label>状态</label>
-                    <select id="statusFilter">
-                      <option value="all">全部状态</option>
-                      <option value="pending">待上报</option>
-                      <option value="failed">上报失败</option>
-                      <option value="completed">已完成</option>
-                    </select>
-                  </div>
-                  <div class="field" style="margin-bottom: 0;">
-                    <label>处理方式</label>
-                    <select id="modeFilter">
-                      <option value="all">全部</option>
-                      <option value="retry">等待补传</option>
-                      <option value="manual">人工处理</option>
-                    </select>
+          <div class="page-stack">
+            <section class="hero-panel">
+              <div class="hero-grid">
+                <div>
+                  <span class="hero-kicker">Sync Queue</span>
+                  <h2 class="hero-title-lg">安检上报列表</h2>
+                  <p class="hero-copy">
+                    统一查看安检同步记录，先从列表筛选出失败、待补传或需人工介入的条目，再进入详情页执行操作。
+                  </p>
+                  <div class="hero-actions">
+                    <button class="btn primary" id="batchBtn">批量补传</button>
+                    <button class="btn ghost" id="refreshBtn">刷新列表</button>
                   </div>
                 </div>
-                <div class="btn-row">
-                  <button class="btn secondary" id="applyBtn">应用筛选</button>
-                  <button class="btn ghost" id="resetBtn">重置</button>
+                <div class="inline-metrics" id="metricPanel">
+                  <div class="inline-metric">
+                    <div class="inline-metric-label">失败记录</div>
+                    <div class="inline-metric-value">--</div>
+                    <div class="inline-metric-note">需要优先处理</div>
+                  </div>
+                  <div class="inline-metric">
+                    <div class="inline-metric-label">待补传</div>
+                    <div class="inline-metric-value">--</div>
+                    <div class="inline-metric-note">等待下一次重试</div>
+                  </div>
+                  <div class="inline-metric">
+                    <div class="inline-metric-label">人工处理</div>
+                    <div class="inline-metric-value">--</div>
+                    <div class="inline-metric-note">自动流程已无法继续</div>
+                  </div>
                 </div>
               </div>
-
-              <div class="summary-grid" id="stats" style="margin-top: 14px;"></div>
-              <p class="tip" id="pageTip"></p>
-              <div class="record-list" id="recordList"></div>
             </section>
 
-            <section class="panel-card">
-              <div class="detail-head">
-                <div class="panel-copy">
-                  <h3>记录详情</h3>
-                  <p>查看这条安检记录的业务信息、上报情况和处理动作。</p>
+            <section class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">同步记录检索</h3>
+                  <p class="section-copy">按状态、处理方式和关键字筛选安检同步记录。</p>
                 </div>
-                <span class="panel-muted" id="detailTime">--</span>
+                <span class="badge brand" id="rowCountBadge">0 条</span>
               </div>
-              <div class="detail-stack" id="detailPanel">
-                <div class="empty-block">从左侧选择一条安检上报记录</div>
+
+              <div class="toolbar">
+                <input class="input" id="keywordFilter" placeholder="搜索客户、地址、订单号、配送员" />
+                <select id="statusFilter">
+                  <option value="all">全部状态</option>
+                  <option value="pending">待上报</option>
+                  <option value="failed">上报失败</option>
+                  <option value="completed">已完成</option>
+                </select>
+                <select id="modeFilter">
+                  <option value="all">全部处理方式</option>
+                  <option value="retry">等待补传</option>
+                  <option value="manual">人工处理</option>
+                </select>
+              </div>
+
+              <p class="tip" id="pageTip"></p>
+
+              <div class="table-shell">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>客户与订单</th>
+                      <th>业务信息</th>
+                      <th>处理状态</th>
+                      <th>更新时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableBody">
+                    <tr>
+                      <td colspan="5">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
@@ -302,27 +97,20 @@
     </div>
 
     <script type="module">
-      import { fetchSyncQueue, batchSubmitSync, retrySyncItem, markSyncManual } from "./sync-queue-client.js";
+      import { batchSubmitSync, fetchSyncQueue } from "./sync-queue-client.js";
       import { mountPlatformChrome } from "./platform-shell.js";
 
       const keywordFilter = document.getElementById("keywordFilter");
       const statusFilter = document.getElementById("statusFilter");
       const modeFilter = document.getElementById("modeFilter");
-      const applyBtn = document.getElementById("applyBtn");
-      const resetBtn = document.getElementById("resetBtn");
-      const refreshBtn = document.getElementById("refreshBtn");
       const batchBtn = document.getElementById("batchBtn");
-      const hitCountTag = document.getElementById("hitCountTag");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const rowCountBadge = document.getElementById("rowCountBadge");
+      const tableBody = document.getElementById("tableBody");
+      const metricPanel = document.getElementById("metricPanel");
       const pageTip = document.getElementById("pageTip");
-      const stats = document.getElementById("stats");
-      const recordList = document.getElementById("recordList");
-      const detailTime = document.getElementById("detailTime");
-      const detailPanel = document.getElementById("detailPanel");
 
-      const state = {
-        items: [],
-        selectedOfflineId: "",
-      };
+      let allItems = [];
 
       function setTip(text = "", isError = false) {
         pageTip.textContent = text;
@@ -336,18 +124,6 @@
         return date.toLocaleString("zh-CN", { hour12: false });
       }
 
-      function getSafetyOrderId(item) {
-        return String(item.business?.orderId || item.payload?.orderId || item.payload?.submitPayload?.orderId || "--");
-      }
-
-      function getSafetyCheckId(item) {
-        return String(item.business?.safetyId || item.payload?.safetyId || item.offlineId || "--");
-      }
-
-      function getBusiness(item) {
-        return item.business || {};
-      }
-
       function statusLabel(status) {
         return status === "pending" ? "待上报" : status === "failed" ? "上报失败" : "已完成";
       }
@@ -358,17 +134,21 @@
         return "自动补传";
       }
 
-      function getVisibleItems(items = []) {
+      function getSafetyOrderId(item) {
+        return String(item.business?.orderId || item.payload?.orderId || item.payload?.submitPayload?.orderId || "--");
+      }
+
+      function filteredItems() {
         const keyword = String(keywordFilter.value || "").trim().toLowerCase();
         const status = String(statusFilter.value || "all");
         const mode = String(modeFilter.value || "all");
-        return items.filter((item) => {
+        return allItems.filter((item) => {
           if (String(item.entityType || "") !== "safety") return false;
           if (status !== "all" && String(item.syncStatus || "") !== status) return false;
           if (mode === "retry" && !item.nextRetryAt) return false;
           if (mode === "manual" && !item.manualRequired) return false;
           if (!keyword) return true;
-          const business = getBusiness(item);
+          const business = item.business || {};
           const text = [
             business.customerName,
             business.address,
@@ -385,159 +165,117 @@
         });
       }
 
-      function renderStats(items = []) {
+      function renderMetrics(items) {
         const failed = items.filter((item) => item.syncStatus === "failed").length;
-        const pending = items.filter((item) => item.syncStatus === "pending").length;
-        const completed = items.filter((item) => item.syncStatus === "completed").length;
+        const waitingRetry = items.filter((item) => item.nextRetryAt).length;
         const manual = items.filter((item) => item.manualRequired).length;
-        stats.innerHTML = `
-          <div class="summary-card"><h3>待上报</h3><p>还未成功完成安检上报</p><div class="summary-list"><div class="summary-line"><span>记录数</span><strong>${pending}</strong></div></div></div>
-          <div class="summary-card"><h3>上报失败</h3><p>优先处理补传失败记录</p><div class="summary-list"><div class="summary-line"><span>记录数</span><strong>${failed}</strong></div></div></div>
-          <div class="summary-card"><h3>人工处理</h3><p>自动补传已无法继续的记录</p><div class="summary-list"><div class="summary-line"><span>记录数</span><strong>${manual}</strong></div></div></div>
-          <div class="summary-card"><h3>已完成</h3><p>安检上报已完成闭环</p><div class="summary-list"><div class="summary-line"><span>记录数</span><strong>${completed}</strong></div></div></div>
+        metricPanel.innerHTML = `
+          <div class="inline-metric">
+            <div class="inline-metric-label">失败记录</div>
+            <div class="inline-metric-value">${failed}</div>
+            <div class="inline-metric-note">需要优先处理</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">待补传</div>
+            <div class="inline-metric-value">${waitingRetry}</div>
+            <div class="inline-metric-note">等待下一次重试</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">人工处理</div>
+            <div class="inline-metric-value">${manual}</div>
+            <div class="inline-metric-note">自动流程已无法继续</div>
+          </div>
         `;
       }
 
-      function renderDetail(item) {
-        if (!item) {
-          detailTime.textContent = "--";
-          detailPanel.innerHTML = '<div class="empty-block">从左侧选择一条安检上报记录</div>';
-          return;
-        }
-        detailTime.textContent = formatDate(item.updatedAt || item.createdAt);
-        const canRetry = !item.manualRequired && (!item.nextRetryAt || Date.now() >= Number(item.nextRetryAt));
-        const retryLabel = item.nextRetryAt && Date.now() < Number(item.nextRetryAt) ? `等待至 ${formatDate(item.nextRetryAt)}` : "可立即补传";
-        const business = getBusiness(item);
-        detailPanel.innerHTML = `
-          <div class="detail-card">
-            <h3>业务信息</h3>
-            <div class="summary-list">
-              <div class="summary-line"><span>客户名称</span><strong>${business.customerName || "--"}</strong></div>
-              <div class="summary-line"><span>配送地址</span><strong>${business.address || "--"}</strong></div>
-              <div class="summary-line"><span>所属地区</span><strong>${business.regionName || "--"}</strong></div>
-              <div class="summary-line"><span>燃气公司</span><strong>${business.companyName || "--"}</strong></div>
-              <div class="summary-line"><span>配送员</span><strong>${business.driverName || "--"}</strong></div>
-              <div class="summary-line"><span>安检时间</span><strong>${formatDate(business.checkedAt)}</strong></div>
-              <div class="summary-line"><span>上报给谁</span><strong>${business.reportTargetName || "--"}</strong></div>
-              <div class="summary-line"><span>关联订单号</span><strong>${getSafetyOrderId(item)}</strong></div>
-            </div>
-          </div>
-          <div class="detail-card">
-            <h3>处理信息</h3>
-            <div class="summary-list">
-              <div class="summary-line"><span>当前状态</span><strong><span class="status-pill ${item.syncStatus}">${statusLabel(item.syncStatus)}</span></strong></div>
-              <div class="summary-line"><span>处理方式</span><strong>${modeLabel(item)}</strong></div>
-              <div class="summary-line"><span>重试次数</span><strong>${Number(item.retryCount || 0)}</strong></div>
-              <div class="summary-line"><span>下一步</span><strong>${item.manualRequired ? "人工处理" : retryLabel}</strong></div>
-              <div class="summary-line"><span>处理结果</span><strong>${item.resultSummary || "待处理"}</strong></div>
-            </div>
-          </div>
-          <div class="detail-card">
-            <h3>安检内容</h3>
-            <div class="summary-list">
-              <div class="summary-line"><span>检查项</span><strong>${(business.checkItems || []).length ? business.checkItems.join("、") : "未录入"}</strong></div>
-              <div class="summary-line"><span>照片数量</span><strong>${Number(business.photoCount || 0)} 张</strong></div>
-              <div class="summary-line"><span>异常结果</span><strong>${business.hasAbnormal ? "有异常" : "无异常"}</strong></div>
-              <div class="summary-line"><span>隐患说明</span><strong>${business.hazardNote || "无"}</strong></div>
-            </div>
-          </div>
-          <div class="detail-card">
-            <h3>失败原因</h3>
-            <div class="payload-box">${item.lastError || "当前无错误信息"}</div>
-          </div>
-          <div class="detail-actions">
-            <button class="btn primary" id="retryBtn" ${canRetry ? "" : "disabled"}>重新补传</button>
-            <button class="btn secondary" id="manualBtn">转人工处理</button>
-          </div>
-        `;
-
-        document.getElementById("retryBtn")?.addEventListener("click", async () => {
-          const res = await retrySyncItem(item.offlineId);
-          if (!res.success) return setTip(res.error || "补传失败", true);
-          setTip(`安检记录 ${item.offlineId} 已发起补传`);
-          await loadPage();
-        });
-        document.getElementById("manualBtn")?.addEventListener("click", async () => {
-          const res = await markSyncManual(item.offlineId);
-          if (!res.success) return setTip(res.error || "转人工失败", true);
-          setTip(`安检记录 ${item.offlineId} 已转人工处理`);
-          await loadPage();
-        });
-      }
-
-      function renderList(items = []) {
-        recordList.innerHTML = "";
-        hitCountTag.textContent = `${items.length} 条`;
+      function renderTable() {
+        const items = filteredItems();
+        rowCountBadge.textContent = `${items.length} 条`;
+        renderMetrics(items);
         if (!items.length) {
-          renderDetail(null);
-          recordList.innerHTML = '<div class="empty-block">当前没有匹配到安检上报记录</div>';
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <div>
+                    <div>当前没有匹配到安检同步记录</div>
+                    <div class="muted-note">可以调整筛选条件，或等待新异常进入队列。</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          `;
           return;
         }
-        const active = items.find((item) => item.offlineId === state.selectedOfflineId) || items[0];
-        state.selectedOfflineId = active.offlineId;
-        items.forEach((item) => {
-          const business = getBusiness(item);
-          const card = document.createElement("button");
-          card.type = "button";
-          card.className = item.offlineId === state.selectedOfflineId ? "record-card active" : "record-card";
-          card.innerHTML = `
-            <div class="record-head">
-              <div>
-                <div class="record-title">${business.customerName || "未识别客户"}</div>
-                <div class="record-sub">${business.address || "待补充地址"}<br/>订单 ${getSafetyOrderId(item)} · 安检 ${getSafetyCheckId(item)}</div>
-              </div>
-              <span class="status-pill ${item.syncStatus}">${statusLabel(item.syncStatus)}</span>
-            </div>
-            <div class="record-meta">
-              <div class="meta-tile"><div class="meta-label">所属地区</div><div class="meta-value">${business.regionName || "--"}</div></div>
-              <div class="meta-tile"><div class="meta-label">燃气公司</div><div class="meta-value">${business.companyName || "--"}</div></div>
-              <div class="meta-tile"><div class="meta-label">配送员</div><div class="meta-value">${business.driverName || "--"}</div></div>
-              <div class="meta-tile"><div class="meta-label">安检时间</div><div class="meta-value">${formatDate(business.checkedAt)}</div></div>
-            </div>
-          `;
-          card.addEventListener("click", () => {
-            state.selectedOfflineId = item.offlineId;
-            renderList(items);
-          });
-          recordList.appendChild(card);
-        });
-        renderDetail(active);
+
+        tableBody.innerHTML = items
+          .map((item) => {
+            const business = item.business || {};
+            const statusClass = item.syncStatus === "failed" ? "draft" : item.syncStatus === "completed" ? "active" : "history";
+            return `
+              <tr>
+                <td>
+                  <div class="table-title">${business.customerName || "未识别客户"}</div>
+                  <div class="table-sub">${business.address || "待补充地址"}</div>
+                  <div class="table-sub">订单 ${getSafetyOrderId(item)} · 安检 ${item.business?.safetyId || item.payload?.safetyId || item.offlineId}</div>
+                </td>
+                <td>
+                  <div class="table-title">${business.regionName || "--"} / ${business.companyName || "--"}</div>
+                  <div class="table-sub">配送员 ${business.driverName || "--"} · ${business.reportTargetName || "未识别上报对象"}</div>
+                </td>
+                <td>
+                  <div><span class="badge ${statusClass}">${statusLabel(item.syncStatus)}</span></div>
+                  <div class="table-sub">${modeLabel(item)}</div>
+                  <div class="table-sub">${item.lastError || item.resultSummary || "待处理"}</div>
+                </td>
+                <td>
+                  <div class="table-title">${formatDate(item.updatedAt || item.createdAt)}</div>
+                  <div class="table-sub">重试 ${Number(item.retryCount || 0)} 次</div>
+                </td>
+                <td>
+                  <div class="toolbar-cluster">
+                    <a class="btn secondary" href="./sync-detail.html?offlineId=${encodeURIComponent(item.offlineId || "")}">查看详情</a>
+                  </div>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
       }
 
       async function loadPage() {
         const res = await fetchSyncQueue({ entityType: "safety" });
-        if (!res.success) return setTip(res.error || "安检记录加载失败", true);
-        const all = Array.isArray(res.data?.items) ? res.data.items : [];
-        state.items = getVisibleItems(all);
-        if (!state.items.some((item) => item.offlineId === state.selectedOfflineId)) {
-          state.selectedOfflineId = state.items[0]?.offlineId || "";
+        if (!res.success) {
+          setTip(res.error || "安检记录加载失败", true);
+          return;
         }
-        renderStats(state.items);
-        renderList(state.items);
-        setTip(state.items.length ? "" : "当前没有需要处理的安检上报记录");
+        allItems = Array.isArray(res.data?.items) ? res.data.items : [];
+        setTip(allItems.length ? "" : "当前没有需要处理的安检上报记录");
+        renderTable();
       }
 
       batchBtn.addEventListener("click", async () => {
-        const ids = state.items.filter((item) => !item.manualRequired && item.syncStatus !== "completed").map((item) => item.offlineId);
-        if (!ids.length) return setTip("当前没有可补传的安检记录");
+        const ids = filteredItems()
+          .filter((item) => !item.manualRequired && item.syncStatus !== "completed")
+          .map((item) => item.offlineId);
+        if (!ids.length) {
+          setTip("当前没有可补传的安检记录");
+          return;
+        }
         setTip("正在批量补传安检记录...");
         const res = await batchSubmitSync({ offlineIds: ids });
-        if (!res.success) return setTip(res.error || "批量补传失败", true);
+        if (!res.success) {
+          setTip(res.error || "批量补传失败", true);
+          return;
+        }
         setTip(`批量补传完成：成功 ${res.data?.completed || 0} 条，失败 ${res.data?.failed || 0} 条`);
         await loadPage();
       });
 
-      applyBtn.addEventListener("click", loadPage);
+      [keywordFilter, statusFilter, modeFilter].forEach((el) => {
+        el.addEventListener(el.tagName === "INPUT" ? "input" : "change", renderTable);
+      });
       refreshBtn.addEventListener("click", loadPage);
-      resetBtn.addEventListener("click", () => {
-        keywordFilter.value = "";
-        statusFilter.value = "all";
-        modeFilter.value = "all";
-        loadPage();
-      });
-      keywordFilter.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") loadPage();
-      });
 
       mountPlatformChrome({
         active: "sync",

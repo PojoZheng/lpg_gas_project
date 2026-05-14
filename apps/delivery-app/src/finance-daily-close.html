@@ -320,6 +320,10 @@
           <span class="stat-value positive" id="depositIncome">--</span>
         </div>
         <div class="stat-row">
+          <span class="stat-label">残液收入</span>
+          <span class="stat-value positive" id="residualIncome">--</span>
+        </div>
+        <div class="stat-row">
           <span class="stat-label">租金收入</span>
           <span class="stat-value positive" id="rentIncome">--</span>
         </div>
@@ -525,6 +529,7 @@
 
         document.getElementById("gasIncome").textContent = fmtCurrency(data.income?.gas || 0);
         document.getElementById("depositIncome").textContent = fmtCurrency(data.income?.deposit || 0);
+        document.getElementById("residualIncome").textContent = fmtCurrency(data.income?.residual || 0);
         document.getElementById("rentIncome").textContent = fmtCurrency(data.income?.other || 0);
         document.getElementById("totalIncome").textContent = fmtCurrency(income);
 

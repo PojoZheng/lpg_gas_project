@@ -418,7 +418,6 @@
           <span class="alert-title">库存预警</span>
         </div>
         <div class="alert-text" id="alertText">低库存请及时补货</div>
-        <button class="alert-btn" id="alertBtn">查看详情</button>
       </div>
 
       <!-- 最近操作 -->
@@ -498,7 +497,7 @@
     <script type="module">
       import { ensureAuthenticatedPage, authFetchJson } from "./auth-client.js";
       import { goBackOr } from "./app-shell.js";
-      const API_BASE_URL = "http://localhost:3100";
+      import { API_BASE_URL } from "./api-base.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
@@ -811,18 +810,6 @@
       // 事件绑定
       document.getElementById("backBtn").addEventListener("click", () => {
         goBackOr("./my.html");
-      });
-
-      document.getElementById("alertBtn").addEventListener("click", () => {
-        const lowList = [...inventoryAlertBySpec.values()].filter((x) => x.isLow);
-        if (!lowList.length) {
-          setTip("当前无低库存预警", "info");
-          return;
-        }
-        setTip(
-          `预警明细：${lowList.map((x) => `${x.spec}${x.warningText}`).join("；")}`,
-          "warning"
-        );
       });
 
       document.getElementById("purchaseBtn").addEventListener("click", () => {

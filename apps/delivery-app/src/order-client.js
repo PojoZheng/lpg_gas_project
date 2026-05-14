@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 function getAccessToken() {
   const authSession = JSON.parse(localStorage.getItem("auth_session") || "{}");
@@ -8,21 +8,21 @@ function getAccessToken() {
 }
 
 export async function fetchOrderList() {
-  const res = await fetch(`${API_BASE}/orders`, {
+  const res = await fetch(`${API_BASE_URL}/orders`, {
     headers: { Authorization: `Bearer ${getAccessToken()}` },
   });
   return res.json();
 }
 
 export async function fetchOrderDetail(orderId) {
-  const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}`, {
+  const res = await fetch(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}`, {
     headers: { Authorization: `Bearer ${getAccessToken()}` },
   });
   return res.json();
 }
 
 export async function submitOrderReturn(orderId, payload) {
-  const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}/return`, {
+  const res = await fetch(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/return`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +34,7 @@ export async function submitOrderReturn(orderId, payload) {
 }
 
 export async function submitOrderExchange(orderId, payload) {
-  const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}/exchange`, {
+  const res = await fetch(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/exchange`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -47,7 +47,7 @@ export async function submitOrderExchange(orderId, payload) {
 }
 
 export async function updateOrderBasic(orderId, payload) {
-  const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}/basic-update`, {
+  const res = await fetch(`${API_BASE_URL}/orders/${encodeURIComponent(orderId)}/basic-update`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -59,7 +59,7 @@ export async function updateOrderBasic(orderId, payload) {
 }
 
 export async function checkHeavyInventory(spec) {
-  const res = await fetch(`${API_BASE}/inventory/snapshot`, {
+  const res = await fetch(`${API_BASE_URL}/inventory/snapshot`, {
     headers: { Authorization: `Bearer ${getAccessToken()}` },
   });
   const result = await res.json();

@@ -50,29 +50,6 @@
         font-weight: 600;
         white-space: nowrap;
       }
-      .step-strip {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .step-chip {
-        min-height: 54px;
-        padding: 10px;
-        border-radius: 14px;
-        background: #fbfcfd;
-        border: 1px solid #e5edef;
-        display: grid;
-        gap: 4px;
-      }
-      .step-chip strong {
-        font-size: 13px;
-        font-weight: 700;
-      }
-      .step-chip span {
-        font-size: 11px;
-        color: var(--text-secondary);
-        line-height: 1.4;
-      }
       .check-list {
         display: grid;
         gap: 10px;
@@ -172,6 +149,7 @@
         place-items: center;
         color: #93a6ac;
         font-size: 28px;
+        cursor: pointer;
       }
       .photo-caption {
         margin-top: 8px;
@@ -259,11 +237,6 @@
         grid-template-columns: 1fr;
         gap: 8px;
       }
-      .dock-secondary-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
       .dock-status {
         min-height: 20px;
         margin-top: 8px;
@@ -279,7 +252,6 @@
         cursor: not-allowed;
       }
       @media (max-width: 380px) {
-        .step-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
     </style>
@@ -292,15 +264,6 @@
         <div style="width: 38px"></div>
       </header>
 
-      <section class="card">
-        <div class="step-strip">
-          <div class="step-chip"><strong>1. 检查</strong><span>勾选已完成的安检动作</span></div>
-          <div class="step-chip"><strong>2. 拍照</strong><span>至少补 1 张现场照片</span></div>
-          <div class="step-chip"><strong>3. 判断</strong><span>正常直提，异常补隐患说明</span></div>
-          <div class="step-chip"><strong>4. 上报</strong><span>失败可直接重试</span></div>
-        </div>
-      </section>
-
       <section class="card" id="safetyCard" aria-labelledby="safetyCardTitle">
         <div class="section-head">
           <div>
@@ -309,12 +272,7 @@
           </div>
           <div class="mini-pill" id="selectedCount">已选 0 项</div>
         </div>
-        <div class="check-list">
-          <label class="check-item"><input type="checkbox" class="safety-check" value="阀门密封检查" /><span class="check-copy"><span class="check-title">阀门密封检查</span><span class="check-desc">确认接口无松动、无漏气、无明显损伤。</span></span></label>
-          <label class="check-item"><input type="checkbox" class="safety-check" value="减压阀连接检查" /><span class="check-copy"><span class="check-title">减压阀连接检查</span><span class="check-desc">检查连接方向、卡扣与减压阀状态是否正常。</span></span></label>
-          <label class="check-item"><input type="checkbox" class="safety-check" value="软管老化检查" /><span class="check-copy"><span class="check-title">软管老化检查</span><span class="check-desc">确认软管无老化、龟裂、过长或被挤压。</span></span></label>
-          <label class="check-item"><input type="checkbox" class="safety-check" value="通风环境检查" /><span class="check-copy"><span class="check-title">通风环境检查</span><span class="check-desc">确认用气环境通风正常，周边无明显风险源。</span></span></label>
-        </div>
+        <div class="check-list" id="checkList"></div>
         <div class="quick-actions">
           <button type="button" class="chip-btn" id="selectAllBtn">常规项全选</button>
           <button type="button" class="chip-btn" id="clearChecksBtn">清空</button>
@@ -333,11 +291,11 @@
           <span class="meta-label">优先拍现场环境、阀门连接、气瓶摆放</span>
           <span class="mini-pill" id="photoCount">0 张</span>
         </div>
-        <input class="hidden-input" id="photoFileInput" type="file" accept="image/*" multiple />
+        <input class="hidden-input" id="photoFileInput" type="file" accept="image/*" capture="environment" multiple />
         <div class="photo-grid" id="photoGrid">
-          <div class="photo-placeholder">+</div>
+          <div class="photo-placeholder" role="button" tabindex="0" aria-label="添加现场照片">+</div>
         </div>
-        <div class="photo-caption">当前为原型态，照片会本地预览，并按编号写入安检上报。</div>
+        <div class="photo-caption">照片会本地预览，并随安检记录一并提交。</div>
       </section>
 
       <section class="card">
@@ -376,9 +334,7 @@
       <div class="dock-card">
         <div class="dock-actions">
           <button class="app-btn primary" id="submitBtn">提交安检并上报</button>
-          <div class="dock-secondary-row">
-            <button class="app-btn" id="backWorkbenchBtn">返回结果页</button>
-          </div>
+          <button class="app-btn" id="backWorkbenchBtn">返回结果页</button>
         </div>
         <div class="dock-status" id="dockStatus" aria-live="polite"></div>
       </div>
@@ -388,23 +344,29 @@
       import { ensureAuthenticatedPage } from "./auth-client.js";
       import {
         fetchCurrentPlatformPolicy,
+        fetchOrderById,
         fetchSafetyByOrder,
         submitSafetyByOrder,
       } from "./delivery-complete-client.js";
       import { enqueueOfflineChange, submitOfflineQueueBatch } from "./offline-sync-client.js";
-      import { getFlowState } from "./delivery-flow-state.js";
+      import { getFlowState, patchFlowState } from "./delivery-flow-state.js";
 
       if (!ensureAuthenticatedPage()) throw new Error("未登录");
 
       const flow = getFlowState();
-      const orderId = flow.lastComplete?.orderId || flow.selectedOrderId || "";
+      const orderId = flow.selectedOrderId || flow.lastComplete?.orderId || "";
       if (!orderId) window.location.href = "./pending-delivery-list.html";
 
       let currentSafety = null;
       let localPhotos = [];
-      let objectUrls = [];
       let hasAbnormal = false;
-      const checks = [...document.querySelectorAll(".safety-check")];
+      let checks = [];
+      const fallbackChecks = [
+        { value: "阀门密封检查", title: "阀门密封检查", desc: "确认接口无松动、无漏气、无明显损伤。" },
+        { value: "减压阀连接检查", title: "减压阀连接检查", desc: "检查连接方向、卡扣与减压阀状态是否正常。" },
+        { value: "软管老化检查", title: "软管老化检查", desc: "确认软管无老化、龟裂、过长或被挤压。" },
+        { value: "通风环境检查", title: "通风环境检查", desc: "确认用气环境通风正常，周边无明显风险源。" },
+      ];
       const tipEl = document.getElementById("tip");
       const dockStatus = document.getElementById("dockStatus");
       const photoGrid = document.getElementById("photoGrid");
@@ -416,7 +378,8 @@
       const abnormalPanel = document.getElementById("abnormalPanel");
       const normalBtn = document.getElementById("normalBtn");
       const abnormalBtn = document.getElementById("abnormalBtn");
-      const CHECK_VALUE_SET = new Set(checks.map((item) => item.value));
+      const checkList = document.getElementById("checkList");
+      let CHECK_VALUE_SET = new Set();
 
       function setTip(text, err = false) {
         tipEl.textContent = text || "";
@@ -435,9 +398,112 @@
         return `${month}-${day} ${hour}:${minute}`;
       }
 
+      function escapeHtml(text) {
+        return String(text || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
       function updateSelectedCount() {
         const count = checks.filter((item) => item.checked).length;
         selectedCount.textContent = `已选 ${count} 项`;
+      }
+
+      function normalizePolicyCheckItems(policy) {
+        const configured = Array.isArray(policy?.content?.inspection?.delivery?.checkItems)
+          ? policy.content.inspection.delivery.checkItems
+          : [];
+        const normalizedConfigured = configured
+          .map((item, index) => {
+            if (typeof item === "string") {
+              return {
+                value: item.trim(),
+                title: item.trim(),
+                desc: "按平台安检策略执行。",
+                order: index,
+              };
+            }
+            const value = String(item?.value || item?.key || item?.name || item?.title || "").trim();
+            const title = String(item?.title || item?.name || value).trim();
+            if (!value || !title) return null;
+            return {
+              value,
+              title,
+              desc: String(item?.desc || item?.description || "按平台安检策略执行。").trim(),
+              order: index,
+            };
+          })
+          .filter(Boolean);
+        if (normalizedConfigured.length) return normalizedConfigured;
+
+        const aiItems = Array.isArray(policy?.content?.inspection?.delivery?.aiItems)
+          ? policy.content.inspection.delivery.aiItems
+          : [];
+        const requiredPhotos = Array.isArray(policy?.content?.inspection?.delivery?.requiredPhotos)
+          ? policy.content.inspection.delivery.requiredPhotos
+          : [];
+        const inferred = [];
+        if (aiItems.includes("cylinder") || requiredPhotos.includes("cylinder")) {
+          inferred.push({
+            value: "瓶体外观检查",
+            title: "瓶体外观检查",
+            desc: "确认钢瓶瓶体、角阀与瓶身标识无明显异常。",
+          });
+        }
+        if (aiItems.includes("hose")) {
+          inferred.push({
+            value: "软管老化检查",
+            title: "软管老化检查",
+            desc: "确认软管无老化、龟裂、过长或被挤压。",
+          });
+        }
+        if (requiredPhotos.includes("environment")) {
+          inferred.push({
+            value: "通风环境检查",
+            title: "通风环境检查",
+            desc: "确认用气环境通风正常，周边无明显风险源。",
+          });
+        }
+        inferred.push({
+          value: "阀门密封检查",
+          title: "阀门密封检查",
+          desc: "确认接口无松动、无漏气、无明显损伤。",
+        });
+        const deduped = [];
+        const seen = new Set();
+        [...inferred, ...fallbackChecks].forEach((item) => {
+          if (!item?.value || seen.has(item.value)) return;
+          seen.add(item.value);
+          deduped.push(item);
+        });
+        return deduped;
+      }
+
+      function bindCheckEvents() {
+        checks.forEach((item) => item.addEventListener("change", updateSelectedCount));
+      }
+
+      function renderChecks(items) {
+        const rows = Array.isArray(items) && items.length ? items : fallbackChecks;
+        checkList.innerHTML = rows
+          .map(
+            (item) => `
+              <label class="check-item">
+                <input type="checkbox" class="safety-check" value="${escapeHtml(item.value)}" />
+                <span class="check-copy">
+                  <span class="check-title">${escapeHtml(item.title)}</span>
+                  <span class="check-desc">${escapeHtml(item.desc || "按平台安检策略执行。")}</span>
+                </span>
+              </label>
+            `
+          )
+          .join("");
+        checks = [...checkList.querySelectorAll(".safety-check")];
+        CHECK_VALUE_SET = new Set(checks.map((item) => item.value));
+        bindCheckEvents();
+        updateSelectedCount();
       }
 
       function setAbnormalState(nextValue) {
@@ -454,7 +520,7 @@
       function renderPhotos() {
         photoCount.textContent = `${localPhotos.length} 张`;
         if (!localPhotos.length) {
-          photoGrid.innerHTML = '<div class="photo-placeholder">+</div>';
+          photoGrid.innerHTML = '<div class="photo-placeholder" role="button" tabindex="0" aria-label="添加现场照片">+</div>';
           return;
         }
         photoGrid.innerHTML = localPhotos
@@ -469,17 +535,36 @@
           .join("");
       }
 
-      function addFiles(files) {
-        [...files].slice(0, Math.max(0, 9 - localPhotos.length)).forEach((file, index) => {
-          const preview = URL.createObjectURL(file);
-          objectUrls.push(preview);
-          localPhotos.push({
-            id: `img-${Date.now()}-${index}`,
-            value: `${file.name}-${Date.now()}`,
-            preview,
-          });
+      function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(new Error("照片读取失败"));
+          reader.readAsDataURL(file);
         });
-        renderPhotos();
+      }
+
+      async function addFiles(files) {
+        const pickedFiles = [...files].slice(0, Math.max(0, 9 - localPhotos.length));
+        if (!pickedFiles.length) return;
+        try {
+          const photos = await Promise.all(
+            pickedFiles.map(async (file, index) => {
+              const dataUrl = await readFileAsDataUrl(file);
+              return {
+                id: `img-${Date.now()}-${index}`,
+                value: dataUrl,
+                preview: dataUrl,
+                name: String(file.name || `photo-${index + 1}`),
+              };
+            })
+          );
+          localPhotos.push(...photos);
+          renderPhotos();
+          setTip(`已添加 ${photos.length} 张现场照片`);
+        } catch (err) {
+          setTip(err.message || "照片读取失败", true);
+        }
       }
 
       function syncFromSafetyRecord(record) {
@@ -540,6 +625,7 @@
       async function guardByPolicy() {
         const res = await fetchCurrentPlatformPolicy();
         const required = Boolean(res.success ? res.data?.content?.safetyCheckRequired : true);
+        renderChecks(normalizePolicyCheckItems(res.success ? res.data : null));
         if (!required) {
           window.location.href = "./delivery-result.html";
           return false;
@@ -550,6 +636,13 @@
       async function loadSafety() {
         const ok = await guardByPolicy();
         if (!ok) return;
+        const orderRes = await fetchOrderById(orderId);
+        if (orderRes?.success && orderRes.data) {
+          patchFlowState({
+            selectedOrderId: orderId,
+            selectedOrder: orderRes.data,
+          });
+        }
         setTip("加载安检记录中...");
         const res = await fetchSafetyByOrder(orderId);
         if (!res.success) return setTip(res.error || "读取安检记录失败", true);
@@ -575,7 +668,6 @@
         });
         updateSelectedCount();
       });
-      checks.forEach((item) => item.addEventListener("change", updateSelectedCount));
 
       normalBtn.addEventListener("click", () => setAbnormalState(false));
       abnormalBtn.addEventListener("click", () => setAbnormalState(true));
@@ -595,14 +687,27 @@
 
       document.getElementById("addPhotoBtn").addEventListener("click", () => photoFileInput.click());
       photoFileInput.addEventListener("change", (event) => {
-        if (event.target.files?.length) addFiles(event.target.files);
+        if (event.target.files?.length) void addFiles(event.target.files);
         photoFileInput.value = "";
       });
       photoGrid.addEventListener("click", (event) => {
         const btn = event.target.closest("[data-remove-photo]");
-        if (!btn) return;
-        localPhotos = localPhotos.filter((photo) => photo.id !== btn.dataset.removePhoto);
-        renderPhotos();
+        if (btn) {
+          localPhotos = localPhotos.filter((photo) => photo.id !== btn.dataset.removePhoto);
+          renderPhotos();
+          return;
+        }
+        const placeholder = event.target.closest(".photo-placeholder");
+        if (placeholder) {
+          photoFileInput.click();
+        }
+      });
+      photoGrid.addEventListener("keydown", (event) => {
+        const placeholder = event.target.closest(".photo-placeholder");
+        if (!placeholder) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        photoFileInput.click();
       });
 
       document.getElementById("submitBtn").addEventListener("click", async () => {
@@ -623,6 +728,15 @@
         }
         currentSafety = { ...(currentSafety || {}), ...(res.data || {}), ...submitPayload };
         if (res.data?.status === "completed") {
+          patchFlowState({
+            selectedOrderId: orderId,
+            lastSafety: {
+              orderId,
+              safetyId: res.data?.safetyId || "",
+              status: res.data?.status || "completed",
+              updatedAt: res.data?.updatedAt || Date.now(),
+            },
+          });
           setTip("安检上报成功，正在进入结果页");
           window.setTimeout(() => (window.location.href = "./delivery-result.html"), 300);
           return;
@@ -634,7 +748,7 @@
         );
       });
 
-      updateSelectedCount();
+      renderChecks(fallbackChecks);
       setAbnormalState(false);
       renderPhotos();
       void loadSafety();
@@ -643,10 +757,6 @@
       }
       window.addEventListener("online", () => {
         void flushOfflineSafetyQueue();
-      });
-
-      window.addEventListener("beforeunload", () => {
-        objectUrls.forEach((url) => URL.revokeObjectURL(url));
       });
     </script>
   </body>

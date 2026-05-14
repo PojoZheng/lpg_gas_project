@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>安检上报详情</title>
+    <link rel="stylesheet" href="./platform-design-system.css" />
+  </head>
+  <body>
+    <div class="platform-app">
+      <div id="platformSidebar"></div>
+      <div class="content-wrap">
+        <div id="platformTopBar"></div>
+        <main class="page-content">
+          <div class="page-stack">
+            <section class="hero-panel">
+              <div class="hero-grid">
+                <div>
+                  <span class="hero-kicker">Sync Detail</span>
+                  <h2 class="hero-title-lg">安检上报详情</h2>
+                  <p class="hero-copy">这里集中看单条安检上报记录的业务信息、失败原因和处理动作。</p>
+                  <div class="hero-actions">
+                    <a class="btn ghost" href="./sync-queue.html">返回列表</a>
+                    <button class="btn primary" id="retryBtn">重新补传</button>
+                    <button class="btn secondary" id="manualBtn">转人工处理</button>
+                  </div>
+                </div>
+                <div class="inline-metrics" id="metricPanel">
+                  <div class="inline-metric"><div class="inline-metric-label">状态</div><div class="inline-metric-value">--</div><div class="inline-metric-note">同步状态</div></div>
+                  <div class="inline-metric"><div class="inline-metric-label">重试次数</div><div class="inline-metric-value">--</div><div class="inline-metric-note">当前累计次数</div></div>
+                  <div class="inline-metric"><div class="inline-metric-label">更新时间</div><div class="inline-metric-value">--</div><div class="inline-metric-note">最近处理时间</div></div>
+                </div>
+              </div>
+            </section>
+            <p class="tip" id="pageTip"></p>
+            <section id="detailRoot">
+              <div class="empty-state"><div><div>正在加载记录详情...</div><div class="muted-note">稍等一下，我们会把业务信息和处理状态展开。</div></div></div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import { fetchSyncQueue, markSyncManual, retrySyncItem } from "./sync-queue-client.js";
+      import { mountPlatformChrome } from "./platform-shell.js";
+
+      const query = new URLSearchParams(window.location.search);
+      const offlineId = String(query.get("offlineId") || "").trim();
+      const metricPanel = document.getElementById("metricPanel");
+      const detailRoot = document.getElementById("detailRoot");
+      const pageTip = document.getElementById("pageTip");
+      const retryBtn = document.getElementById("retryBtn");
+      const manualBtn = document.getElementById("manualBtn");
+
+      let currentItem = null;
+
+      function setTip(text = "", isError = false) {
+        pageTip.textContent = text;
+        pageTip.className = isError ? "tip err" : "tip";
+      }
+
+      function formatDate(value) {
+        if (!value) return "--";
+        const date = new Date(Number(value));
+        if (Number.isNaN(date.getTime())) return "--";
+        return date.toLocaleString("zh-CN", { hour12: false });
+      }
+
+      function statusLabel(status) {
+        return status === "pending" ? "待上报" : status === "failed" ? "上报失败" : "已完成";
+      }
+
+      function modeLabel(item) {
+        if (item.manualRequired) return "人工处理";
+        if (item.nextRetryAt) return "等待补传";
+        return "自动补传";
+      }
+
+      function renderMetrics(item) {
+        metricPanel.innerHTML = `
+          <div class="inline-metric">
+            <div class="inline-metric-label">状态</div>
+            <div class="inline-metric-value">${statusLabel(item.syncStatus)}</div>
+            <div class="inline-metric-note">同步状态</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">重试次数</div>
+            <div class="inline-metric-value">${Number(item.retryCount || 0)}</div>
+            <div class="inline-metric-note">当前累计次数</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">更新时间</div>
+            <div class="inline-metric-value">${formatDate(item.updatedAt || item.createdAt).slice(5, 16)}</div>
+            <div class="inline-metric-note">最近处理时间</div>
+          </div>
+        `;
+      }
+
+      function renderDetail(item) {
+        const business = item.business || {};
+        renderMetrics(item);
+        detailRoot.innerHTML = `
+          <div class="detail-grid">
+            <section class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">业务信息</h3>
+                  <p class="section-copy">确认客户、订单和安检现场信息是否完整。</p>
+                </div>
+              </div>
+              <div class="info-card">
+                <h4 class="info-title">基础信息</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>客户名称</span><strong>${business.customerName || "--"}</strong></div>
+                  <div class="info-line"><span>配送地址</span><strong>${business.address || "--"}</strong></div>
+                  <div class="info-line"><span>所属地区</span><strong>${business.regionName || "--"}</strong></div>
+                  <div class="info-line"><span>燃气公司</span><strong>${business.companyName || "--"}</strong></div>
+                  <div class="info-line"><span>配送员</span><strong>${business.driverName || "--"}</strong></div>
+                  <div class="info-line"><span>关联订单号</span><strong>${business.orderId || item.payload?.orderId || "--"}</strong></div>
+                  <div class="info-line"><span>安检 ID</span><strong>${business.safetyId || item.payload?.safetyId || item.offlineId}</strong></div>
+                </div>
+              </div>
+              <div class="info-card" style="margin-top: 14px;">
+                <h4 class="info-title">安检结果</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>检查项</span><strong>${(business.checkItems || []).length ? business.checkItems.join("、") : "未录入"}</strong></div>
+                  <div class="info-line"><span>照片数量</span><strong>${Number(business.photoCount || 0)} 张</strong></div>
+                  <div class="info-line"><span>异常结果</span><strong>${business.hasAbnormal ? "有异常" : "无异常"}</strong></div>
+                  <div class="info-line"><span>隐患说明</span><strong>${business.hazardNote || "无"}</strong></div>
+                  <div class="info-line"><span>上报对象</span><strong>${business.reportTargetName || "--"}</strong></div>
+                </div>
+              </div>
+            </section>
+            <aside class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">处理信息</h3>
+                  <p class="section-copy">这里判断是否可以自动补传，还是要转人工。</p>
+                </div>
+              </div>
+              <div class="info-card">
+                <h4 class="info-title">处理状态</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>同步状态</span><strong>${statusLabel(item.syncStatus)}</strong></div>
+                  <div class="info-line"><span>处理方式</span><strong>${modeLabel(item)}</strong></div>
+                  <div class="info-line"><span>重试次数</span><strong>${Number(item.retryCount || 0)}</strong></div>
+                  <div class="info-line"><span>下次重试</span><strong>${formatDate(item.nextRetryAt)}</strong></div>
+                  <div class="info-line"><span>结果摘要</span><strong>${item.resultSummary || "待处理"}</strong></div>
+                </div>
+              </div>
+              <div class="info-card" style="margin-top: 14px;">
+                <h4 class="info-title">失败原因</h4>
+                <div class="muted-note" style="margin-top: 12px;">${item.lastError || "当前无错误信息"}</div>
+              </div>
+            </aside>
+          </div>
+        `;
+
+        const canRetry = !item.manualRequired && (!item.nextRetryAt || Date.now() >= Number(item.nextRetryAt));
+        retryBtn.disabled = !canRetry;
+      }
+
+      async function loadDetail() {
+        const res = await fetchSyncQueue({ entityType: "safety" });
+        if (!res.success) {
+          setTip(res.error || "安检记录加载失败", true);
+          return;
+        }
+        const items = Array.isArray(res.data?.items) ? res.data.items : [];
+        currentItem = items.find((item) => item.offlineId === offlineId) || null;
+        if (!currentItem) {
+          detailRoot.innerHTML = `<div class="empty-state"><div><div>没有找到这条同步记录</div><div class="muted-note">可能已被清理，或者参数无效。</div></div></div>`;
+          retryBtn.disabled = true;
+          manualBtn.disabled = true;
+          return;
+        }
+        renderDetail(currentItem);
+      }
+
+      retryBtn.addEventListener("click", async () => {
+        if (!currentItem) return;
+        const res = await retrySyncItem(currentItem.offlineId);
+        if (!res.success) {
+          setTip(res.error || "补传失败", true);
+          return;
+        }
+        setTip(`安检记录 ${currentItem.offlineId} 已发起补传`);
+        await loadDetail();
+      });
+
+      manualBtn.addEventListener("click", async () => {
+        if (!currentItem) return;
+        const res = await markSyncManual(currentItem.offlineId);
+        if (!res.success) {
+          setTip(res.error || "转人工失败", true);
+          return;
+        }
+        setTip(`安检记录 ${currentItem.offlineId} 已转人工处理`);
+        await loadDetail();
+      });
+
+      mountPlatformChrome({
+        active: "sync",
+        breadcrumb: "安检上报 / 详情",
+        title: "安检上报详情",
+        actions: [{ label: "返回列表", href: "./sync-queue.html", variant: "secondary" }],
+      });
+
+      loadDetail();
+    </script>
+  </body>
+</html>

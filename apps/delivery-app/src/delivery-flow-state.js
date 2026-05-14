@@ -61,6 +61,8 @@ export function setCompleteResult(result) {
       orderId: result?.orderId || "",
       owedAmount: Number(result?.owedAmount || 0),
       owedEmptyCount: Number(result?.owedEmptyCount || 0),
+      residualAmount: Number(result?.residualAmount || 0),
+      residualWeight: Number(result?.residualWeight || 0),
       completedAt: Date.now(),
     },
   });

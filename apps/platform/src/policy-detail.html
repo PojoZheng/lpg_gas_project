@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>策略规则详情</title>
+    <link rel="stylesheet" href="./platform-design-system.css" />
+  </head>
+  <body>
+    <div class="platform-app">
+      <div id="platformSidebar"></div>
+      <div class="content-wrap">
+        <div id="platformTopBar"></div>
+        <main class="page-content">
+          <div class="page-stack">
+            <section class="hero-panel">
+              <div class="hero-grid">
+                <div>
+                  <span class="hero-kicker">Policy Detail</span>
+                  <h2 class="hero-title-lg">规则详情</h2>
+                  <p class="hero-copy">
+                    详情页只负责确认这条规则对谁生效、要求是什么、以及当前版本是否可直接进入编辑或发布。
+                  </p>
+                  <div class="hero-actions">
+                    <a class="btn ghost" href="./policy-release.html">返回列表</a>
+                    <a class="btn primary" id="editBtn" href="./policy-editor.html">编辑规则</a>
+                  </div>
+                </div>
+                <div class="inline-metrics" id="detailMetricPanel">
+                  <div class="inline-metric">
+                    <div class="inline-metric-label">当前版本</div>
+                    <div class="inline-metric-value">--</div>
+                    <div class="inline-metric-note">版本号</div>
+                  </div>
+                  <div class="inline-metric">
+                    <div class="inline-metric-label">状态</div>
+                    <div class="inline-metric-value">--</div>
+                    <div class="inline-metric-note">生效、草稿或历史</div>
+                  </div>
+                  <div class="inline-metric">
+                    <div class="inline-metric-label">发布时间</div>
+                    <div class="inline-metric-value">--</div>
+                    <div class="inline-metric-note">最近一次正式发布时间</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="detailRoot">
+              <div class="empty-state">
+                <div>
+                  <div>正在加载规则详情...</div>
+                  <div class="muted-note">稍等一下，我们会把范围、要求和发布信息都展开。</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import { fetchCurrentPolicy, fetchPolicyVersions } from "./policy-release-client.js";
+      import { mountPlatformChrome } from "./platform-shell.js";
+      import {
+        formatTime,
+        inspectionLabel,
+        normalizePolicyContent,
+        normalizeScopeMeta,
+        reportTargetLabel,
+        scanLabel,
+        scopeTypeLabel,
+        statusLabel,
+      } from "./policy-view-model.js";
+
+      const query = new URLSearchParams(window.location.search);
+      const version = String(query.get("version") || "").trim();
+      const detailRoot = document.getElementById("detailRoot");
+      const detailMetricPanel = document.getElementById("detailMetricPanel");
+      const editBtn = document.getElementById("editBtn");
+
+      function renderMetrics(item) {
+        const activeText = statusLabel(item.status || "");
+        detailMetricPanel.innerHTML = `
+          <div class="inline-metric">
+            <div class="inline-metric-label">当前版本</div>
+            <div class="inline-metric-value">${item.version || "未保存"}</div>
+            <div class="inline-metric-note">版本号</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">状态</div>
+            <div class="inline-metric-value">${activeText}</div>
+            <div class="inline-metric-note">生效、草稿或历史</div>
+          </div>
+          <div class="inline-metric">
+            <div class="inline-metric-label">发布时间</div>
+            <div class="inline-metric-value">${item.publishedAt ? formatTime(item.publishedAt).slice(5, 16) : "--"}</div>
+            <div class="inline-metric-note">${item.publishedAt ? "最近一次正式发布时间" : "尚未正式发布"}</div>
+          </div>
+        `;
+      }
+
+      function renderDetail(item) {
+        const scope = normalizeScopeMeta(item);
+        const content = normalizePolicyContent(item.content || {});
+        editBtn.href = `./policy-editor.html?version=${encodeURIComponent(item.version || "")}`;
+        renderMetrics(item);
+        detailRoot.innerHTML = `
+          <div class="detail-grid">
+            <section class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">适用范围</h3>
+                  <p class="section-copy">先确认这条规则约束的是哪个地区、哪类配送员，再判断是否需要编辑。</p>
+                </div>
+                <span class="badge brand">${scopeTypeLabel(scope.scopeType)}</span>
+              </div>
+              <div class="info-card">
+                <h4 class="info-title">范围信息</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>地区名称</span><strong>${scope.regionName}</strong></div>
+                  <div class="info-line"><span>区域编码</span><strong>${scope.regionCode}</strong></div>
+                  <div class="info-line"><span>燃气公司</span><strong>${scope.companyName}</strong></div>
+                  <div class="info-line"><span>规则状态</span><strong>${statusLabel(item.status)}</strong></div>
+                </div>
+              </div>
+              <div class="info-card" style="margin-top: 14px;">
+                <h4 class="info-title">业务规则</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>随瓶安检</span><strong>${inspectionLabel(content)}</strong></div>
+                  <div class="info-line"><span>扫码要求</span><strong>${scanLabel(content)}</strong></div>
+                  <div class="info-line"><span>上报给谁</span><strong>${reportTargetLabel(content)}</strong></div>
+                  <div class="info-line"><span>发布时间</span><strong>${formatTime(item.publishedAt)}</strong></div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="section-card">
+              <div class="section-head">
+                <div>
+                  <h3 class="section-title">运营建议</h3>
+                  <p class="section-copy">详情页不直接承载修改动作，只给运营做判断。</p>
+                </div>
+              </div>
+              <div class="info-card">
+                <h4 class="info-title">使用建议</h4>
+                <div class="info-list">
+                  <div class="info-line"><span>适合场景</span><strong>发布前复核 / 生效后追溯</strong></div>
+                  <div class="info-line"><span>如需调整</span><strong>进入编辑页修改并重新发布</strong></div>
+                  <div class="info-line"><span>如需核验执行</span><strong>到合规监控查看执行结果</strong></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+      }
+
+      async function loadTarget() {
+        const [currentRes, versionsRes] = await Promise.all([fetchCurrentPolicy(), fetchPolicyVersions()]);
+        const versions = versionsRes.success ? versionsRes.data || [] : [];
+        const fallback = currentRes.success ? currentRes.data || null : null;
+        const item = versions.find((entry) => entry.version === version) || fallback;
+        if (!item) {
+          detailRoot.innerHTML = `
+            <div class="empty-state">
+              <div>
+                <div>没有找到对应的策略规则</div>
+                <div class="muted-note">可能是版本号不存在，或者当前还没有任何规则。</div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        renderDetail(item);
+      }
+
+      mountPlatformChrome({
+        active: "policy",
+        breadcrumb: "策略规则 / 详情",
+        title: "策略规则详情",
+        actions: [{ label: "返回列表", href: "./policy-release.html", variant: "secondary" }],
+      });
+
+      loadTarget();
+    </script>
+  </body>
+</html>

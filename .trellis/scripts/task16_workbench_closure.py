@@ -3,8 +3,8 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-WORKBENCH = ROOT / ".trellis" / "delivery-app" / "src" / "workbench.html"
-CLIENT = ROOT / ".trellis" / "delivery-app" / "src" / "workbench-client.js"
+WORKBENCH = ROOT / "apps" / "delivery-app" / "src" / "workbench.html"
+CLIENT = ROOT / "apps" / "delivery-app" / "src" / "workbench-client.js"
 
 
 def assert_contains(path: Path, needles):
@@ -18,19 +18,16 @@ def main():
   assert_contains(
     WORKBENCH,
     [
-      'id="syncOverlay"',
-      'id="syncNowBtn"',
-      'id="syncLaterBtn"',
-      'id="syncDetailBtn"',
-      'id="syncRetryBtn"',
-      'id="nextDetailBtn"',
-      'id="startDeliveryBtn"',
-      "maybeShowSyncModal",
+      'id="incomeDetailBtn"',
+      'id="nextDeliveryCard"',
+      'id="viewAllPendingLink"',
+      'id="quickOrderBtn"',
+      'id="voiceOrderBtn"',
       "今日暂无收款数据，可先去快速开单。",
       "可前往快速开单创建新订单",
     ],
   )
-  assert_contains(CLIENT, ["fetchSyncQueueOverview", "batchSyncNow"])
+  assert_contains(CLIENT, ["fetchWorkbenchOverview", "fetchSyncQueueOverview", "batchSyncNow"])
   print("task16 workbench closure smoke passed")
 
 

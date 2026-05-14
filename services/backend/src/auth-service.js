@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { hasAuthState, loadAuthState, replaceAuthState } = require("./db");
 
 const codes = new Map();
 const users = new Map();
@@ -44,10 +45,6 @@ function isUuid(value) {
 }
 
 function persistState() {
-  const dir = path.dirname(AUTH_STATE_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
   const payload = {
     savedAt: now(),
     codes: mapToEntries(codes),
@@ -57,19 +54,31 @@ function persistState() {
     sendCodeStats: mapToEntries(sendCodeStats),
     loginFailureStats: mapToEntries(loginFailureStats),
   };
-  fs.writeFileSync(AUTH_STATE_PATH, JSON.stringify(payload, null, 2), "utf-8");
+  replaceAuthState(payload);
 }
 
 function restoreState() {
-  if (!fs.existsSync(AUTH_STATE_PATH)) return;
-  const raw = fs.readFileSync(AUTH_STATE_PATH, "utf-8");
-  if (!raw.trim()) return;
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (_err) {
-    return;
+  let parsed = null;
+  if (hasAuthState()) {
+    parsed = loadAuthState();
+  } else if (fs.existsSync(AUTH_STATE_PATH)) {
+    const raw = fs.readFileSync(AUTH_STATE_PATH, "utf-8");
+    if (!raw.trim()) return;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (_err) {
+      return;
+    }
+    replaceAuthState({
+      codes: Array.isArray(parsed.codes) ? parsed.codes : [],
+      users: Array.isArray(parsed.users) ? parsed.users : [],
+      accessTokens: Array.isArray(parsed.accessTokens) ? parsed.accessTokens : [],
+      refreshTokens: Array.isArray(parsed.refreshTokens) ? parsed.refreshTokens : [],
+      sendCodeStats: Array.isArray(parsed.sendCodeStats) ? parsed.sendCodeStats : [],
+      loginFailureStats: Array.isArray(parsed.loginFailureStats) ? parsed.loginFailureStats : [],
+    });
   }
+  if (!parsed) return;
   const applyEntries = (targetMap, entries) => {
     targetMap.clear();
     if (!Array.isArray(entries)) return;

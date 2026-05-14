@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 const storage = {
   setSession(data) {

@@ -1,6 +1,5 @@
 import { authFetchJson } from "./auth-client";
-
-const API_BASE_URL = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 /**
  * 获取今日财务汇总

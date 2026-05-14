@@ -11,44 +11,97 @@
       .account-card { margin-bottom: 12px; }
       .logout-card { margin-top: 12px; }
       .logout-btn { width: 100%; }
+      .account-card {
+        padding: 14px;
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at top left, rgba(71, 153, 160, 0.12), transparent 36%),
+          linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+      }
       .account-head {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 14px;
       }
       .account-avatar {
-        width: 52px;
-        height: 52px;
+        width: 68px;
+        height: 68px;
         border-radius: 999px;
         border: 1px solid #d6e8ea;
         object-fit: cover;
         display: block;
         flex-shrink: 0;
+        background: #eef5f6;
       }
       .account-main { min-width: 0; }
+      .account-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #eef5f6;
+        color: #2f6f76;
+        font-size: 12px;
+      }
       .account-name {
-        margin-top: 0;
+        margin-top: 8px;
         font-size: 22px;
         line-height: 1.2;
-        font-weight: 700;
+        font-weight: 600;
         font-family: var(--font-title);
+        letter-spacing: -0.2px;
       }
-      .account-sub { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
+      .account-sub {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+      .management-card {
+        padding: 14px;
+      }
+      .management-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .management-copy { min-width: 0; }
+      .management-sub {
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+      .management-tag {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #f4f8fa;
+        color: #5a6f73;
+        font-size: 12px;
+      }
       .entry-btn {
         width: 100%;
-        min-height: 68px;
+        min-height: 76px;
         height: auto;
         text-align: left;
-        padding: 10px 12px;
+        padding: 12px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-radius: 18px;
       }
       .entry-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
       .entry-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 12px;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
         background: var(--brand-soft);
         display: flex;
         align-items: center;
@@ -58,6 +111,11 @@
       .entry-icon .nav-icon { width: 18px; height: 18px; }
       .entry-text { min-width: 0; }
       .entry-title { font-size: 15px; font-weight: 600; font-family: var(--font-title); }
+      .entry-subtitle {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
       .entry-arrow { color: var(--text-secondary); }
     </style>
   </head>
@@ -67,20 +125,21 @@
         <div class="account-head">
           <img class="account-avatar" id="accountAvatar" src="./default-avatar.svg" alt="头像" />
           <div class="account-main">
+            <div class="account-badge">当前配送账号</div>
             <div class="account-name" id="accountName">当前账号</div>
             <div class="account-sub" id="accountSub" hidden></div>
           </div>
         </div>
       </section>
 
-      <section class="app-card">
-        <h2 class="app-card-title">经营管理</h2>
+      <section class="app-card management-card">
         <div class="entry-list">
           <button class="app-btn entry-btn" id="inventoryBtn">
             <span class="entry-main">
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-inventory"></use></svg></span>
               <span class="entry-text">
                 <div class="entry-title">库存管理</div>
+                <div class="entry-subtitle">查看实瓶、空瓶和库存变动</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -90,6 +149,7 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-orders"></use></svg></span>
               <span class="entry-text">
                 <div class="entry-title">订单历史</div>
+                <div class="entry-subtitle">回看历史订单和完单记录</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -99,6 +159,7 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-finance"></use></svg></span>
               <span class="entry-text">
                 <div class="entry-title">财务记账与日结</div>
+                <div class="entry-subtitle">核对今日收支并完成日结</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -108,6 +169,7 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-debt"></use></svg></span>
               <span class="entry-text">
                 <div class="entry-title">债务管理</div>
+                <div class="entry-subtitle">查看欠款、欠瓶和客户账务</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -117,6 +179,7 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-sync"></use></svg></span>
               <span class="entry-text">
                 <div class="entry-title">离线数据</div>
+                <div class="entry-subtitle">手动提交待同步记录和失败项</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -126,6 +189,7 @@
               <span class="entry-icon"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="./icon-sprite.svg#icon-rules"></use></svg></span>
               <span class="entry-text">
                 <div class="entry-title">业务规则</div>
+                <div class="entry-subtitle">查看当前执行口径和平台规则</div>
               </span>
             </span>
             <span class="entry-arrow">›</span>
@@ -161,8 +225,24 @@
       };
       const session = getCurrentSession() || {};
       const accountLabel = String(session.nickname || session.name || "郑老板").trim();
+      const avatarSvg = encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+          <defs>
+            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#dff4f0"/>
+              <stop offset="100%" stop-color="#8ec7c5"/>
+            </linearGradient>
+          </defs>
+          <rect width="96" height="96" rx="48" fill="url(#g)"/>
+          <circle cx="48" cy="34" r="16" fill="#284766"/>
+          <path d="M22 86c4-16 16-26 26-26s22 10 26 26" fill="#cf7a38"/>
+          <circle cx="42" cy="33" r="2.6" fill="#f7efe3"/>
+          <circle cx="55" cy="33" r="2.6" fill="#f7efe3"/>
+          <path d="M43 43c3.2 2.8 6.8 2.8 10 0" stroke="#f7efe3" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      `);
       accountName.textContent = accountLabel;
-      accountAvatar.src = "./default-avatar.svg";
+      accountAvatar.src = `data:image/svg+xml;charset=UTF-8,${avatarSvg}`;
       accountSub.hidden = true;
       accountSub.textContent = "";
 

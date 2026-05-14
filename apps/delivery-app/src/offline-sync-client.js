@@ -1,6 +1,5 @@
 import { authFetchJson, getCurrentSession, redirectToLogin } from "./auth-client.js";
-
-const API_BASE_URL = "http://localhost:3100";
+import { API_BASE_URL } from "./api-base.js";
 
 export async function fetchOfflineQueue() {
   const session = getCurrentSession();

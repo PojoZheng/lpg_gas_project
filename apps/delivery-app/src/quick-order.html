@@ -62,11 +62,6 @@
         line-height: 1.45;
       }
       .summary-strip strong { color: var(--text-primary); }
-      .advanced-panel[hidden] { display: none !important; }
-      .switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 10px; }
-      .switch-row input { width: auto; height: auto; }
-      .switch-label { font-size: 14px; color: var(--text-primary); }
-      .switch-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
       .empty {
         border: 1px dashed var(--border);
         border-radius: 12px;
@@ -188,34 +183,12 @@
         <div class="row">
           <input class="app-input" id="priceInput" type="number" min="0" value="120" placeholder="请输入单价（元）" />
         </div>
-        <button class="text-btn" id="advancedToggleBtn">高级项</button>
-        <div class="advanced-panel" id="advancedPanel" hidden>
-          <div class="switch-row">
-            <div>
-              <div class="switch-label">连续开单</div>
-              <div class="switch-desc">每单重选客户，其他参数沿用</div>
-            </div>
-            <input id="continuousMode" type="checkbox" aria-describedby="continuousModeHint" />
-          </div>
-          <p id="continuousModeHint" class="continuous-muted" style="margin: 0 0 8px">
-            开启后展示连续统计。
-          </p>
-          <div class="switch-row">
-            <div>
-              <div class="switch-label">记住默认</div>
-              <div class="switch-desc">保存规格、单价与收款方式</div>
-            </div>
-            <input id="rememberDefaults" type="checkbox" checked />
-          </div>
-          <button class="text-btn" id="moreFieldsBtn">预览单据</button>
-        </div>
       </section>
       <section class="app-card card">
-        <h2 class="card-title">提交与反馈</h2>
         <button class="app-btn primary submit-btn" id="createBtn">提交开单</button>
         <button class="app-btn ghost-btn" id="goWorkbenchBtn">回工作台</button>
         <button class="app-btn ghost-btn" id="traceOrderBtn">看待配送</button>
-        <div class="state-block info tip" id="tip" aria-live="polite">请先选择客户并确认订单信息。</div>
+        <div class="state-block info tip" id="tip" aria-live="polite"></div>
       </section>
     </main>
     <div class="overlay" id="addCustomerOverlay">
@@ -281,17 +254,12 @@
       const plusBtn = document.getElementById("plusBtn");
       const addCustomerBtn = document.getElementById("addCustomerBtn");
       const viewAllBtn = document.getElementById("viewAllBtn");
-      const moreFieldsBtn = document.getElementById("moreFieldsBtn");
-      const advancedToggleBtn = document.getElementById("advancedToggleBtn");
-      const advancedPanel = document.getElementById("advancedPanel");
       const addCustomerOverlay = document.getElementById("addCustomerOverlay");
       const cancelAddBtn = document.getElementById("cancelAddBtn");
       const confirmAddBtn = document.getElementById("confirmAddBtn");
       const newName = document.getElementById("newName");
       const newPhone = document.getElementById("newPhone");
       const newAddress = document.getElementById("newAddress");
-      const continuousMode = document.getElementById("continuousMode");
-      const rememberDefaults = document.getElementById("rememberDefaults");
       const confirmOverlay = document.getElementById("confirmOverlay");
       const confirmSummary = document.getElementById("confirmSummary");
       const confirmTip = document.getElementById("confirmTip");
@@ -321,8 +289,6 @@
         spec: "15kg",
         unitPrice: 120,
         paymentMethod: "cash",
-        continuousMode: false,
-        rememberDefaults: true,
       };
 
       function setTip(text, isError = false) {
@@ -341,17 +307,11 @@
         } catch (_err) {}
       }
       function saveDefaults() {
-        if (!rememberDefaults.checked) {
-          localStorage.removeItem(PREF_KEY);
-          return;
-        }
         const next = {
           orderType,
           spec: specSelect.value,
           unitPrice: Number(priceInput.value || 0),
           paymentMethod: paymentMethod.value,
-          continuousMode: continuousMode.checked,
-          rememberDefaults: rememberDefaults.checked,
         };
         localStorage.setItem(PREF_KEY, JSON.stringify(next));
       }
@@ -364,8 +324,6 @@
         specSelect.value = defaults.spec;
         priceInput.value = String(defaults.unitPrice);
         paymentMethod.value = defaults.paymentMethod;
-        continuousMode.checked = Boolean(defaults.continuousMode);
-        rememberDefaults.checked = defaults.rememberDefaults !== false;
         syncCreateBtnText();
       }
       function paymentMethodText(value) {
@@ -626,7 +584,7 @@
         }
         allCustomers = res.data || [];
         const cont = readContSession();
-        const inContinuousFlow = Boolean(cont?.active) && continuousMode.checked && !selectId;
+        const inContinuousFlow = false;
         if (selectId) {
           selectedCustomerId = selectId;
           writeLastCustomerId(selectId);
@@ -645,10 +603,8 @@
           setTip(`已带入语音内容：${searchKeyword}`);
           return;
         }
-        if (inContinuousFlow) {
-          showContinuousBanner(cont);
-        }
-        setTip("客户加载完成");
+        hideContinuousBanner();
+        setTip("");
       }
 
       function updateQty(next) {
@@ -692,27 +648,17 @@
       priceInput.addEventListener("input", syncOrderSummary);
       priceInput.addEventListener("change", saveDefaults);
       paymentMethod.addEventListener("change", saveDefaults);
-      continuousMode.addEventListener("change", saveDefaults);
-      rememberDefaults.addEventListener("change", saveDefaults);
-      advancedToggleBtn.addEventListener("click", () => {
-        const open = !advancedPanel.hidden;
-        advancedPanel.hidden = open;
-        advancedToggleBtn.textContent = open ? "高级项" : "收高级";
-      });
       exitContinuousBtn.addEventListener("click", () => {
         clearContSession();
         hideContinuousBanner();
-        continuousMode.checked = false;
         saveDefaults();
-        setTip("已退出连续开单模式。可继续单次开单或再次勾选连续模式。");
+        setTip("");
         tip.className = "state-block info tip";
       });
       searchInput.addEventListener("input", () => {
         const list = filterQuickCustomers(allCustomers, searchInput.value);
         selectedCustomerId = "";
-        const cont = readContSession();
-        const skip = Boolean(cont?.active) && continuousMode.checked;
-        renderCustomers(list, { skipAutoSelect: skip });
+        renderCustomers(list, { skipAutoSelect: false });
       });
       addCustomerBtn.addEventListener("click", () => addCustomerOverlay.classList.add("show"));
       cancelAddBtn.addEventListener("click", () => addCustomerOverlay.classList.remove("show"));
@@ -814,36 +760,16 @@
         saveDefaults();
         const amount = Number((payload.unitPrice * payload.quantity).toFixed(2));
         const summaryLine = `本单已完成：${customerNameById(payload.customerId)}  ${payload.spec} × ${payload.quantity}   应收 ${amount.toFixed(2)} 元`;
-        if (continuousMode.checked) {
-          const prev = readContSession() || { orderCount: 0, sumAmount: 0 };
-          const next = {
-            active: true,
-            orderCount: Number(prev.orderCount || 0) + 1,
-            sumAmount: Number(prev.sumAmount || 0) + amount,
-            lastSummaryText: summaryLine,
-          };
-          writeContSession(next);
-          showContinuousBanner(next);
-          quantity = 1;
-          qtyText.textContent = "1";
-          selectedCustomerId = "";
-          searchInput.value = "";
-          renderCustomers(allCustomers, { skipAutoSelect: true });
-          setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}。连续开单中，请为下一单选择客户。`);
-        } else {
-          clearContSession();
-          hideContinuousBanner();
-          setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}，可在待配送/完单链路继续追踪。`);
-          quantity = 1;
-          qtyText.textContent = "1";
-          selectedCustomerId = "";
-          renderCustomers(allCustomers);
-        }
+        clearContSession();
+        hideContinuousBanner();
+        setTip(`开单成功：${typeText}，订单号 ${result.data.orderId}，可在待配送/完单链路继续追踪。`);
+        quantity = 1;
+        qtyText.textContent = "1";
+        selectedCustomerId = "";
+        renderCustomers(allCustomers);
         loading = false;
         createBtn.disabled = false;
       }
-
-      moreFieldsBtn.addEventListener("click", openConfirmPanel);
       cancelConfirmBtn.addEventListener("click", () => confirmOverlay.classList.remove("show"));
       submitConfirmBtn.addEventListener("click", async () => {
         const payload = buildPayload();

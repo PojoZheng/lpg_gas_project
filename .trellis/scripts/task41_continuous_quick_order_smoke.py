@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Smoke: quick-order continuous mode (req §5) UI and session key."""
+"""Smoke: quick-order streamlined UI after customer-entry simplification."""
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-HTML = ROOT / ".trellis" / "delivery-app" / "src" / "quick-order.html"
+HTML = ROOT / "apps" / "delivery-app" / "src" / "quick-order.html"
 
 
 def assert_contains(needles):
@@ -13,23 +13,34 @@ def assert_contains(needles):
     if needle not in text:
       raise AssertionError(f"quick-order.html: missing `{needle}`")
 
+def assert_not_contains(needles):
+  text = HTML.read_text(encoding="utf-8")
+  for needle in needles:
+    if needle in text:
+      raise AssertionError(f"quick-order.html: should remove `{needle}`")
+
 
 def main():
   assert_contains(
     [
-      'id="continuousBanner"',
-      'id="exitContinuousBtn"',
-      "连续开单中",
-      "退出连续模式",
-      "今日累计（本页连续）",
-      "qo-continuous-session-v1",
-      "readContSession",
-      "上一单客户不会自动保留",
-      "skipAutoSelect",
-      "对齐需求 §5.3",
+      'id="qtyText"',
+      'id="specSelect"',
+      'id="priceInput"',
+      'id="createBtn"',
+      "订单信息",
+      "提交开单",
     ]
   )
-  print("task41 continuous quick-order smoke passed")
+  assert_not_contains(
+    [
+      'id="continuousMode"',
+      'id="rememberDefaults"',
+      'id="moreFieldsBtn"',
+      'id="advancedToggleBtn"',
+      "提交与反馈",
+    ]
+  )
+  print("task41 quick-order simplified smoke passed")
 
 
 if __name__ == "__main__":

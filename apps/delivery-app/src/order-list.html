@@ -317,13 +317,12 @@
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
       import { goBackOr, restoreListScroll, navigateWithListScroll } from "./app-shell.js";
+      import { API_BASE_URL } from "./api-base.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
       }
 
-      const API_BASE = "http://localhost:3100";
-      
       function getAccessToken() {
         const authSession = JSON.parse(localStorage.getItem("auth_session") || "{}");
         if (authSession.accessToken) return authSession.accessToken;
@@ -409,7 +408,7 @@
             params.append("customerId", currentCustomerId);
           }
 
-          const res = await fetch(`${API_BASE}/orders?${params}`, {
+          const res = await fetch(`${API_BASE_URL}/orders?${params}`, {
             headers: { Authorization: `Bearer ${getAccessToken()}` },
           });
           

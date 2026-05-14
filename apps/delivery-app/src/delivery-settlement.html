@@ -25,6 +25,10 @@
       .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
       .row label { width: 82px; font-size: 13px; color: var(--text-secondary); }
       .row input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; }
+      .row select { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-input); padding: 0 10px; background: #fff; }
+      .row.readonly input { background: #f7fafb; color: var(--text-secondary); }
+      .sub-tip { margin: -4px 0 10px 82px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+      .section-title { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
       .pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
       .pay button { height: 44px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
       .pay button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
@@ -56,6 +60,7 @@
       </section>
 
       <section class="card">
+        <div class="section-title">收款与回收</div>
         <div class="row"><label>应收金额</label><input id="amountInput" disabled /></div>
         <div class="row"><label>实收金额</label><input id="receivedInput" type="number" min="0" step="0.01" /></div>
         <div class="pay" id="payWrap">
@@ -64,7 +69,17 @@
           <button type="button" data-method="credit">记账</button>
         </div>
         <div class="row"><label>回收空瓶</label><input id="recycleInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>回收规格</label>
+          <select id="recycleSpecInput">
+            <option value="10kg">10kg</option>
+            <option value="15kg">15kg</option>
+            <option value="50kg">50kg</option>
+          </select>
+        </div>
         <div class="row"><label>欠瓶数量</label><input id="owedInput" type="number" min="0" step="1" value="0" /></div>
+        <div class="row"><label>残液重量</label><input id="residualWeightInput" type="number" min="0" step="0.01" value="0" /></div>
+        <div class="sub-tip" id="residualHint">按平台规则执行，未启用残液计费。</div>
+        <div class="row readonly"><label>残液金额</label><input id="residualAmountInput" disabled value="0.00" /></div>
         <div class="actions">
           <button class="app-btn primary" id="completeBtn">提交完单</button>
           <button class="app-btn" id="cancelBtn">取消订单</button>
@@ -81,6 +96,7 @@
         fetchOrderById,
         fetchCurrentPlatformPolicy,
       } from "./delivery-complete-client.js";
+      import { fetchBusinessRules } from "./business-rules-client.js";
       import {
         getFlowState,
         patchFlowState,
@@ -96,6 +112,11 @@
       const orderId = flow.selectedOrderId || "";
       let order = flow.selectedOrder || null;
       let paymentMethod = "wechat";
+      let residualRules = {
+        enabled: false,
+        price: 0,
+        defaultMode: "ignore",
+      };
 
       if (!orderId) {
         window.location.href = "./pending-delivery-list.html";
@@ -116,6 +137,9 @@
         const receivedRaw = String(document.getElementById("receivedInput").value || "").trim();
         const recycle = Number(document.getElementById("recycleInput").value || 0);
         const owed = Number(document.getElementById("owedInput").value || 0);
+        const recycledEmptySpec = String(document.getElementById("recycleSpecInput").value || order?.spec || "").trim();
+        const residualWeightRaw = String(document.getElementById("residualWeightInput").value || "0").trim();
+        const residualWeight = Number(residualWeightRaw || 0);
         const received = Number(receivedRaw);
 
         if (!hasUpToTwoDecimals(receivedRaw) || !Number.isFinite(received) || received < 0) {
@@ -123,15 +147,57 @@
         }
         if (!Number.isInteger(recycle) || recycle < 0) return { ok: false, message: "回收空瓶必须为非负整数" };
         if (!Number.isInteger(owed) || owed < 0) return { ok: false, message: "欠瓶必须为非负整数" };
+        if (!["10kg", "15kg", "50kg"].includes(recycledEmptySpec)) return { ok: false, message: "回收规格不正确" };
+        if (!hasUpToTwoDecimals(residualWeightRaw) || !Number.isFinite(residualWeight) || residualWeight < 0) {
+          return { ok: false, message: "残液重量格式不正确" };
+        }
         if (recycle + owed > Number(order?.quantity || 0)) {
           return { ok: false, message: "回收空瓶+欠瓶不能超过配送数量" };
+        }
+        if (residualWeight > 0 && recycle <= 0) {
+          return { ok: false, message: "填写残液前，请先录入回收空瓶数量" };
         }
         if (paymentMethod === "credit" && received !== 0) return { ok: false, message: "记账时实收必须为0" };
         if (paymentMethod !== "credit" && received <= 0) return { ok: false, message: "现金/微信时实收需大于0" };
 
         return {
           ok: true,
-          payload: { receivedAmount: Number(received.toFixed(2)), paymentMethod, recycledEmptyCount: recycle, owedEmptyCount: owed },
+          payload: {
+            receivedAmount: Number(received.toFixed(2)),
+            paymentMethod,
+            recycledEmptyCount: recycle,
+            recycledEmptySpec,
+            owedEmptyCount: owed,
+            residualWeight: Number(residualWeight.toFixed(2)),
+          },
+        };
+      }
+
+      function syncResidualSummary() {
+        const recycle = Number(document.getElementById("recycleInput").value || 0);
+        const residualWeight = Number(document.getElementById("residualWeightInput").value || 0);
+        const effectiveWeight = recycle > 0 ? Math.max(0, residualWeight) : 0;
+        const enabled = Boolean(residualRules.enabled) && residualRules.defaultMode !== "ignore";
+        const amount = enabled ? Number((effectiveWeight * Number(residualRules.price || 0)).toFixed(2)) : 0;
+        document.getElementById("residualAmountInput").value = amount.toFixed(2);
+        const modeText =
+          residualRules.defaultMode === "separate"
+            ? "单独计费"
+            : residualRules.defaultMode === "deduct"
+              ? "按残液规则计费"
+              : "仅记录，不计费";
+        document.getElementById("residualHint").textContent = enabled
+          ? `残液单价 ${Number(residualRules.price || 0).toFixed(2)} 元/kg，当前${modeText}。`
+          : "按平台规则执行，当前未启用残液计费。";
+      }
+
+      async function loadBusinessRuleConfig() {
+        const res = await fetchBusinessRules();
+        if (!res?.success || !res.data) return;
+        residualRules = {
+          enabled: Boolean(res.data?.residual?.enabled),
+          price: Number(res.data?.residual?.price || 0),
+          defaultMode: String(res.data?.residual?.defaultMode || "ignore"),
         };
       }
 
@@ -154,9 +220,12 @@
         const draft = flow.settlementDraft || {};
         document.getElementById("receivedInput").value = Number(draft.receivedAmount ?? order.amount ?? 0).toFixed(2);
         document.getElementById("recycleInput").value = Number(draft.recycledEmptyCount ?? 0);
+        document.getElementById("recycleSpecInput").value = String(draft.recycledEmptySpec || order.recycledEmptySpec || order.spec || "15kg");
         document.getElementById("owedInput").value = Number(draft.owedEmptyCount ?? 0);
+        document.getElementById("residualWeightInput").value = Number(draft.residualWeight ?? order.residualWeight ?? 0).toFixed(2);
         paymentMethod = draft.paymentMethod || "wechat";
         document.querySelectorAll("#payWrap button").forEach((x) => x.classList.toggle("active", x.dataset.method === paymentMethod));
+        syncResidualSummary();
       }
 
       async function decideSafetyAndGo() {
@@ -183,6 +252,9 @@
           document.querySelectorAll("#payWrap button").forEach((x) => x.classList.toggle("active", x === btn));
         });
       });
+      document.getElementById("recycleInput").addEventListener("input", syncResidualSummary);
+      document.getElementById("recycleSpecInput").addEventListener("change", syncResidualSummary);
+      document.getElementById("residualWeightInput").addEventListener("input", syncResidualSummary);
 
       document.getElementById("completeBtn").addEventListener("click", async () => {
         const validated = validate();
@@ -206,7 +278,10 @@
         }, 500);
       });
 
-      void loadOrder();
+      void (async () => {
+        await loadBusinessRuleConfig();
+        await loadOrder();
+      })();
     </script>
   </body>
 </html>

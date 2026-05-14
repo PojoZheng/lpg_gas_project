@@ -107,6 +107,17 @@
         color: var(--text-secondary);
         line-height: 1.4;
       }
+      .queue-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .queue-actions .app-btn {
+        min-height: 34px;
+        height: 34px;
+        padding: 0 12px;
+        font-size: 13px;
+      }
       .queue-line strong {
         color: var(--text-primary);
       }
@@ -156,6 +167,7 @@
     <script type="module">
       import { ensureAuthenticatedPage } from "./auth-client.js";
       import { fetchOfflineQueue, submitOfflineQueueBatch } from "./offline-sync-client.js";
+      import { patchFlowState } from "./delivery-flow-state.js";
 
       if (!ensureAuthenticatedPage()) {
         throw new Error("未登录");
@@ -208,6 +220,27 @@
         return "待提交";
       }
 
+      function goRepairSafety(orderId) {
+        const nextOrderId = String(orderId || "").trim();
+        if (!nextOrderId) {
+          setTip("缺少订单信息，无法进入安检补录", "error");
+          return;
+        }
+        patchFlowState({
+          selectedOrderId: nextOrderId,
+          selectedOrder: null,
+          settlementDraft: null,
+          lastComplete: {
+            orderId: nextOrderId,
+            owedAmount: 0,
+            owedEmptyCount: 0,
+            residualAmount: 0,
+            residualWeight: 0,
+          },
+        });
+        window.location.href = "./delivery-safety.html";
+      }
+
       function renderList(items) {
         queueList.innerHTML = "";
         if (!Array.isArray(items) || !items.length) {
@@ -221,15 +254,29 @@
           const action = String(item.action || "").trim() || "未标记";
           const entityType = String(item.entityType || "").trim() || "未知";
           const summary = String(item.resultSummary || item.lastError || "").trim() || "等待手动提交";
+          const business = item.business || {};
+          const orderId = String(business.orderId || "").trim();
+          const customerName = String(business.customerName || "").trim();
+          const canRepairSafety =
+            entityType === "safety" &&
+            status === "failed" &&
+            Boolean(orderId);
           card.innerHTML = `
             <div class="queue-head">
               <div class="queue-id">${String(item.offlineId || "--")}</div>
               <span class="queue-status ${status}">${statusText(status)}</span>
             </div>
             <div class="queue-line">类型：<strong>${entityType}</strong>｜动作：<strong>${action}</strong></div>
+            ${customerName || orderId ? `<div class="queue-line">客户：<strong>${customerName || "未识别客户"}</strong>${orderId ? `｜订单：<strong>${orderId}</strong>` : ""}</div>` : ""}
             <div class="queue-line">更新时间：${formatTime(item.updatedAt || item.createdAt)}</div>
             <div class="queue-line">${summary}</div>
+            ${canRepairSafety ? '<div class="queue-actions"><button type="button" class="app-btn" data-action="repair-safety">去补安检</button></div>' : ""}
           `;
+          if (canRepairSafety) {
+            card.querySelector('[data-action="repair-safety"]')?.addEventListener("click", () => {
+              goRepairSafety(orderId);
+            });
+          }
           queueList.appendChild(card);
         });
       }

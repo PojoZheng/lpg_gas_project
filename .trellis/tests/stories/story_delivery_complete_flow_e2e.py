@@ -9,6 +9,7 @@ from pathlib import Path
 import random
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -140,22 +141,30 @@ if __name__ == "__main__":
     if not SERVER_JS.exists():
         print(f"story_delivery_complete_flow_e2e failed: missing {SERVER_JS}", file=sys.stderr)
         raise SystemExit(1)
-    proc = subprocess.Popen(
-        ["node", str(SERVER_JS)],
-        cwd=str(ROOT),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        env={**os.environ, "PORT": str(PORT)},
-    )
-    try:
-        wait_server_ready()
-        run()
-    except AssertionError as err:
-        print(f"story_delivery_complete_flow_e2e failed: {err}", file=sys.stderr)
-        raise SystemExit(1) from err
-    finally:
-        proc.terminate()
+    with tempfile.TemporaryDirectory(prefix="story-delivery-complete-") as tmpdir:
+        env = {
+            **os.environ,
+            "PORT": str(PORT),
+            "TRELLIS_DB_PATH": str(Path(tmpdir) / "story.sqlite"),
+            "TRELLIS_RUNTIME_STATE_PATH": str(Path(tmpdir) / "runtime-state.json"),
+            "TRELLIS_CUSTOMER_LEDGER_PATH": str(Path(tmpdir) / "customer-ledger.json"),
+        }
+        proc = subprocess.Popen(
+            ["node", str(SERVER_JS)],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=env,
+        )
         try:
-            proc.wait(timeout=2)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+            wait_server_ready()
+            run()
+        except AssertionError as err:
+            print(f"story_delivery_complete_flow_e2e failed: {err}", file=sys.stderr)
+            raise SystemExit(1) from err
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                proc.kill()
