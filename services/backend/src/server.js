@@ -3625,6 +3625,7 @@ const server = http.createServer(async (req, res) => {
       const { phone, code, deviceName } = await readBody(req);
       const result = login(phone, code, deviceName || "网页端");
       return sendContractSuccess(
+        req,
         res,
         200,
         {
